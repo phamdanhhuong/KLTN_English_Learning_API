@@ -1,0 +1,60 @@
+// KLTN English Learning API - Prisma Schema
+// Module: Auth (Phase 1)
+// TODO: Add User Profile, Learning, Gamification models in later phases
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTH MODULE ====================
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  password        String?
+  googleId        String?        @unique @map("google_id")
+  facebookId      String?        @unique @map("facebook_id")
+  isEmailVerified Boolean        @default(false) @map("is_email_verified")
+  isActive        Boolean        @default(true) @map("is_active")
+  lastLoginAt     DateTime?      @map("last_login_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  role            Role           @relation(fields: [roleId], references: [id])
+  roleId          String         @map("role_id")
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  users       User[]
+
+  @@map("roles")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
