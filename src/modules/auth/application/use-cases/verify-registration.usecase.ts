@@ -6,14 +6,12 @@ import {
 } from '@nestjs/common';
 import { AUTH_TOKENS } from '../../domain/di/tokens';
 import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
-import { HashService } from '../../domain/services/hash.service';
 import { TokenService, TokenPair } from '../../domain/services/token.service';
 import { RefreshTokenRepository } from '../../domain/repositories/refresh-token.repository';
 import { UserProfileService } from '../../domain/services/user-profile.service';
 import { LearningService } from '../../domain/services/learning.service';
 import { CacheService } from '../../domain/services/cache.service';
 import { VerifyOtpDto } from '../dto/otp.dto';
-import { RegisterDto } from '../dto/register.dto';
 
 @Injectable()
 export class VerifyRegistrationUseCase {
@@ -22,8 +20,6 @@ export class VerifyRegistrationUseCase {
   constructor(
     @Inject(AUTH_TOKENS.AUTH_USER_REPOSITORY)
     private readonly authUserRepo: AuthUserRepository,
-    @Inject(AUTH_TOKENS.HASH_SERVICE)
-    private readonly hashService: HashService,
     @Inject(AUTH_TOKENS.TOKEN_SERVICE)
     private readonly tokenService: TokenService,
     @Inject(AUTH_TOKENS.REFRESH_TOKEN_REPOSITORY)
@@ -37,7 +33,7 @@ export class VerifyRegistrationUseCase {
   ) {}
 
   async execute(
-    dto: VerifyOtpDto & RegisterDto,
+    dto: VerifyOtpDto,
   ): Promise<{ tokens: TokenPair; message: string }> {
     // Verify OTP
     const isValid = await this.userProfileService.verifyRegistrationOtp(
@@ -48,25 +44,35 @@ export class VerifyRegistrationUseCase {
       throw new BadRequestException('Invalid or expired OTP');
     }
 
+    // Retrieve hashed password from cache (saved during register step)
+    const hashedPassword = await this.cacheService.get<string>(
+      `register:${dto.email}`,
+    );
+    if (!hashedPassword) {
+      throw new BadRequestException(
+        'Registration session expired. Please register again.',
+      );
+    }
+
     // Check if user already exists (race condition protection)
     const existingUser = await this.authUserRepo.findByEmail(dto.email);
     if (existingUser) {
       throw new BadRequestException('Email already registered');
     }
 
-    // Hash password
-    const hashedPassword = await this.hashService.hash(dto.password);
-
     // Get default USER role ID from cache or hardcode
     const defaultRoleId = await this.getDefaultRoleId();
 
-    // Create auth user
+    // Create auth user (password already hashed from register step)
     const user = await this.authUserRepo.create({
       email: dto.email,
       password: hashedPassword,
       roleId: defaultRoleId,
       isEmailVerified: true,
     });
+
+    // Clean up cached password
+    await this.cacheService.del(`register:${dto.email}`);
 
     // Create user profile in UserModule (cross-module call)
     try {

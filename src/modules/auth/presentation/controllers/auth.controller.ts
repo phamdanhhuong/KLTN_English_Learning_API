@@ -56,9 +56,7 @@ export class AuthController {
   @Public()
   @Post('verify-registration')
   @HttpCode(HttpStatus.CREATED)
-  async verifyRegistration(
-    @Body() dto: VerifyOtpDto & RegisterDto,
-  ) {
+  async verifyRegistration(@Body() dto: VerifyOtpDto) {
     return this.verifyRegistrationUseCase.execute(dto);
   }
 
@@ -72,10 +70,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(
-    @CurrentUser('sub') userId: string,
-    @Req() req: Request,
-  ) {
+  async logout(@CurrentUser('sub') userId: string, @Req() req: Request) {
     const token = req.headers.authorization?.split(' ')[1] || '';
     return this.logoutUserUseCase.execute(userId, token);
   }
