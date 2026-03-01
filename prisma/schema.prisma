@@ -1,6 +1,5 @@
 // KLTN English Learning API - Prisma Schema
-// Module: Auth (Phase 1)
-// TODO: Add User Profile, Learning, Gamification models in later phases
+// Module: Auth (Phase 1) + Skill/Learning (Phase 2)
 
 generator client {
   provider = "prisma-client-js"
@@ -9,6 +8,25 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum ExerciseType {
+  translate
+  listen_choose
+  fill_blank
+  speak
+  match
+  multiple_choice
+  writing_prompt
+  image_description
+  read_comprehension
+  podcast
+  compare_words
+  pronunciation_vowel
+  pronunciation_consonant
+  pronunciation_word
 }
 
 // ==================== AUTH MODULE ====================
@@ -57,4 +75,344 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+// ==================== SKILL / LEARNING MODULE ====================
+
+model SkillPart {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  skills Skill[]
+
+  @@map("skill_parts")
+}
+
+model Skill {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  position    Int      @default(0)
+  partId      String   @map("part_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  part           SkillPart       @relation(fields: [partId], references: [id], onDelete: Cascade)
+  skillLevels    SkillLevel[]
+  lessons        Lesson[]
+  skillProgress  SkillProgress[]
+  skillWords     SkillWord[]
+  skillGrammars  SkillGrammar[]
+
+  @@map("skills")
+}
+
+model SkillLevel {
+  skillId String @map("skill_id")
+  level   Int
+
+  skill   Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@id([skillId, level])
+  @@map("skill_levels")
+}
+
+model Lesson {
+  id         String   @id @default(uuid())
+  skillId    String   @map("skill_id")
+  skillLevel Int      @map("skill_level")
+  title      String   @db.VarChar(255)
+  position   Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  skill     Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  skillLvl  SkillLevel @relation(fields: [skillId, skillLevel], references: [skillId, level], onDelete: Cascade)
+  exercises Exercise[]
+
+  @@map("lessons")
+}
+
+model Word {
+  id            String   @id @default(uuid())
+  content       String   @unique @db.VarChar(255)
+  pronunciation String?  @db.VarChar(255)
+  meaning       String?  @db.Text
+  audioUrl      String?  @map("audio_url") @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  wordMastery   WordMastery[]
+  exerciseWords ExerciseWord[]
+  skillWords    SkillWord[]
+  wordTags      WordTag[]
+
+  @@map("words")
+}
+
+model Grammar {
+  id          String   @id @default(uuid())
+  rule        String   @db.Text
+  explanation String?  @db.Text
+  examples    Json?    @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  grammarMastery   GrammarMastery[]
+  exerciseGrammars ExerciseGrammar[]
+  skillGrammars    SkillGrammar[]
+
+  @@map("grammars")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique @db.VarChar(50)
+
+  wordTags WordTag[]
+
+  @@map("tags")
+}
+
+model Vowel {
+  id          String   @id @default(uuid())
+  symbol      String   @unique @db.VarChar(10)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  examples    Json?    @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  pronunciationLessons PronunciationLessonVowel[]
+  masteryRecords       VowelMastery[]
+
+  @@map("vowels")
+}
+
+model Consonant {
+  id          String   @id @default(uuid())
+  symbol      String   @unique @db.VarChar(10)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  examples    Json?    @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  pronunciationLessons PronunciationLessonConsonant[]
+  masteryRecords       ConsonantMastery[]
+
+  @@map("consonants")
+}
+
+model Exercise {
+  id           String       @id @default(uuid())
+  lessonId     String       @map("lesson_id")
+  exerciseType ExerciseType @map("exercise_type")
+  prompt       String?      @db.Text
+  meta         Json?        @db.JsonB
+  position     Int          @default(0)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lesson           Lesson            @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  exerciseWords    ExerciseWord[]
+  exerciseGrammars ExerciseGrammar[]
+  exerciseResults  ExerciseResult[]
+
+  @@map("exercises")
+}
+
+model PronunciationLesson {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  vowels     PronunciationLessonVowel[]
+  consonants PronunciationLessonConsonant[]
+  exercises  PronunciationExercise[]
+
+  @@map("pronunciation_lessons")
+}
+
+model PronunciationLessonVowel {
+  lessonId String @map("lesson_id")
+  vowelId  String @map("vowel_id")
+
+  lesson PronunciationLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  vowel  Vowel               @relation(fields: [vowelId], references: [id], onDelete: Cascade)
+
+  @@id([lessonId, vowelId])
+  @@map("pronunciation_lesson_vowels")
+}
+
+model PronunciationLessonConsonant {
+  lessonId    String @map("lesson_id")
+  consonantId String @map("consonant_id")
+
+  lesson    PronunciationLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  consonant Consonant           @relation(fields: [consonantId], references: [id], onDelete: Cascade)
+
+  @@id([lessonId, consonantId])
+  @@map("pronunciation_lesson_consonants")
+}
+
+model PronunciationExercise {
+  id           String       @id @default(uuid())
+  lessonId     String       @map("lesson_id")
+  exerciseType ExerciseType @map("exercise_type")
+  prompt       String?      @db.Text
+  meta         Json?        @db.JsonB
+  position     Int          @default(0)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lesson          PronunciationLesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  exerciseResults PronunciationExerciseResult[]
+
+  @@map("pronunciation_exercises")
+}
+
+model PronunciationExerciseResult {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  exerciseId     String   @map("exercise_id")
+  correctCount   Int      @map("correct_count") @default(0)
+  incorrectCount Int      @map("incorrect_count") @default(0)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  exercise PronunciationExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("pronunciation_exercise_results")
+}
+
+model VowelMastery {
+  userId       String    @map("user_id")
+  vowelId      String    @map("vowel_id")
+  masteryLevel Int       @default(0) @map("mastery_level")
+  lastReview   DateTime? @map("last_review") @db.Timestamptz(6)
+
+  vowel Vowel @relation(fields: [vowelId], references: [id], onDelete: Cascade)
+
+  @@id([userId, vowelId])
+  @@map("vowel_mastery")
+}
+
+model ConsonantMastery {
+  userId       String    @map("user_id")
+  consonantId  String    @map("consonant_id")
+  masteryLevel Int       @default(0) @map("mastery_level")
+  lastReview   DateTime? @map("last_review") @db.Timestamptz(6)
+
+  consonant Consonant @relation(fields: [consonantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, consonantId])
+  @@map("consonant_mastery")
+}
+
+// ==================== PROGRESS TRACKING ====================
+
+model SkillProgress {
+  userId         String    @id @map("user_id")
+  skillId        String    @map("skill_id")
+  levelReached   Int       @default(1) @map("level_reached")
+  lessonPosition Int       @default(0) @map("lesson_position")
+  lastPracticed  DateTime? @map("last_practiced") @db.Timestamptz(6)
+
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@map("skill_progress")
+}
+
+model WordMastery {
+  userId       String    @map("user_id")
+  wordId       String    @map("word_id")
+  masteryLevel Int       @default(0) @map("mastery_level")
+  lastReview   DateTime? @map("last_review") @db.Timestamptz(6)
+
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@id([userId, wordId])
+  @@map("word_mastery")
+}
+
+model GrammarMastery {
+  userId       String    @map("user_id")
+  grammarId    String    @map("grammar_id")
+  masteryLevel Int       @default(0) @map("mastery_level")
+  lastReview   DateTime? @map("last_review") @db.Timestamptz(6)
+
+  grammar Grammar @relation(fields: [grammarId], references: [id], onDelete: Cascade)
+
+  @@id([userId, grammarId])
+  @@map("grammar_mastery")
+}
+
+model ExerciseResult {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  exerciseId     String   @map("exercise_id")
+  correctCount   Int      @map("correct_count") @default(0)
+  incorrectCount Int      @map("incorrect_count") @default(0)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("exercise_results")
+}
+
+// ==================== JUNCTION TABLES ====================
+
+model ExerciseWord {
+  exerciseId String @map("exercise_id")
+  wordId     String @map("word_id")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  word     Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@id([exerciseId, wordId])
+  @@map("exercise_words")
+}
+
+model ExerciseGrammar {
+  exerciseId String @map("exercise_id")
+  grammarId  String @map("grammar_id")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  grammar  Grammar  @relation(fields: [grammarId], references: [id], onDelete: Cascade)
+
+  @@id([exerciseId, grammarId])
+  @@map("exercise_grammars")
+}
+
+model SkillWord {
+  skillId String @map("skill_id")
+  wordId  String @map("word_id")
+
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  word  Word  @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@id([skillId, wordId])
+  @@map("skill_words")
+}
+
+model SkillGrammar {
+  skillId   String @map("skill_id")
+  grammarId String @map("grammar_id")
+
+  skill   Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  grammar Grammar @relation(fields: [grammarId], references: [id], onDelete: Cascade)
+
+  @@id([skillId, grammarId])
+  @@map("skill_grammars")
+}
+
+model WordTag {
+  wordId String @map("word_id")
+  tagId  String @map("tag_id")
+
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([wordId, tagId])
+  @@map("word_tags")
 }
