@@ -7,19 +7,33 @@ import {
   Body,
   Param,
 } from '@nestjs/common';
-import { LessonUseCases } from '../../application/usecases/lesson.usecases';
 import {
   CreateLessonDto,
   UpdateLessonDto,
 } from '../../application/dto/lesson.dto';
+import {
+  GetLessonByIdUseCase,
+  GetLessonsBySkillLevelUseCase,
+  GetLessonsBySkillIdUseCase,
+  CreateLessonUseCase,
+  UpdateLessonUseCase,
+  DeleteLessonUseCase,
+} from '../../application/use-cases/lesson';
 
 @Controller('learning/lessons')
 export class LessonController {
-  constructor(private readonly lessonUseCases: LessonUseCases) {}
+  constructor(
+    private readonly getLessonByIdUseCase: GetLessonByIdUseCase,
+    private readonly getLessonsBySkillLevelUseCase: GetLessonsBySkillLevelUseCase,
+    private readonly getLessonsBySkillIdUseCase: GetLessonsBySkillIdUseCase,
+    private readonly createLessonUseCase: CreateLessonUseCase,
+    private readonly updateLessonUseCase: UpdateLessonUseCase,
+    private readonly deleteLessonUseCase: DeleteLessonUseCase,
+  ) {}
 
   @Get(':id')
   async getLessonById(@Param('id') id: string) {
-    return this.lessonUseCases.getLessonById(id);
+    return this.getLessonByIdUseCase.execute(id);
   }
 
   @Get('skill/:skillId/level/:level')
@@ -27,29 +41,29 @@ export class LessonController {
     @Param('skillId') skillId: string,
     @Param('level') level: number,
   ) {
-    return this.lessonUseCases.getLessonsBySkillLevel(skillId, +level);
+    return this.getLessonsBySkillLevelUseCase.execute(skillId, +level);
   }
 
   @Get('skill/:skillId')
   async getLessonsBySkillId(@Param('skillId') skillId: string) {
-    return this.lessonUseCases.getLessonsBySkillId(skillId);
+    return this.getLessonsBySkillIdUseCase.execute(skillId);
   }
 
-  @Post('create')
+  @Post()
   async createLesson(@Body() createLessonDto: CreateLessonDto) {
-    return this.lessonUseCases.createLesson(createLessonDto);
+    return this.createLessonUseCase.execute(createLessonDto);
   }
 
-  @Put('update/:id')
+  @Put(':id')
   async updateLesson(
     @Param('id') id: string,
     @Body() updateLessonDto: UpdateLessonDto,
   ) {
-    return this.lessonUseCases.updateLesson(id, updateLessonDto);
+    return this.updateLessonUseCase.execute(id, updateLessonDto);
   }
 
-  @Delete('delete/:id')
+  @Delete(':id')
   async deleteLesson(@Param('id') id: string) {
-    return this.lessonUseCases.deleteLesson(id);
+    return this.deleteLessonUseCase.execute(id);
   }
 }

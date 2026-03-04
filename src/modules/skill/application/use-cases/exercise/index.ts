@@ -1,0 +1,8 @@
+export { GetExerciseByIdUseCase } from './get-exercise-by-id.usecase';
+export { GetExercisesByLessonIdUseCase } from './get-exercises-by-lesson-id.usecase';
+export { CreateExerciseUseCase } from './create-exercise.usecase';
+export { CreateManyExercisesUseCase } from './create-many-exercises.usecase';
+export { UpdateExerciseUseCase } from './update-exercise.usecase';
+export { DeleteExerciseUseCase } from './delete-exercise.usecase';
+export { DeleteExercisesByLessonIdUseCase } from './delete-exercises-by-lesson-id.usecase';
+export { GetExerciseCountUseCase } from './get-exercise-count.usecase';

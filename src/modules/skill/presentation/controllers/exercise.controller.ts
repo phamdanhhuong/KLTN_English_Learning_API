@@ -9,42 +9,60 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ExerciseUseCases } from '../../application/usecases/exercise.usecases';
 import {
   CreateExerciseDto,
   UpdateExerciseDto,
 } from '../../application/dto/exercise.dto';
+import {
+  GetExerciseByIdUseCase,
+  GetExercisesByLessonIdUseCase,
+  GetExerciseCountUseCase,
+  CreateExerciseUseCase,
+  CreateManyExercisesUseCase,
+  UpdateExerciseUseCase,
+  DeleteExerciseUseCase,
+  DeleteExercisesByLessonIdUseCase,
+} from '../../application/use-cases/exercise';
 
 @Controller('learning/exercises')
 export class ExerciseController {
-  constructor(private readonly exerciseUseCases: ExerciseUseCases) {}
+  constructor(
+    private readonly getExerciseByIdUseCase: GetExerciseByIdUseCase,
+    private readonly getExercisesByLessonIdUseCase: GetExercisesByLessonIdUseCase,
+    private readonly getExerciseCountUseCase: GetExerciseCountUseCase,
+    private readonly createExerciseUseCase: CreateExerciseUseCase,
+    private readonly createManyExercisesUseCase: CreateManyExercisesUseCase,
+    private readonly updateExerciseUseCase: UpdateExerciseUseCase,
+    private readonly deleteExerciseUseCase: DeleteExerciseUseCase,
+    private readonly deleteExercisesByLessonIdUseCase: DeleteExercisesByLessonIdUseCase,
+  ) {}
 
   @Get(':id')
   async getExerciseById(@Param('id') id: string) {
-    return this.exerciseUseCases.getExerciseById(id);
+    return this.getExerciseByIdUseCase.execute(id);
   }
 
   @Get('lesson/:lessonId')
   async getExercisesByLessonId(@Param('lessonId') lessonId: string) {
-    return this.exerciseUseCases.getExercisesByLessonId(lessonId);
+    return this.getExercisesByLessonIdUseCase.execute(lessonId);
   }
 
   @Get('lesson/:lessonId/count')
   async getExerciseCount(@Param('lessonId') lessonId: string) {
-    const count = await this.exerciseUseCases.getExerciseCount(lessonId);
+    const count = await this.getExerciseCountUseCase.execute(lessonId);
     return { count };
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createExercise(@Body() createExerciseDto: CreateExerciseDto) {
-    return this.exerciseUseCases.createExercise(createExerciseDto);
+    return this.createExerciseUseCase.execute(createExerciseDto);
   }
 
   @Post('bulk')
   @HttpCode(HttpStatus.CREATED)
   async createManyExercises(@Body() createExerciseDtos: CreateExerciseDto[]) {
-    return this.exerciseUseCases.createManyExercises(createExerciseDtos);
+    return this.createManyExercisesUseCase.execute(createExerciseDtos);
   }
 
   @Put(':id')
@@ -52,18 +70,18 @@ export class ExerciseController {
     @Param('id') id: string,
     @Body() updateExerciseDto: UpdateExerciseDto,
   ) {
-    return this.exerciseUseCases.updateExercise(id, updateExerciseDto);
+    return this.updateExerciseUseCase.execute(id, updateExerciseDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteExercise(@Param('id') id: string) {
-    return this.exerciseUseCases.deleteExercise(id);
+    return this.deleteExerciseUseCase.execute(id);
   }
 
   @Delete('lesson/:lessonId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteExercisesByLessonId(@Param('lessonId') lessonId: string) {
-    return this.exerciseUseCases.deleteExercisesByLessonId(lessonId);
+    return this.deleteExercisesByLessonIdUseCase.execute(lessonId);
   }
 }

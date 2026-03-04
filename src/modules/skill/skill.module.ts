@@ -7,11 +7,46 @@ import { SkillPartController } from './presentation/controllers/skill-part.contr
 import { LessonController } from './presentation/controllers/lesson.controller';
 import { ExerciseController } from './presentation/controllers/exercise.controller';
 
-// Use Cases
-import { SkillUseCases } from './application/usecases/skill.usecases';
-import { SkillPartUseCases } from './application/usecases/skill-part.usecases';
-import { LessonUseCases } from './application/usecases/lesson.usecases';
-import { ExerciseUseCases } from './application/usecases/exercise.usecases';
+// Skill Use Cases
+import {
+  CreateSkillUseCase,
+  GetAllSkillsUseCase,
+  GetSkillByIdUseCase,
+  UpdateSkillUseCase,
+  DeleteSkillUseCase,
+  ValidateSkillStructureUseCase,
+} from './application/use-cases/skill';
+
+// Skill Part Use Cases
+import {
+  GetAllSkillPartsUseCase,
+  GetSkillPartByIdUseCase,
+  CreateSkillPartUseCase,
+  UpdateSkillPartUseCase,
+  DeleteSkillPartUseCase,
+} from './application/use-cases/skill-part';
+
+// Lesson Use Cases
+import {
+  GetLessonByIdUseCase,
+  GetLessonsBySkillLevelUseCase,
+  GetLessonsBySkillIdUseCase,
+  CreateLessonUseCase,
+  UpdateLessonUseCase,
+  DeleteLessonUseCase,
+} from './application/use-cases/lesson';
+
+// Exercise Use Cases
+import {
+  GetExerciseByIdUseCase,
+  GetExercisesByLessonIdUseCase,
+  CreateExerciseUseCase,
+  CreateManyExercisesUseCase,
+  UpdateExerciseUseCase,
+  DeleteExerciseUseCase,
+  DeleteExercisesByLessonIdUseCase,
+  GetExerciseCountUseCase,
+} from './application/use-cases/exercise';
 
 // Application Services
 import { ExerciseMetaValidatorService } from './application/services/exercise-meta-validator.service';
@@ -28,6 +63,44 @@ import { SkillDomainServiceImpl } from './infrastructure/services/skill-domain.s
 
 // DI Tokens
 import { SKILL_TOKENS } from './domain/di/tokens';
+
+// All use case classes for convenience
+const skillUseCases = [
+  CreateSkillUseCase,
+  GetAllSkillsUseCase,
+  GetSkillByIdUseCase,
+  UpdateSkillUseCase,
+  DeleteSkillUseCase,
+  ValidateSkillStructureUseCase,
+];
+
+const skillPartUseCases = [
+  GetAllSkillPartsUseCase,
+  GetSkillPartByIdUseCase,
+  CreateSkillPartUseCase,
+  UpdateSkillPartUseCase,
+  DeleteSkillPartUseCase,
+];
+
+const lessonUseCases = [
+  GetLessonByIdUseCase,
+  GetLessonsBySkillLevelUseCase,
+  GetLessonsBySkillIdUseCase,
+  CreateLessonUseCase,
+  UpdateLessonUseCase,
+  DeleteLessonUseCase,
+];
+
+const exerciseUseCases = [
+  GetExerciseByIdUseCase,
+  GetExercisesByLessonIdUseCase,
+  CreateExerciseUseCase,
+  CreateManyExercisesUseCase,
+  UpdateExerciseUseCase,
+  DeleteExerciseUseCase,
+  DeleteExercisesByLessonIdUseCase,
+  GetExerciseCountUseCase,
+];
 
 @Module({
   imports: [RedisModule],
@@ -67,19 +140,19 @@ import { SKILL_TOKENS } from './domain/di/tokens';
     },
 
     // Use Cases
-    SkillUseCases,
-    SkillPartUseCases,
-    LessonUseCases,
-    ExerciseUseCases,
+    ...skillUseCases,
+    ...skillPartUseCases,
+    ...lessonUseCases,
+    ...exerciseUseCases,
 
     // Application Services
     ExerciseMetaValidatorService,
   ],
   exports: [
-    SkillUseCases,
-    SkillPartUseCases,
-    LessonUseCases,
-    ExerciseUseCases,
+    ...skillUseCases,
+    ...skillPartUseCases,
+    ...lessonUseCases,
+    ...exerciseUseCases,
     SKILL_TOKENS.SKILL_REPOSITORY,
     SKILL_TOKENS.SKILL_PART_REPOSITORY,
     SKILL_TOKENS.LESSON_REPOSITORY,

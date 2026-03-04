@@ -7,46 +7,60 @@ import {
   Body,
   Param,
 } from '@nestjs/common';
-import { SkillUseCases } from '../../application/usecases/skill.usecases';
 import {
   CreateSkillDto,
   UpdateSkillDto,
 } from '../../application/dto/skill.dto';
+import {
+  GetAllSkillsUseCase,
+  GetSkillByIdUseCase,
+  CreateSkillUseCase,
+  UpdateSkillUseCase,
+  DeleteSkillUseCase,
+  ValidateSkillStructureUseCase,
+} from '../../application/use-cases/skill';
 
 @Controller('learning/skills')
 export class SkillController {
-  constructor(private readonly skillUseCases: SkillUseCases) {}
+  constructor(
+    private readonly getAllSkillsUseCase: GetAllSkillsUseCase,
+    private readonly getSkillByIdUseCase: GetSkillByIdUseCase,
+    private readonly createSkillUseCase: CreateSkillUseCase,
+    private readonly updateSkillUseCase: UpdateSkillUseCase,
+    private readonly deleteSkillUseCase: DeleteSkillUseCase,
+    private readonly validateSkillStructureUseCase: ValidateSkillStructureUseCase,
+  ) {}
 
   @Get()
   async getAllSkills() {
-    return this.skillUseCases.getAllSkills();
+    return this.getAllSkillsUseCase.execute();
   }
 
-  @Get('get/:id')
+  @Get(':id')
   async getSkillById(@Param('id') id: string) {
-    return this.skillUseCases.getSkillById(id);
+    return this.getSkillByIdUseCase.execute(id);
   }
 
-  @Post('create')
+  @Post()
   async createSkill(@Body() createSkillDto: CreateSkillDto) {
-    return this.skillUseCases.createSkill(createSkillDto);
+    return this.createSkillUseCase.execute(createSkillDto);
   }
 
-  @Put('update/:id')
+  @Put(':id')
   async updateSkill(
     @Param('id') id: string,
     @Body() updateSkillDto: UpdateSkillDto,
   ) {
-    return this.skillUseCases.updateSkill(id, updateSkillDto);
+    return this.updateSkillUseCase.execute(id, updateSkillDto);
   }
 
-  @Delete('delete/:id')
+  @Delete(':id')
   async deleteSkill(@Param('id') id: string) {
-    return this.skillUseCases.deleteSkill(id);
+    return this.deleteSkillUseCase.execute(id);
   }
 
-  @Get('validate/:id')
+  @Get(':id/validate')
   async validateSkillStructure(@Param('id') id: string) {
-    return this.skillUseCases.validateSkillStructure(id);
+    return this.validateSkillStructureUseCase.execute(id);
   }
 }
