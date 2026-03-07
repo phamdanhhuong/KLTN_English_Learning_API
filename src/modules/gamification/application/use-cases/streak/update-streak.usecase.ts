@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
+import { AchievementCheckerService } from '../../../../achievement/application/services/achievement-checker.service';
 
 export interface UpdateStreakResult {
     currentStreak: number;
@@ -55,12 +56,15 @@ function isYesterday(date: Date, today: Date): boolean {
 
 @Injectable()
 export class UpdateStreakUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly achievementChecker: AchievementCheckerService,
+  ) {}
 
   async execute(userId: string): Promise<UpdateStreakResult> {
     const today = getVnToday();
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       let streak = await tx.streakData.findUnique({ where: { userId } });
 
       const calcNextMilestone = (current: number) => {
@@ -173,6 +177,11 @@ export class UpdateStreakUseCase {
         nextMilestone: calcNextMilestone(newStreak),
       };
     });
+
+    // Check achievements sau transaction (không block main flow)
+    this.achievementChecker.check(userId, 'streak', result.currentStreak).catch(() => {});
+
+    return result;
   }
 }
 
