@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './infrastructure/database/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SkillModule } from './modules/skill/skill.module';
+import { ProgressModule } from './modules/progress/progress.module';
 import { MailModule } from './common/mail/mail.module';
 import { UserModule } from './modules/user/user.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
@@ -25,6 +26,7 @@ import { GamificationModule } from './modules/gamification/gamification.module';
     UserModule,
     AuthModule,
     SkillModule,
+    ProgressModule,
   ],
   controllers: [],
   providers: [],

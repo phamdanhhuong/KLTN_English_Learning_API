@@ -1,0 +1,3 @@
+export const PROGRESS_TOKENS = {
+  SKILL_PROGRESS_REPOSITORY: Symbol('SKILL_PROGRESS_REPOSITORY'),
+} as const;
