@@ -42,7 +42,7 @@ export class FacebookLoginUseCase {
     accessToken: string,
   ): Promise<{
     tokens: TokenPair;
-    user: { id: string; email: string; role: string };
+    user: { id: string; email: string; role: { id: number; name: string } };
     isNewUser: boolean;
   }> {
     const fbProfile = await this.verifyFacebookToken(accessToken);
@@ -108,7 +108,7 @@ export class FacebookLoginUseCase {
 
     return {
       tokens,
-      user: { id: user.id, email: user.email, role: roleName },
+      user: { id: user.id, email: user.email, role: { id: 1, name: roleName } },
       isNewUser,
     };
   }
