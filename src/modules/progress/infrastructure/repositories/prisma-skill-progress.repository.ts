@@ -7,20 +7,19 @@ import { SkillProgressEntity } from '../../domain/entities/skill-progress.entity
 export class PrismaSkillProgressRepository implements SkillProgressRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByUserId(userId: string): Promise<SkillProgressEntity[]> {
-    const records = await this.prisma.skillProgress.findMany({
+  async findByUserId(userId: string): Promise<SkillProgressEntity | null> {
+    const record = await this.prisma.skillProgress.findUnique({
       where: { userId },
     });
 
-    return records.map(
-      (r) =>
-        new SkillProgressEntity(
-          r.userId,
-          r.skillId,
-          r.levelReached,
-          r.lessonPosition,
-          r.lastPracticed,
-        ),
+    if (!record) return null;
+
+    return new SkillProgressEntity(
+      record.userId,
+      record.skillId,
+      record.levelReached,
+      record.lessonPosition,
+      record.lastPracticed,
     );
   }
 

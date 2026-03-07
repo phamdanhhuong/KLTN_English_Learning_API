@@ -11,9 +11,9 @@ export class GetSkillProgressByUserIdUseCase {
     private readonly skillProgressRepository: SkillProgressRepository,
   ) {}
 
-  async execute(userId: string): Promise<SkillProgressDto[]> {
-    const progressList =
+  async execute(userId: string): Promise<SkillProgressDto | null> {
+    const progress =
       await this.skillProgressRepository.findByUserId(userId);
-    return progressList.map((p) => SkillProgressMapper.toDto(p));
+    return progress ? SkillProgressMapper.toDto(progress) : null;
   }
 }

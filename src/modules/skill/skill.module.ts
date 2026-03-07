@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RedisModule } from '../../infrastructure/cache/redis.module';
+import { AuthModule } from '../auth/auth.module';
 
 // Controllers
 import { SkillController } from './presentation/controllers/skill.controller';
@@ -20,6 +21,7 @@ import {
 // Skill Part Use Cases
 import {
   GetAllSkillPartsUseCase,
+  GetAllSkillPartsWithProgressUseCase,
   GetSkillPartByIdUseCase,
   CreateSkillPartUseCase,
   UpdateSkillPartUseCase,
@@ -76,6 +78,7 @@ const skillUseCases = [
 
 const skillPartUseCases = [
   GetAllSkillPartsUseCase,
+  GetAllSkillPartsWithProgressUseCase,
   GetSkillPartByIdUseCase,
   CreateSkillPartUseCase,
   UpdateSkillPartUseCase,
@@ -103,7 +106,7 @@ const exerciseUseCases = [
 ];
 
 @Module({
-  imports: [RedisModule],
+  imports: [RedisModule, AuthModule],
   controllers: [
     SkillController,
     SkillPartController,

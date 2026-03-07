@@ -8,13 +8,17 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import {
   CreateSkillPartDto,
   UpdateSkillPartDto,
 } from '../../application/dto/skill.dto';
 import {
   GetAllSkillPartsUseCase,
+  GetAllSkillPartsWithProgressUseCase,
   GetSkillPartByIdUseCase,
   CreateSkillPartUseCase,
   UpdateSkillPartUseCase,
@@ -25,6 +29,7 @@ import {
 export class SkillPartController {
   constructor(
     private readonly getAllSkillPartsUseCase: GetAllSkillPartsUseCase,
+    private readonly getAllSkillPartsWithProgressUseCase: GetAllSkillPartsWithProgressUseCase,
     private readonly getSkillPartByIdUseCase: GetSkillPartByIdUseCase,
     private readonly createSkillPartUseCase: CreateSkillPartUseCase,
     private readonly updateSkillPartUseCase: UpdateSkillPartUseCase,
@@ -34,6 +39,12 @@ export class SkillPartController {
   @Get()
   async getAllSkillParts() {
     return this.getAllSkillPartsUseCase.execute();
+  }
+
+  @Get('with-progress')
+  @UseGuards(JwtAuthGuard)
+  async getAllSkillPartsWithProgress(@Req() req: any) {
+    return this.getAllSkillPartsWithProgressUseCase.execute(req.user.sub);
   }
 
   @Get(':id')
@@ -61,3 +72,4 @@ export class SkillPartController {
     return this.deleteSkillPartUseCase.execute(id);
   }
 }
+
