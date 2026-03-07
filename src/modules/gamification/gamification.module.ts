@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../../infrastructure/database/prisma.module';
+import { AchievementModule } from '../achievement/achievement.module';
 
 // Streak Use Cases
 import { AddXpUseCase } from './application/use-cases/xp/add-xp.usecase';
@@ -33,6 +34,7 @@ import { GamificationController } from './presentation/gamification.controller';
 @Module({
   imports: [
     PrismaModule,
+    AchievementModule,
     ConfigModule,
     ScheduleModule.forRoot(),
     JwtModule.registerAsync({

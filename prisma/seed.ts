@@ -1,4 +1,5 @@
 import { PrismaClient, ExerciseType, Word, Grammar } from '@prisma/client';
+import { seedQuestsAndAchievements } from './seed-quests-achievements';
 
 const prisma = new PrismaClient();
 
@@ -2308,6 +2309,11 @@ async function main() {
   console.log(`   • Level 5: 3 lessons with beginner-friendly practice`);
   console.log(`   • Level 6: 3 lessons with image description & writing`);
   console.log(`   • Level 7: 1 lesson with final comprehensive assessment`);
+
+  // ============================================================
+  // QUESTS & ACHIEVEMENTS
+  // ============================================================
+  await seedQuestsAndAchievements();
 }
 
 main()

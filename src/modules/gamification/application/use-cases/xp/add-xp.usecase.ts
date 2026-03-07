@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
+import { AchievementCheckerService } from '../../../../achievement/application/services/achievement-checker.service';
 
 export interface AddXpResult {
     newXp: number;
@@ -65,7 +66,10 @@ function getToday(): Date {
 
 @Injectable()
 export class AddXpUseCase {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly achievementChecker: AchievementCheckerService,
+    ) { }
 
     async execute(
         userId: string,
@@ -78,7 +82,7 @@ export class AddXpUseCase {
 
         const today = getToday();
 
-        return this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
             // 1. Lấy user hiện tại
             const user = await tx.user.findUniqueOrThrow({
                 where: { id: userId },
@@ -164,5 +168,10 @@ export class AddXpUseCase {
 
             return { newXp, newLevel, leveledUp, gemsEarned, coinsEarned };
         });
+
+        // Check achievements sau transaction (không block main flow)
+        this.achievementChecker.check(userId, 'xp', result.newXp).catch(() => {});
+
+        return result;
     }
 }
