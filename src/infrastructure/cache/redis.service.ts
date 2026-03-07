@@ -76,4 +76,103 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       // Silently fail
     }
   }
+
+  // ─── Sorted Set operations (Leaderboard) ────────────────
+
+  /** ZINCRBY — thêm/cộng score cho member. Trả về score mới. */
+  async zIncrBy(key: string, increment: number, member: string): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      return await this.client.zIncrBy(key, increment, member);
+    } catch {
+      return 0;
+    }
+  }
+
+  /** ZREVRANGE WITHSCORES — top N members desc by score */
+  async zRevRangeWithScores(
+    key: string,
+    start: number,
+    stop: number,
+  ): Promise<{ value: string; score: number }[]> {
+    if (!this.isConnected) return [];
+    try {
+      return await this.client.zRangeWithScores(key, start, stop, { REV: true });
+    } catch {
+      return [];
+    }
+  }
+
+  /** ZREVRANK — rank của member (0-based, desc). Null nếu không có. */
+  async zRevRank(key: string, member: string): Promise<number | null> {
+    if (!this.isConnected) return null;
+    try {
+      return await this.client.zRevRank(key, member);
+    } catch {
+      return null;
+    }
+  }
+
+  /** ZSCORE — score hiện tại của member */
+  async zScore(key: string, member: string): Promise<number | null> {
+    if (!this.isConnected) return null;
+    try {
+      return await this.client.zScore(key, member);
+    } catch {
+      return null;
+    }
+  }
+
+  /** ZCARD — tổng số members trong sorted set */
+  async zCard(key: string): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      return await this.client.zCard(key);
+    } catch {
+      return 0;
+    }
+  }
+
+  /** ZADD — thêm member với score (dùng khi backfill từ DB) */
+  async zAdd(key: string, score: number, member: string): Promise<void> {
+    if (!this.isConnected) return;
+    try {
+      await this.client.zAdd(key, { score, value: member });
+    } catch {
+      // Silently fail
+    }
+  }
+
+  /** EXPIRE — set TTL cho key */
+  async expire(key: string, ttlSeconds: number): Promise<void> {
+    if (!this.isConnected) return;
+    try {
+      await this.client.expire(key, ttlSeconds);
+    } catch {
+      // Silently fail
+    }
+  }
+
+  /** KEYS — tìm keys theo pattern (chỉ dùng cho admin/cleanup, không production hot path) */
+  async keys(pattern: string): Promise<string[]> {
+    if (!this.isConnected) return [];
+    try {
+      return await this.client.keys(pattern);
+    } catch {
+      return [];
+    }
+  }
+
+  /** Xóa nhiều keys theo pattern */
+  async delPattern(pattern: string): Promise<void> {
+    if (!this.isConnected) return;
+    try {
+      const matchingKeys = await this.client.keys(pattern);
+      if (matchingKeys.length > 0) {
+        await this.client.del(matchingKeys);
+      }
+    } catch {
+      // Silently fail
+    }
+  }
 }

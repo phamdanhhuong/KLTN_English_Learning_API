@@ -69,6 +69,88 @@ enum ExerciseType {
   pronunciation_word
 }
 
+// ==================== QUEST ENUMS ====================
+
+enum QuestType {
+  DAILY
+  FRIENDS
+  MONTHLY_BADGE
+}
+
+enum QuestCategory {
+  LESSONS
+  EXERCISES
+  XP_EARNED
+  FRIENDS_CHALLENGE
+  COLLECTION
+  STREAK
+}
+
+enum QuestStatus {
+  ACTIVE
+  COMPLETED
+  CLAIMED
+  EXPIRED
+}
+
+enum DifficultyLevel {
+  EASY
+  NORMAL
+  HARD
+  EXPERT
+}
+
+enum ChestType {
+  BRONZE
+  SILVER
+  GOLD
+  LEGENDARY
+}
+
+enum ChestStatus {
+  LOCKED
+  UNLOCKED
+  OPENED
+}
+
+// ==================== LEADERBOARD ENUMS ====================
+
+enum LeagueTier {
+  BRONZE
+  SILVER
+  GOLD
+  SAPPHIRE
+  RUBY
+  EMERALD
+  AMETHYST
+  PEARL
+  OBSIDIAN
+  DIAMOND
+}
+
+enum LeagueStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+// ==================== REPORT/BLOCK ENUMS ====================
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  INAPPROPRIATE_CONTENT
+  FAKE_ACCOUNT
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
 // ==================== AUTH MODULE ====================
 
 model User {
@@ -113,6 +195,24 @@ model User {
   energy               UserEnergy?
   currencyTransactions CurrencyTransaction[]
   dailyActivities      UserDailyActivity[]
+
+  // Social relations
+  following      UserRelationship[] @relation("UserFollowing")
+  followers      UserRelationship[] @relation("UserFollowers")
+  blockedUsers   UserBlock[]        @relation("Blocker")
+  blockedBy      UserBlock[]        @relation("Blocked")
+  sentReports    UserReport[]       @relation("Reporter")
+  receivedReports UserReport[]      @relation("Reported")
+
+  // Achievement & Quest relations
+  userAchievements         UserAchievement[]
+  userQuests               UserQuest[]
+  friendsQuestParticipants FriendsQuestParticipant[]
+
+  // Leaderboard relations
+  leagueParticipations LeagueParticipant[]
+  leagueHistories      LeagueHistory[]
+  leagueTier           UserLeagueTier?
 
   @@map("users")
 }
@@ -587,4 +687,283 @@ model WordTag {
 
   @@id([wordId, tagId])
   @@map("word_tags")
+}
+
+// ==================== SOCIAL MODULE ====================
+
+model UserRelationship {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("user_relationships")
+}
+
+model UserBlock {
+  id            String   @id @default(uuid())
+  blockerId     String   @map("blocker_id")
+  blockedUserId String   @map("blocked_user_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  blocker     User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser User @relation("Blocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockerId])
+  @@index([blockedUserId])
+  @@map("user_blocks")
+}
+
+model UserReport {
+  id             String       @id @default(uuid())
+  reporterId     String       @map("reporter_id")
+  reportedUserId String       @map("reported_user_id")
+  reason         ReportReason
+  description    String?
+  status         ReportStatus @default(PENDING)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  reporter     User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser User @relation("Reported", fields: [reportedUserId], references: [id], onDelete: Cascade)
+
+  @@index([reportedUserId])
+  @@index([reporterId])
+  @@index([status])
+  @@map("user_reports")
+}
+
+// ==================== ACHIEVEMENT MODULE ====================
+
+model Achievement {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  description String
+  iconUrl     String?  @map("icon_url")
+  badgeUrl    String?  @map("badge_url")
+  category    String
+  tier        Int      @default(1)
+  requirement Int
+  rewardXp    Int      @default(0) @map("reward_xp")
+  rewardGems  Int      @default(0) @map("reward_gems")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userAchievements UserAchievement[]
+
+  @@index([category, tier])
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  achievementId String    @map("achievement_id")
+  progress      Int       @default(0)
+  isUnlocked    Boolean   @default(false) @map("is_unlocked")
+  unlockedAt    DateTime? @map("unlocked_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId, isUnlocked])
+  @@map("user_achievements")
+}
+
+// ==================== QUEST MODULE ====================
+
+model Quest {
+  id                  String        @id @default(uuid())
+  key                 String        @unique
+  type                QuestType
+  category            QuestCategory
+  name                String
+  description         String
+  iconUrl             String?       @map("icon_url")
+  baseRequirement     Int           @map("base_requirement")
+  rewardXp            Int           @default(0) @map("reward_xp")
+  rewardGems          Int           @default(0) @map("reward_gems")
+  chestType           ChestType?    @map("chest_type")
+  badgeIconUrl        String?       @map("badge_icon_url")
+  order               Int           @default(0)
+  isActive            Boolean       @default(true) @map("is_active")
+  requiresMultiplayer Boolean       @default(false) @map("requires_multiplayer")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  userQuests UserQuest[]
+
+  @@index([type, isActive])
+  @@index([category])
+  @@map("quests")
+}
+
+model UserQuest {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  questId         String          @map("quest_id")
+  progress        Int             @default(0)
+  requirement     Int
+  difficultyLevel DifficultyLevel @default(NORMAL) @map("difficulty_level")
+  status          QuestStatus     @default(ACTIVE)
+  startDate       DateTime        @map("start_date")
+  endDate         DateTime        @map("end_date")
+  completedAt     DateTime?       @map("completed_at")
+  claimedAt       DateTime?       @map("claimed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest      @relation(fields: [questId], references: [id], onDelete: Cascade)
+  chest QuestChest?
+
+  @@unique([userId, questId, startDate])
+  @@index([userId, status])
+  @@index([userId, endDate])
+  @@map("user_quests")
+}
+
+model QuestChest {
+  id             String      @id @default(uuid())
+  userQuestId    String      @unique @map("user_quest_id")
+  chestType      ChestType   @map("chest_type")
+  status         ChestStatus @default(LOCKED)
+  rewardXp       Int         @default(0) @map("reward_xp")
+  rewardGems     Int         @default(0) @map("reward_gems")
+  rewardCoins    Int         @default(0) @map("reward_coins")
+  xpBoostMinutes Int?        @map("xp_boost_minutes")
+  badgeId        String?     @map("badge_id")
+  unlockedAt     DateTime?   @map("unlocked_at")
+  openedAt       DateTime?   @map("opened_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  userQuest UserQuest @relation(fields: [userQuestId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("quest_chests")
+}
+
+model FriendsQuestParticipant {
+  id            String   @id @default(uuid())
+  questKey      String   @map("quest_key")
+  userId        String   @map("user_id")
+  weekStartDate DateTime @map("week_start_date")
+  contribution  Int      @default(0)
+  isCreator     Boolean  @default(false) @map("is_creator")
+  joinedAt      DateTime @default(now()) @map("joined_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questKey, userId, weekStartDate])
+  @@index([userId, weekStartDate])
+  @@index([questKey, weekStartDate])
+  @@map("friends_quest_participants")
+}
+
+// ==================== LEADERBOARD MODULE ====================
+
+model League {
+  id            String       @id @default(uuid())
+  tier          LeagueTier
+  weekStartDate DateTime     @map("week_start_date")
+  weekEndDate   DateTime     @map("week_end_date")
+  status        LeagueStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  groups LeagueGroup[]
+
+  @@unique([tier, weekStartDate])
+  @@index([tier, status])
+  @@index([weekStartDate, weekEndDate])
+  @@map("leagues")
+}
+
+model LeagueGroup {
+  id               String   @id @default(uuid())
+  leagueId         String   @map("league_id")
+  groupNumber      Int      @map("group_number")
+  participantCount Int      @default(0) @map("participant_count")
+  maxParticipants  Int      @default(30) @map("max_participants")
+  isFull           Boolean  @default(false) @map("is_full")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  league       League             @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  participants LeagueParticipant[]
+
+  @@unique([leagueId, groupNumber])
+  @@index([leagueId, isFull])
+  @@map("league_groups")
+}
+
+model LeagueParticipant {
+  id           String   @id @default(uuid())
+  groupId      String   @map("group_id")
+  userId       String   @map("user_id")
+  weeklyXp     Int      @default(0) @map("weekly_xp")
+  rank         Int?
+  isPromoted   Boolean  @default(false) @map("is_promoted")
+  isDemoted    Boolean  @default(false) @map("is_demoted")
+  joinedAt     DateTime @default(now()) @map("joined_at")
+  lastXpUpdate DateTime @default(now()) @map("last_xp_update")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  group LeagueGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId, weeklyXp])
+  @@index([userId])
+  @@map("league_participants")
+}
+
+model LeagueHistory {
+  id            String     @id @default(uuid())
+  userId        String     @map("user_id")
+  tier          LeagueTier
+  weekStartDate DateTime   @map("week_start_date")
+  weeklyXp      Int        @map("weekly_xp")
+  rank          Int
+  outcome       String     // "PROMOTED", "MAINTAINED", "DEMOTED"
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, weekStartDate])
+  @@index([userId, tier])
+  @@map("league_histories")
+}
+
+model UserLeagueTier {
+  id               String     @id @default(uuid())
+  userId           String     @unique @map("user_id")
+  currentTier      LeagueTier @default(BRONZE) @map("current_tier")
+  currentGroupId   String?    @map("current_group_id")
+  consecutiveWeeks Int        @default(0) @map("consecutive_weeks")
+  totalPromotions  Int        @default(0) @map("total_promotions")
+  totalDemotions   Int        @default(0) @map("total_demotions")
+  highestTier      LeagueTier @default(BRONZE) @map("highest_tier")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([currentTier])
+  @@map("user_league_tiers")
 }
