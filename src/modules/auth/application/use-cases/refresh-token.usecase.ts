@@ -19,7 +19,7 @@ export class RefreshTokenUseCase {
     private readonly authUserRepo: AuthUserRepository,
   ) {}
 
-  async execute(refreshToken: string): Promise<TokenPair> {
+  async execute(refreshToken: string): Promise<{ tokens: TokenPair; user: { id: string; email: string; role: { id: number; name: string } } }> {
     // Verify refresh token signature
     let payload;
     try {
@@ -63,6 +63,9 @@ export class RefreshTokenUseCase {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
-    return newTokens;
+    return {
+      tokens: newTokens,
+      user: { id: user.id, email: user.email, role: { id: 1, name: roleName } },
+    };
   }
 }

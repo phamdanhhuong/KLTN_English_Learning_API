@@ -25,7 +25,7 @@ export class LoginUserUseCase {
 
   async execute(
     dto: LoginDto,
-  ): Promise<{ tokens: TokenPair; user: { id: string; email: string; role: string } }> {
+  ): Promise<{ tokens: TokenPair; user: { id: string; email: string; role: { id: number; name: string } } }> {
     const user = await this.authUserRepo.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
@@ -69,7 +69,7 @@ export class LoginUserUseCase {
 
     return {
       tokens,
-      user: { id: user.id, email: user.email, role: roleName },
+      user: { id: user.id, email: user.email, role: { id: 1, name: roleName } },
     };
   }
 }

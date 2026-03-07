@@ -42,7 +42,7 @@ export class GoogleLoginUseCase {
     idToken: string,
   ): Promise<{
     tokens: TokenPair;
-    user: { id: string; email: string; role: string };
+    user: { id: string; email: string; role: { id: number; name: string } };
     isNewUser: boolean;
   }> {
     // Verify Google ID token
@@ -116,7 +116,7 @@ export class GoogleLoginUseCase {
 
     return {
       tokens,
-      user: { id: user.id, email: user.email, role: roleName },
+      user: { id: user.id, email: user.email, role: { id: 1, name: roleName } },
       isNewUser,
     };
   }
