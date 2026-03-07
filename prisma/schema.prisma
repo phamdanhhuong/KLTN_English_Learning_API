@@ -1,5 +1,4 @@
 // KLTN English Learning API - Prisma Schema
-// Module: Auth (Phase 1) + Skill/Learning (Phase 2)
 
 generator client {
   provider = "prisma-client-js"
@@ -11,6 +10,47 @@ datasource db {
 }
 
 // ==================== ENUMS ====================
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+  PROFICIENT
+}
+
+enum LearningGoal {
+  CONNECT
+  TRAVEL
+  STUDY
+  ENTERTAINMENT
+  CAREER
+  HOBBY
+}
+
+enum CurrencyType {
+  GEMS
+  COINS
+}
+
+enum CurrencyTransactionReason {
+  LESSON_COMPLETED
+  STREAK_MILESTONE
+  ACHIEVEMENT_REWARD
+  QUEST_REWARD
+  PURCHASE
+  LEVEL_UP_REWARD
+  ADMIN_ADJUSTMENT
+  REFUND
+}
 
 enum ExerciseType {
   translate
@@ -32,20 +72,47 @@ enum ExerciseType {
 // ==================== AUTH MODULE ====================
 
 model User {
-  id              String         @id @default(uuid())
-  email           String         @unique
+  id              String    @id @default(uuid())
+  email           String    @unique
   password        String?
-  googleId        String?        @unique @map("google_id")
-  facebookId      String?        @unique @map("facebook_id")
-  isEmailVerified Boolean        @default(false) @map("is_email_verified")
-  isActive        Boolean        @default(true) @map("is_active")
-  lastLoginAt     DateTime?      @map("last_login_at")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  googleId        String?   @unique @map("google_id")
+  facebookId      String?   @unique @map("facebook_id")
+  isEmailVerified Boolean   @default(false) @map("is_email_verified")
+  isActive        Boolean   @default(true) @map("is_active")
+  lastLoginAt     DateTime? @map("last_login_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  role            Role           @relation(fields: [roleId], references: [id])
-  roleId          String         @map("role_id")
-  refreshTokens   RefreshToken[]
+  role      Role           @relation(fields: [roleId], references: [id])
+  roleId    String         @map("role_id")
+  refreshTokens RefreshToken[]
+
+  // ==================== USER PROFILE ====================
+  username          String?           @unique
+  fullName          String?           @map("full_name")
+  profilePictureUrl String?           @map("profile_picture_url")
+  dateOfBirth       DateTime?         @map("date_of_birth")
+  gender            Gender?
+
+  // Learning preferences
+  nativeLanguage   String?           @default("vi") @map("native_language")
+  targetLanguage   String?           @default("en") @map("target_language")
+  proficiencyLevel ProficiencyLevel? @map("proficiency_level")
+  learningGoals    LearningGoal[]
+  dailyGoalMinutes Int               @default(15) @map("daily_goal_minutes")
+  timezone         String?           @default("Asia/Ho_Chi_Minh")
+
+  // XP & Level (không tách bảng riêng)
+  xpPoints      Int @default(0) @map("xp_points")
+  currentLevel  Int @default(1) @map("current_level")
+  totalXpEarned Int @default(0) @map("total_xp_earned")
+
+  // Gamification relations
+  currency             UserCurrency?
+  streakData           StreakData?
+  energy               UserEnergy?
+  currencyTransactions CurrencyTransaction[]
+  dailyActivities      UserDailyActivity[]
 
   @@map("users")
 }
@@ -76,6 +143,111 @@ model RefreshToken {
   @@index([token])
   @@map("refresh_tokens")
 }
+
+// ==================== USER MODULE ====================
+
+model UserCurrency {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  gems      Int      @default(0)
+  coins     Int      @default(100)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_currency")
+}
+
+model CurrencyTransaction {
+  id           String                    @id @default(uuid())
+  userId       String                    @map("user_id")
+  currencyType CurrencyType              @map("currency_type")
+  amount       Int
+  reason       CurrencyTransactionReason
+  metadata     Json?
+  createdAt    DateTime                  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("currency_transactions")
+}
+
+model StreakData {
+  id            String    @id @default(uuid())
+  userId        String    @unique @map("user_id")
+  currentStreak Int       @default(0) @map("current_streak")
+  longestStreak Int       @default(0) @map("longest_streak")
+  lastStudyDate DateTime? @map("last_study_date") @db.Date
+  freezeCount   Int       @default(0) @map("freeze_count")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history StreakHistory[]
+
+  @@map("streak_data")
+}
+
+model StreakHistory {
+  id           String   @id @default(uuid())
+  streakDataId String   @map("streak_data_id")
+  streakLength Int      @map("streak_length")
+  startDate    DateTime @map("start_date") @db.Date
+  endDate      DateTime @map("end_date") @db.Date
+  endReason    String   @map("end_reason")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  streakData StreakData @relation(fields: [streakDataId], references: [id], onDelete: Cascade)
+
+  @@index([streakDataId])
+  @@map("streak_history")
+}
+
+model UserDailyActivity {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  activityDate  DateTime @map("activity_date") @db.Date
+  xpEarned      Int      @default(0) @map("xp_earned")
+  lessonsCount  Int      @default(0) @map("lessons_count")
+  exerciseCount Int      @default(0) @map("exercise_count")
+  streakCount   Int      @default(0) @map("streak_count")
+  freezeUsed    Boolean  @default(false) @map("freeze_used")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activityDate])
+  @@index([userId, activityDate])
+  @@map("user_daily_activities")
+}
+
+model UserEnergy {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  currentEnergy   Int      @default(5) @map("current_energy")
+  maxEnergy       Int      @default(5) @map("max_energy")
+  lastRechargeAt  DateTime @default(now()) @map("last_recharge_at")
+  rechargeRateMin Int      @default(30) @map("recharge_rate_min")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_energy")
+}
+
+model UserLevel {
+  level       Int     @id
+  minXp       Int     @map("min_xp")
+  maxXp       Int     @map("max_xp")
+  title       String
+  iconUrl     String? @map("icon_url")
+  rewardGems  Int     @default(0) @map("reward_gems")
+  rewardCoins Int     @default(0) @map("reward_coins")
+
+  @@map("user_levels")
+}
+
 
 // ==================== SKILL / LEARNING MODULE ====================
 

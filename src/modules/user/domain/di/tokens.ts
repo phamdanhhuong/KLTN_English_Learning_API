@@ -1,0 +1,3 @@
+export const USER_TOKENS = {
+    USER_PROFILE_REPOSITORY: 'USER_PROFILE_REPOSITORY',
+} as const;
