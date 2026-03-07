@@ -25,8 +25,11 @@ import { PrismaRefreshTokenRepository } from './infrastructure/persistence/prism
 import { BcryptHashService } from './infrastructure/services/bcrypt-hash.service';
 import { JwtTokenService } from './infrastructure/services/jwt-token.service';
 import { CacheServiceImpl } from './infrastructure/services/cache.service.impl';
-import { UserProfileServiceStub } from './infrastructure/services/user-profile.service.stub';
 import { LearningServiceStub } from './infrastructure/services/learning.service.stub';
+
+// Cross-module
+import { UserModule } from '../user/user.module';
+import { UserProfileServiceImpl } from '../user/infrastructure/services/user-profile.service.impl';
 
 // Presentation - Controllers
 import { AuthController } from './presentation/controllers/auth.controller';
@@ -44,6 +47,7 @@ import { AuthController } from './presentation/controllers/auth.controller';
       }),
     }),
     CacheModule.register(),
+    UserModule, // Import UserModule để dùng UserProfileServiceImpl
   ],
   controllers: [AuthController],
   providers: [
@@ -82,22 +86,21 @@ import { AuthController } from './presentation/controllers/auth.controller';
       useClass: CacheServiceImpl,
     },
 
-    // Cross-module Service Bindings (STUBS - Phase 1)
-    // TODO: Replace stubs with real implementations when UserModule/LearningModule are ready
+    // Cross-module Service Bindings (Real implementations)
     {
       provide: AUTH_TOKENS.USER_PROFILE_SERVICE,
-      useClass: UserProfileServiceStub,
+      useExisting: UserProfileServiceImpl, // ✅ Dùng real impl từ UserModule
     },
     {
       provide: AUTH_TOKENS.LEARNING_SERVICE,
-      useClass: LearningServiceStub,
+      useClass: LearningServiceStub, // TODO: thay khi LearningModule sẵn sàng
     },
   ],
   exports: [
-    // Export for other modules that need auth functionality
     AUTH_TOKENS.TOKEN_SERVICE,
     AUTH_TOKENS.AUTH_USER_REPOSITORY,
     JwtModule,
   ],
 })
-export class AuthModule {}
+export class AuthModule { }
+
