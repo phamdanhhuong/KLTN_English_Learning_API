@@ -25,10 +25,11 @@ import { PrismaRefreshTokenRepository } from './infrastructure/persistence/prism
 import { BcryptHashService } from './infrastructure/services/bcrypt-hash.service';
 import { JwtTokenService } from './infrastructure/services/jwt-token.service';
 import { CacheServiceImpl } from './infrastructure/services/cache.service.impl';
-import { LearningServiceStub } from './infrastructure/services/learning.service.stub';
+import { LearningServiceImpl } from './infrastructure/services/learning.service.impl';
 
 // Cross-module
 import { UserModule } from '../user/user.module';
+import { PrismaModule } from '../../infrastructure/database/prisma.module';
 import { UserProfileServiceImpl } from '../user/infrastructure/services/user-profile.service.impl';
 
 // Presentation - Controllers
@@ -47,6 +48,7 @@ import { AuthController } from './presentation/controllers/auth.controller';
       }),
     }),
     CacheModule.register(),
+    PrismaModule,
     UserModule, // Import UserModule để dùng UserProfileServiceImpl
   ],
   controllers: [AuthController],
@@ -93,7 +95,7 @@ import { AuthController } from './presentation/controllers/auth.controller';
     },
     {
       provide: AUTH_TOKENS.LEARNING_SERVICE,
-      useClass: LearningServiceStub, // TODO: thay khi LearningModule sẵn sàng
+      useClass: LearningServiceImpl,
     },
   ],
   exports: [

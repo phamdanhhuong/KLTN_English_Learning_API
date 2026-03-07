@@ -24,6 +24,7 @@ import { GamificationModule } from './modules/gamification/gamification.module';
     // Feature modules
     UserModule,
     AuthModule,
+    GamificationModule,
     SkillModule,
   ],
   controllers: [],
