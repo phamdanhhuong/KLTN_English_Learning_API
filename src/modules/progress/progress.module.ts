@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 
 // Domain - DI Tokens
 import { PROGRESS_TOKENS } from './domain/di/tokens';
@@ -13,6 +14,7 @@ import { PrismaSkillProgressRepository } from './infrastructure/repositories/pri
 import { ProgressController } from './presentation/controllers/progress.controller';
 
 @Module({
+  imports: [AuthModule],
   controllers: [ProgressController],
   providers: [
     // Repository

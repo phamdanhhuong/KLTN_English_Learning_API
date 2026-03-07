@@ -1,14 +1,16 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { GetSkillProgressByUserIdUseCase } from '../../application/use-cases';
 
 @Controller('progress')
+@UseGuards(JwtAuthGuard)
 export class ProgressController {
   constructor(
     private readonly getSkillProgressByUserIdUseCase: GetSkillProgressByUserIdUseCase,
   ) {}
 
-  @Get('skill/:userId')
-  async getSkillProgress(@Param('userId') userId: string) {
-    return this.getSkillProgressByUserIdUseCase.execute(userId);
+  @Get('skill')
+  async getSkillProgress(@Req() req: any) {
+    return this.getSkillProgressByUserIdUseCase.execute(req.user.sub);
   }
 }
