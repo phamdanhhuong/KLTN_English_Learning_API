@@ -2,9 +2,34 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
 
 export interface EnergyStatus {
+    userId: string;
     currentEnergy: number;
     maxEnergy: number;
-    nextRechargeIn: number | null; // Giây đến lần hồi tiếp theo, null nếu full
+    energyPercentage: number;
+    rechargeInfo: {
+        lastRechargeAt: Date;
+        nextRechargeAt: Date;
+        rechargeRate: number; // Energy per hour
+        timeUntilNextRecharge: string; // Human readable
+        energyToRecharge: number;
+    };
+    usage: {
+        lastUsedAt: Date | null;
+        timeSinceLastUse: string | null;
+    };
+    pricing: {
+        gemCost: number; // Cost per energy in gems
+        coinCost: number; // Cost per energy in coins
+    };
+    transactions?: Array<{
+        id: string;
+        energyChange: number;
+        reason: string;
+        createdAt: Date;
+        metadata?: any;
+    }>;
+    success: boolean;
+    error?: string;
 }
 
 function computeRechargedEnergy(
@@ -27,6 +52,48 @@ function computeRechargedEnergy(
         lastRechargeAt.getTime() + gained * rechargeRateMin * 60000,
     );
     return { energy: newEnergy, newLastRechargeAt };
+}
+function buildEnergyStatus(
+    userId: string,
+    currentEnergy: number,
+    maxEnergy: number,
+    lastRechargeAt: Date,
+    rechargeRateMin: number,
+): EnergyStatus {
+    const now = new Date();
+    const nextRechargeAt = currentEnergy < maxEnergy
+        ? new Date(lastRechargeAt.getTime() + rechargeRateMin * 60000)
+        : now;
+    const msUntilNext = Math.max(0, nextRechargeAt.getTime() - now.getTime());
+    const secsUntilNext = Math.ceil(msUntilNext / 1000);
+    const minsUntilNext = Math.floor(secsUntilNext / 60);
+    const timeUntilNextRecharge = currentEnergy < maxEnergy
+        ? `${minsUntilNext}m ${secsUntilNext % 60}s`
+        : 'Full';
+
+    return {
+        userId,
+        currentEnergy,
+        maxEnergy,
+        energyPercentage: maxEnergy > 0 ? Math.round((currentEnergy / maxEnergy) * 100) : 0,
+        rechargeInfo: {
+            lastRechargeAt,
+            nextRechargeAt,
+            rechargeRate: rechargeRateMin > 0 ? 60 / rechargeRateMin : 0,
+            timeUntilNextRecharge,
+            energyToRecharge: maxEnergy - currentEnergy,
+        },
+        usage: {
+            lastUsedAt: null,
+            timeSinceLastUse: null,
+        },
+        pricing: {
+            gemCost: 10,
+            coinCost: 50,
+        },
+        transactions: [],
+        success: true,
+    };
 }
 
 @Injectable()
@@ -63,19 +130,13 @@ export class ConsumeEnergyUseCase {
                 },
             });
 
-            // Tính thời gian đến lần hồi tiếp
-            const nextRechargeIn =
-                newEnergy < updated.maxEnergy
-                    ? updated.rechargeRateMin * 60 - Math.floor(
-                        (new Date().getTime() - newLastRechargeAt.getTime()) / 1000,
-                    )
-                    : null;
-
-            return {
-                currentEnergy: updated.currentEnergy,
-                maxEnergy: updated.maxEnergy,
-                nextRechargeIn: nextRechargeIn ? Math.max(0, nextRechargeIn) : null,
-            };
+            return buildEnergyStatus(
+                userId,
+                updated.currentEnergy,
+                updated.maxEnergy,
+                newLastRechargeAt,
+                updated.rechargeRateMin,
+            );
         });
     }
 }
@@ -87,7 +148,7 @@ export class GetEnergyUseCase {
     async execute(userId: string): Promise<EnergyStatus> {
         const energyRow = await this.prisma.userEnergy.findUnique({ where: { userId } });
         if (!energyRow) {
-            return { currentEnergy: 0, maxEnergy: 5, nextRechargeIn: null };
+            return buildEnergyStatus(userId, 0, 5, new Date(), 30);
         }
 
         const { energy, newLastRechargeAt } = computeRechargedEnergy(
@@ -105,16 +166,13 @@ export class GetEnergyUseCase {
             });
         }
 
-        const nextRechargeIn =
-            energy < energyRow.maxEnergy
-                ? energyRow.rechargeRateMin * 60 -
-                Math.floor((new Date().getTime() - newLastRechargeAt.getTime()) / 1000)
-                : null;
-
-        return {
-            currentEnergy: energy,
-            maxEnergy: energyRow.maxEnergy,
-            nextRechargeIn: nextRechargeIn ? Math.max(0, nextRechargeIn) : null,
-        };
+        return buildEnergyStatus(
+            userId,
+            energy,
+            energyRow.maxEnergy,
+            newLastRechargeAt,
+            energyRow.rechargeRateMin,
+        );
     }
 }
+
