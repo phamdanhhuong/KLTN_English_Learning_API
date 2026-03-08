@@ -12,6 +12,7 @@ import { AchievementModule } from './modules/achievement/achievement.module';
 import { QuestModule } from './modules/quest/quest.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { FeedModule } from './modules/feed/feed.module';
+import { SpeechModule } from './modules/speech/speech.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { FeedModule } from './modules/feed/feed.module';
     FeedModule,
     SkillModule,
     ProgressModule,
+    SpeechModule,
   ],
   controllers: [],
   providers: [],
