@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
 import { AchievementCheckerService } from '../../../../achievement/application/services/achievement-checker.service';
+import { FeedService } from '../../../../feed/application/services/feed.service';
 
 export interface AddXpResult {
     newXp: number;
@@ -69,6 +70,7 @@ export class AddXpUseCase {
     constructor(
         private readonly prisma: PrismaService,
         private readonly achievementChecker: AchievementCheckerService,
+        private readonly feedService: FeedService,
     ) { }
 
     async execute(
@@ -171,6 +173,13 @@ export class AddXpUseCase {
 
         // Check achievements sau transaction (không block main flow)
         this.achievementChecker.check(userId, 'xp', result.newXp).catch(() => {});
+
+        // Auto-create feed posts (fire and forget)
+        if (result.leveledUp) {
+            this.feedService.autoCreatePost(userId, 'LEVEL_UP', { newLevel: result.newLevel }).catch(() => {});
+        }
+        // XP milestone check
+        this.feedService.autoCreatePost(userId, 'XP_MILESTONE', { totalXp: result.newXp }).catch(() => {});
 
         return result;
     }

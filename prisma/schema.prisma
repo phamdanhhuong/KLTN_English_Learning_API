@@ -214,6 +214,11 @@ model User {
   leagueHistories      LeagueHistory[]
   leagueTier           UserLeagueTier?
 
+  // Feed relations
+  feedPosts     FeedPost[]
+  feedReactions FeedReaction[]
+  feedComments  FeedComment[]
+
   @@map("users")
 }
 
@@ -966,4 +971,79 @@ model UserLeagueTier {
 
   @@index([currentTier])
   @@map("user_league_tiers")
+}
+
+// ==================== FEED ====================
+
+enum FeedPostType {
+  STREAK_MILESTONE
+  LEAGUE_PROMOTION
+  LEAGUE_TOP_3
+  NEW_FOLLOWER
+  ACHIEVEMENT_UNLOCKED
+  LEVEL_UP
+  QUEST_COMPLETED
+  PERFECT_SCORE
+  XP_MILESTONE
+}
+
+enum FeedReactionType {
+  CONGRATS
+  FIRE
+  CLAP
+  HEART
+  STRONG
+}
+
+model FeedPost {
+  id        String       @id @default(uuid())
+  userId    String       @map("user_id")
+  postType  FeedPostType @map("post_type")
+  content   String
+  metadata  Json?
+  imageUrl  String?      @map("image_url")
+  isVisible Boolean      @default(true) @map("is_visible")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions FeedReaction[]
+  comments  FeedComment[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([isVisible, createdAt(sort: Desc)])
+  @@map("feed_posts")
+}
+
+model FeedReaction {
+  id           String          @id @default(uuid())
+  postId       String          @map("post_id")
+  userId       String          @map("user_id")
+  reactionType FeedReactionType @map("reaction_type")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  post FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("feed_reactions")
+}
+
+model FeedComment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  content   String
+  isEdited  Boolean  @default(false) @map("is_edited")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([userId])
+  @@map("feed_comments")
 }

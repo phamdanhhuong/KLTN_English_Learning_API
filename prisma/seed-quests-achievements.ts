@@ -464,3 +464,15 @@ export async function seedQuestsAndAchievements() {
 
   console.log('✅ Quests & Achievements seeding completed!');
 }
+
+// Run stand-alone if executed directly
+if (require.main === module) {
+  seedQuestsAndAchievements()
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
