@@ -11,6 +11,7 @@ import { SocialModule } from './modules/social/social.module';
 import { AchievementModule } from './modules/achievement/achievement.module';
 import { QuestModule } from './modules/quest/quest.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
+import { SpeechModule } from './modules/speech/speech.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
     LeaderboardModule,
     SkillModule,
     ProgressModule,
+    SpeechModule,
   ],
   controllers: [],
   providers: [],
