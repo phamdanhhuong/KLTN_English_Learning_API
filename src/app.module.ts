@@ -13,6 +13,7 @@ import { QuestModule } from './modules/quest/quest.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { SpeechModule } from './modules/speech/speech.module';
+import { ScoringModule } from './modules/scoring/scoring.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { SpeechModule } from './modules/speech/speech.module';
     SkillModule,
     ProgressModule,
     SpeechModule,
+    ScoringModule,
   ],
   controllers: [],
   providers: [],
