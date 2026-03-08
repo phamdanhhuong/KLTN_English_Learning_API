@@ -14,6 +14,7 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { SpeechModule } from './modules/speech/speech.module';
 import { ScoringModule } from './modules/scoring/scoring.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ScoringModule } from './modules/scoring/scoring.module';
     ProgressModule,
     SpeechModule,
     ScoringModule,
+    ChatModule,
   ],
   controllers: [],
   providers: [],

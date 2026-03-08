@@ -19,7 +19,7 @@ export class ScoringController {
     private readonly configService: ConfigService,
   ) {
     this.scoringEndpoint =
-      this.configService.get<string>('SCORING_ENDPOINT') || 'http://localhost:3006';
+      this.configService.get<string>('AI_SERVICE_ENDPOINT') || 'http://localhost:3006';
   }
 
   @Post('image-description/score')
