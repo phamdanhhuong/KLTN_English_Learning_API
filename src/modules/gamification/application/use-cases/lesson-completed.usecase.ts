@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { AddXpUseCase } from './xp/add-xp.usecase';
 import { UpdateStreakUseCase } from './streak/update-streak.usecase';
+import { QuestService } from '../../../quest/application/services/quest.service';
 
 export interface LessonCompletedDto {
   userId: string;
@@ -24,6 +25,7 @@ export class LessonCompletedUseCase {
     private readonly prisma: PrismaService,
     private readonly addXpUseCase: AddXpUseCase,
     private readonly updateStreakUseCase: UpdateStreakUseCase,
+    private readonly questService: QuestService,
   ) {}
 
   async execute(dto: LessonCompletedDto): Promise<LessonCompletionSummary> {
@@ -65,6 +67,9 @@ export class LessonCompletedUseCase {
     totalGemsEarned += streakResult.gemsEarned;
     totalCoinsEarned += streakResult.coinsEarned;
 
+    // Fire-and-forget: update friends quest contribution
+    this.questService.updateFriendsQuestContribution(dto.userId).catch(() => {});
+
     return {
       xp: {
         added: dto.xpEarned,
@@ -82,3 +87,4 @@ export class LessonCompletedUseCase {
     };
   }
 }
+

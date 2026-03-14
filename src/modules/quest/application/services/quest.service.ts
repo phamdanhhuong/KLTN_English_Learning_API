@@ -208,4 +208,30 @@ export class QuestService {
     end.setHours(23, 59, 59, 999);
     return end;
   }
+
+  /**
+   * Increment contribution for all Friends Quest groups the user is part of this week.
+   * Called after lesson completion — fire-and-forget.
+   */
+  async updateFriendsQuestContribution(userId: string): Promise<void> {
+    try {
+      const weekStart = this.getWeekStart(new Date());
+      await this.prisma.friendsQuestParticipant.updateMany({
+        where: { userId, weekStartDate: weekStart },
+        data: { contribution: { increment: 1 } },
+      });
+      // Also invalidate potentially cached participants
+    } catch (e) {
+      this.logger.warn(`updateFriendsQuestContribution failed for ${userId}: ${e}`);
+    }
+  }
+
+  private getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    d.setDate(d.getDate() - diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
 }

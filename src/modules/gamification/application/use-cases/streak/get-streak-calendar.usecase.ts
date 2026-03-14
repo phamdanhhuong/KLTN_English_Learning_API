@@ -17,7 +17,7 @@ export class GetStreakCalendarUseCase {
     userId: string,
     startDate?: Date,
     endDate?: Date,
-  ): Promise<CalendarDay[]> {
+  ) {
     // Default: current month
     const now = new Date();
     const start = startDate ?? new Date(now.getFullYear(), now.getMonth(), 1);
@@ -40,12 +40,12 @@ export class GetStreakCalendarUseCase {
     );
 
     // Fill calendar days
-    const result: CalendarDay[] = [];
+    const days: CalendarDay[] = [];
     const cursor = new Date(start);
     while (cursor <= end) {
       const key = cursor.toISOString().split('T')[0];
       const activity = studiedMap.get(key);
-      result.push({
+      days.push({
         date: key,
         studied: !!activity,
         streakCount: activity?.streakCount ?? 0,
@@ -55,6 +55,28 @@ export class GetStreakCalendarUseCase {
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
 
-    return result;
+    // Calculate summary
+    const totalStudied = days.filter(d => d.studied).length;
+    const totalXp = days.reduce((sum, d) => sum + d.xpEarned, 0);
+    const freezesUsed = days.filter(d => d.freezeUsed).length;
+    const streak = await this.prisma.streakData.findUnique({ where: { userId } });
+
+    // Return wrapped object matching mobile GetStreakCalendarResponseModel
+    return {
+      userId,
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0],
+      days,
+      summary: {
+        totalStudied,
+        totalXp,
+        freezesUsed,
+        currentStreak: streak?.currentStreak ?? 0,
+        longestStreak: streak?.longestStreak ?? 0,
+      },
+      success: true,
+      error: null,
+    };
   }
 }
+

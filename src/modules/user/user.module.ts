@@ -12,6 +12,7 @@ import { UpdatePreferencesUseCase } from './application/use-cases/update-prefere
 import { GetUserStatsUseCase } from './application/use-cases/get-stats.usecase';
 import { GetXpHistoryUseCase } from './application/use-cases/get-xp-history.usecase';
 import { GetPublicProfileUseCase, SearchUsersUseCase } from './application/use-cases/get-public-profile.usecase';
+import { ReportUserUseCase, BlockUserUseCase, UnblockUserUseCase } from './application/use-cases/report-block.usecase';
 
 // Infrastructure
 import { PrismaUserProfileRepository } from './infrastructure/persistence/prisma-user-profile.repository';
@@ -50,6 +51,9 @@ import { UserController } from './presentation/user.controller';
     GetXpHistoryUseCase,
     GetPublicProfileUseCase,
     SearchUsersUseCase,
+    ReportUserUseCase,
+    BlockUserUseCase,
+    UnblockUserUseCase,
   ],
   exports: [
     UserProfileServiceImpl,
