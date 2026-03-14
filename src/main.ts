@@ -10,16 +10,17 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: [
-      'https://app.vocaburex.io.vn',    // Cho phép User App
-      'https://admin.vocaburex.io.vn',  // Cho phép Admin Panel
-      'http://localhost:4000',          // Cho phép chạy local test
-      'http://localhost:4200',          // Cho phép chạy local admin test
-      'http://localhost:3000',          // Flutter web dev server
-      'http://localhost:8080',          // Flutter web alternative port
-      'http://127.0.0.1:3000',          // Flutter web localhost
-      'http://127.0.0.1:8080',          // Flutter web localhost alternative
-    ],
+    origin: '*',
+    // [
+    //   'https://app.vocaburex.io.vn',    // Cho phép User App
+    //   'https://admin.vocaburex.io.vn',  // Cho phép Admin Panel
+    //   'http://localhost:4000',          // Cho phép chạy local test
+    //   'http://localhost:4200',          // Cho phép chạy local admin test
+    //   'http://localhost:3000',          // Flutter web dev server
+    //   'http://localhost:8080',          // Flutter web alternative port
+    //   'http://127.0.0.1:3000',          // Flutter web localhost
+    //   'http://127.0.0.1:8080',          // Flutter web localhost alternative
+    // ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true, // Quan trọng nếu bạn dùng Cookie/Session
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],

@@ -7,6 +7,7 @@ import {
   SubmitLessonResultDto,
   ProgressUpdateResultDto,
 } from '../dto/submit-lesson-result.dto';
+import { LessonCompletedUseCase } from '../../../gamification/application/use-cases/lesson-completed.usecase';
 
 @Injectable()
 export class SubmitLessonResultUseCase {
@@ -17,6 +18,7 @@ export class SubmitLessonResultUseCase {
     private readonly masteryUpdateService: MasteryUpdateServiceInterface,
     @Inject(PROGRESS_TOKENS.SKILL_PROGRESS_SERVICE)
     private readonly skillProgressService: SkillProgressServiceInterface,
+    private readonly lessonCompletedUseCase: LessonCompletedUseCase,
   ) {}
 
   async execute(
@@ -82,26 +84,71 @@ export class SubmitLessonResultUseCase {
       }
     }
 
-    // 8. Build response with fake data for skipped fields
+    // 8. Calculate real XP
     const isPerfect = correctExercises === totalExercises && totalExercises > 0;
+    const accuracyPct = Math.round(lessonAccuracy * 100);
+
+    const baseXP = totalExercises * 10;                          // 10 XP mỗi exercise
+    const bonusXP = isLessonSuccessful ? Math.round(accuracyPct * 0.5) : 0; // bonus theo accuracy
+    const perfectBonusXP = isPerfect ? 20 : 0;                  // perfect score bonus
+    const totalXpEarned = baseXP + bonusXP + perfectBonusXP;
+
+    // 9. Trigger real gamification (XP + Streak + currency rewards)
+    let gamificationResult: any = null;
+    if (isLessonSuccessful) {
+      gamificationResult = await this.lessonCompletedUseCase.execute({
+        userId,
+        lessonId: submitDto.lessonId,
+        lessonType: 'lesson',
+        xpEarned: totalXpEarned,
+      }).catch(() => null);  // never fail the main response
+    }
+
+    // Build rewards list for UI
+    const rewards: { type: string; amount: number; title?: string }[] = [];
+    if (gamificationResult) {
+      if (gamificationResult.xp.added > 0) {
+        rewards.push({ type: 'XP', amount: gamificationResult.xp.added, title: 'XP Earned' });
+      }
+      if (gamificationResult.currency.gemsEarned > 0) {
+        rewards.push({ type: 'GEMS', amount: gamificationResult.currency.gemsEarned, title: 'Gems' });
+      }
+      if (gamificationResult.currency.coinsEarned > 0) {
+        rewards.push({ type: 'COINS', amount: gamificationResult.currency.coinsEarned, title: 'Coins' });
+      }
+      if (gamificationResult.xp.leveledUp) {
+        rewards.push({ type: 'LEVEL_UP', amount: gamificationResult.xp.newLevel, title: 'Level Up!' });
+      }
+      if (gamificationResult.streak.milestoneReached) {
+        rewards.push({ type: 'STREAK_MILESTONE', amount: gamificationResult.streak.milestoneReached, title: '🔥 Streak Milestone' });
+      }
+    }
 
     return {
       lessonId: submitDto.lessonId,
       skillId: submitDto.skillId,
       totalExercises,
       correctExercises,
-      accuracy: Math.round(lessonAccuracy * 100),
+      accuracy: accuracyPct,
       wordMasteriesUpdated,
       grammarMasteriesUpdated,
       isLessonSuccessful,
       message,
-      // Fake XP/rewards data (skipped calc)
-      xpEarned: 0,
-      bonuses: { baseXP: 0, bonusXP: 0, perfectBonusXP: 0 },
+      // Real XP/gamification data
+      xpEarned: gamificationResult?.xp.added ?? (isLessonSuccessful ? totalXpEarned : 0),
+      bonuses: { baseXP, bonusXP, perfectBonusXP },
       isPerfect,
-      rewards: [],
+      rewards,
       skillProgressMessage,
-      streakData: null,
+      streakData: gamificationResult
+        ? {
+            previousStreak: gamificationResult.streak.previousStreak,
+            currentStreak: gamificationResult.streak.currentStreak,
+            longestStreak: 0, // pulled from DB if needed
+            hasStreakIncreased:
+              gamificationResult.streak.currentStreak > gamificationResult.streak.previousStreak,
+          }
+        : null,
     };
   }
 }

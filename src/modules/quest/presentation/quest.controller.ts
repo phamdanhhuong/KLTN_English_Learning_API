@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Get, UseGuards, Request, Param, Query,
+  Controller, Post, Get, UseGuards, Request, Param, Query, Body,
   HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -41,6 +41,8 @@ export class QuestController {
     return this.claimQuest.execute(req.user.sub, questId);
   }
 
+  // Mobile calls GET /users/quests/chests → handled by UserQuestController below
+  // Also expose at /quests/chests for backwards compatibility
   @Get('chests')
   async getChests(@Request() req: any) {
     return this.getUnlockedChests.execute(req.user.sub);
@@ -63,13 +65,14 @@ export class QuestController {
     return this.joinFriendsQuest.execute(req.user.sub, key);
   }
 
+  // Mobile sends body { friendId: "..." } — fix from @Query to @Body
   @Post('friends/:key/invite')
   @HttpCode(HttpStatus.OK)
   async inviteToQuest(
     @Request() req: any,
     @Param('key') key: string,
-    @Query('userId') invitedUserId: string,
+    @Body('friendId') friendId: string,
   ) {
-    return this.inviteFriend.execute(req.user.sub, key, invitedUserId);
+    return this.inviteFriend.execute(req.user.sub, key, friendId);
   }
 }

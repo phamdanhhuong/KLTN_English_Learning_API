@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Patch, Body, UseGuards, Request, Param, Query,
+  Controller, Get, Patch, Post, Delete, Body, UseGuards, Request, Param, Query,
 } from '@nestjs/common';
 import { GetProfileUseCase } from '../application/use-cases/get-profile.usecase';
 import { UpdateProfileUseCase, UpdateProfileDto } from '../application/use-cases/update-profile.usecase';
@@ -7,6 +7,7 @@ import { UpdatePreferencesUseCase, UpdatePreferencesDto } from '../application/u
 import { GetUserStatsUseCase } from '../application/use-cases/get-stats.usecase';
 import { GetXpHistoryUseCase } from '../application/use-cases/get-xp-history.usecase';
 import { GetPublicProfileUseCase, SearchUsersUseCase } from '../application/use-cases/get-public-profile.usecase';
+import { ReportUserUseCase, BlockUserUseCase, UnblockUserUseCase } from '../application/use-cases/report-block.usecase';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 
 @Controller('users')
@@ -20,42 +21,73 @@ export class UserController {
     private readonly getXpHistoryUseCase: GetXpHistoryUseCase,
     private readonly getPublicProfileUseCase: GetPublicProfileUseCase,
     private readonly searchUsersUseCase: SearchUsersUseCase,
+    private readonly reportUserUseCase: ReportUserUseCase,
+    private readonly blockUserUseCase: BlockUserUseCase,
+    private readonly unblockUserUseCase: UnblockUserUseCase,
   ) {}
 
   // ── Own profile ──────────────────────────────────────────
-  @Get('me')
+  // Mobile: GET /users/profile
+  @Get('profile')
   async getMyProfile(@Request() req: any) {
     return this.getProfileUseCase.execute(req.user.sub);
   }
 
-  @Get('me/stats')
-  async getMyStats(@Request() req: any) {
-    return this.getUserStatsUseCase.execute(req.user.sub);
-  }
-
-  @Get('me/xp-history')
-  async getXpHistory(@Request() req: any, @Query('days') days?: number) {
-    return this.getXpHistoryUseCase.execute(req.user.sub, days ?? 7);
-  }
-
-  @Patch('me')
+  // Mobile: PATCH /users/profile
+  @Patch('profile')
   async updateMyProfile(@Request() req: any, @Body() dto: UpdateProfileDto) {
     return this.updateProfileUseCase.execute(req.user.sub, dto);
   }
 
-  @Patch('me/preferences')
+  @Get('profile/stats')
+  async getMyStats(@Request() req: any) {
+    return this.getUserStatsUseCase.execute(req.user.sub);
+  }
+
+  @Get('profile/xp-history')
+  async getXpHistory(@Request() req: any, @Query('days') days?: number) {
+    return this.getXpHistoryUseCase.execute(req.user.sub, days ?? 7);
+  }
+
+  @Patch('profile/preferences')
   async updateMyPreferences(@Request() req: any, @Body() dto: UpdatePreferencesDto) {
     return this.updatePreferencesUseCase.execute(req.user.sub, dto);
   }
 
-  // ── Search & Public profile ───────────────────────────────
+  // ── Public profile ────────────────────────────────────────
+  // Mobile: GET /users/profile/:userId
+  @Get('profile/:userId')
+  async getPublicProfile(@Param('userId') userId: string, @Request() req: any) {
+    return this.getPublicProfileUseCase.execute(userId, req.user.sub);
+  }
+
+  // ── Search ───────────────────────────────────────────────
   @Get('search')
   async searchUsers(@Query('username') username: string, @Query('limit') limit?: number) {
     return this.searchUsersUseCase.execute(username ?? '', limit ?? 10);
   }
 
-  @Get(':userId/profile')
-  async getPublicProfile(@Param('userId') userId: string) {
-    return this.getPublicProfileUseCase.execute(userId);
+  // ── Report & Block ────────────────────────────────────────
+  // Mobile: POST /users/:userId/report
+  @Post(':userId/report')
+  async reportUser(
+    @Request() req: any,
+    @Param('userId') userId: string,
+    @Body('reason') reason: string,
+    @Body('description') description?: string,
+  ) {
+    return this.reportUserUseCase.execute(req.user.sub, userId, reason, description);
+  }
+
+  // Mobile: POST /users/:userId/block
+  @Post(':userId/block')
+  async blockUser(@Request() req: any, @Param('userId') userId: string) {
+    return this.blockUserUseCase.execute(req.user.sub, userId);
+  }
+
+  // Mobile: DELETE /users/:userId/block
+  @Delete(':userId/block')
+  async unblockUser(@Request() req: any, @Param('userId') userId: string) {
+    return this.unblockUserUseCase.execute(req.user.sub, userId);
   }
 }

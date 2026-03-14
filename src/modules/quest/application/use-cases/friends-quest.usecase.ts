@@ -58,13 +58,28 @@ export class JoinFriendsQuestUseCase {
       throw new BadRequestException('Already joined this quest');
     }
 
-    return this.prisma.friendsQuestParticipant.create({
+    // Check if first to join (becomes creator)
+    const participantCount = await this.prisma.friendsQuestParticipant.count({
+      where: { questKey, weekStartDate: weekStart },
+    });
+    const isCreator = participantCount === 0;
+
+    const participant = await this.prisma.friendsQuestParticipant.create({
       data: {
         questKey,
         userId,
         weekStartDate: weekStart,
+        isCreator,
+        joinedAt: now,
+      },
+      include: {
+        user: {
+          select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+        },
       },
     });
+
+    return participant;
   }
 
   private getWeekStart(date: Date): Date {
@@ -76,6 +91,7 @@ export class JoinFriendsQuestUseCase {
     return d;
   }
 }
+
 
 @Injectable()
 export class InviteFriendToQuestUseCase {

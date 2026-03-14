@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { GamificationModule } from '../gamification/gamification.module';
 
 // Domain - DI Tokens
 import { PROGRESS_TOKENS } from './domain/di/tokens';
@@ -19,7 +20,7 @@ import { SkillProgressService } from './infrastructure/services/skill-progress.s
 import { ProgressController } from './presentation/controllers/progress.controller';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, GamificationModule],
   controllers: [ProgressController],
   providers: [
     // Repository
@@ -53,4 +54,3 @@ import { ProgressController } from './presentation/controllers/progress.controll
   ],
 })
 export class ProgressModule {}
-
