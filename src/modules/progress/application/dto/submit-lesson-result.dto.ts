@@ -21,10 +21,10 @@ export class ExerciseResultDto {
 }
 
 export class SubmitLessonResultDto {
-  @IsUUID()
+  @IsString()
   lessonId: string;
 
-  @IsUUID()
+  @IsString()
   skillId: string;
 
   @IsArray()

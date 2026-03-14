@@ -1,6 +1,14 @@
 import {
-  Controller, Post, Get, Body, UseGuards, Request,
-  HttpCode, HttpStatus, Query, Param,
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+  Query,
+  Param,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AddXpUseCase } from '../application/use-cases/xp/add-xp.usecase';
@@ -12,9 +20,16 @@ import { GetStreakHistoryUseCase } from '../application/use-cases/streak/get-str
 import { SpendCurrencyUseCase } from '../application/use-cases/currency/spend-currency.usecase';
 import { AddCurrencyUseCase } from '../application/use-cases/currency/add-currency.usecase';
 import { GetCurrencyBalanceUseCase } from '../application/use-cases/currency/get-currency-balance.usecase';
-import { ConsumeEnergyUseCase, GetEnergyUseCase } from '../application/use-cases/energy/energy.usecase';
+import {
+  ConsumeEnergyUseCase,
+  GetEnergyUseCase,
+} from '../application/use-cases/energy/energy.usecase';
 import { BuyEnergyUseCase } from '../application/use-cases/energy/buy-energy.usecase';
-import { LessonCompletedUseCase, LessonCompletedDto } from '../application/use-cases/lesson-completed.usecase';
+import { AwardEnergyUseCase } from '../application/use-cases/energy/award-energy.usecase';
+import {
+  LessonCompletedUseCase,
+  LessonCompletedDto,
+} from '../application/use-cases/lesson-completed.usecase';
 
 @Controller('gamification')
 @UseGuards(JwtAuthGuard)
@@ -32,6 +47,7 @@ export class GamificationController {
     private readonly consumeEnergyUseCase: ConsumeEnergyUseCase,
     private readonly getEnergyUseCase: GetEnergyUseCase,
     private readonly buyEnergyUseCase: BuyEnergyUseCase,
+    private readonly awardEnergyUseCase: AwardEnergyUseCase,
     private readonly lessonCompletedUseCase: LessonCompletedUseCase,
   ) {}
 
@@ -40,7 +56,11 @@ export class GamificationController {
   @HttpCode(HttpStatus.OK)
   async addXp(
     @Request() req: any,
-    @Body() body: { amount: number; source?: 'lesson' | 'exercise' | 'streak' | 'quest' | 'achievement' },
+    @Body()
+    body: {
+      amount: number;
+      source?: 'lesson' | 'exercise' | 'streak' | 'quest' | 'achievement';
+    },
   ) {
     return this.addXpUseCase.execute(req.user.sub, body.amount, body.source);
   }
@@ -91,10 +111,20 @@ export class GamificationController {
   @HttpCode(HttpStatus.OK)
   async spendCurrency(
     @Request() req: any,
-    @Body() body: { amount: number; currencyType: 'GEMS' | 'COINS'; reason: string; metadata?: Record<string, any> },
+    @Body()
+    body: {
+      amount: number;
+      currencyType: 'GEMS' | 'COINS';
+      reason: string;
+      metadata?: Record<string, any>;
+    },
   ) {
     return this.spendCurrencyUseCase.execute(
-      req.user.sub, body.amount, body.currencyType, body.reason, body.metadata,
+      req.user.sub,
+      body.amount,
+      body.currencyType,
+      body.reason,
+      body.metadata,
     );
   }
 
@@ -102,10 +132,20 @@ export class GamificationController {
   @HttpCode(HttpStatus.OK)
   async addCurrency(
     @Request() req: any,
-    @Body() body: { gems?: number; coins?: number; reason: string; metadata?: Record<string, any> },
+    @Body()
+    body: {
+      gems?: number;
+      coins?: number;
+      reason: string;
+      metadata?: Record<string, any>;
+    },
   ) {
     return this.addCurrencyUseCase.execute(
-      req.user.sub, body.gems ?? 0, body.coins ?? 0, body.reason, body.metadata,
+      req.user.sub,
+      body.gems ?? 0,
+      body.coins ?? 0,
+      body.reason,
+      body.metadata,
     );
   }
 
@@ -133,14 +173,37 @@ export class GamificationController {
     @Body() body: { amount?: number; paymentMethod?: 'GEMS' | 'COINS' },
   ) {
     return this.buyEnergyUseCase.execute(
-      req.user.sub, body.amount ?? 1, body.paymentMethod ?? 'GEMS',
+      req.user.sub,
+      body.amount ?? 1,
+      body.paymentMethod ?? 'GEMS',
     );
+  }
+
+  @Post('energy/award')
+  @HttpCode(HttpStatus.OK)
+  async awardEnergy(
+    @Request() req: any,
+    @Body()
+    body: { amount: number; reason?: string; metadata?: Record<string, any> },
+  ) {
+    return this.awardEnergyUseCase.execute({
+      userId: req.user.sub,
+      amount: body.amount,
+      reason: body.reason,
+      metadata: body.metadata,
+    });
   }
 
   // ─── LESSON INTEGRATION ──────────────────────────────────
   @Post('lesson-completed')
   @HttpCode(HttpStatus.OK)
-  async lessonCompleted(@Request() req: any, @Body() body: Omit<LessonCompletedDto, 'userId'>) {
-    return this.lessonCompletedUseCase.execute({ ...body, userId: req.user.sub });
+  async lessonCompleted(
+    @Request() req: any,
+    @Body() body: Omit<LessonCompletedDto, 'userId'>,
+  ) {
+    return this.lessonCompletedUseCase.execute({
+      ...body,
+      userId: req.user.sub,
+    });
   }
 }

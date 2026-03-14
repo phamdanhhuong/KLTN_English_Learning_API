@@ -25,33 +25,43 @@ export class SubmitLessonResultUseCase {
     userId: string,
     submitDto: SubmitLessonResultDto,
   ): Promise<ProgressUpdateResultDto> {
-    // 1. Validate lesson progress
-    const isValidProgress =
-      await this.lessonSubmissionService.validateLessonProgress(
-        userId,
-        submitDto.skillId,
-        submitDto.lessonId,
-      );
+    // 1. Check if this is a review lesson
+    const isReviewLesson =
+      submitDto.lessonId.startsWith('review-') ||
+      submitDto.skillId === 'review';
 
-    // 2. Get exercise data maps
+    // 2. Validate lesson progress (skip for review lessons)
+    const isValidProgress = isReviewLesson
+      ? false
+      : await this.lessonSubmissionService.validateLessonProgress(
+          userId,
+          submitDto.skillId,
+          submitDto.lessonId,
+        );
+
+    // 3. Get exercise data maps
     const { wordsMap, grammarsMap } =
       await this.lessonSubmissionService.getExerciseDataMaps(
         submitDto.exercises,
       );
 
-    // 3. Calculate performance
-    const { correctExercises, totalExercises, lessonAccuracy, isLessonSuccessful } =
-      this.lessonSubmissionService.calculateLessonPerformance(
-        submitDto.exercises,
-      );
+    // 4. Calculate performance
+    const {
+      correctExercises,
+      totalExercises,
+      lessonAccuracy,
+      isLessonSuccessful,
+    } = this.lessonSubmissionService.calculateLessonPerformance(
+      submitDto.exercises,
+    );
 
-    // 4. Save exercise results
+    // 5. Save exercise results
     await this.lessonSubmissionService.saveExerciseResults(
       userId,
       submitDto.exercises,
     );
 
-    // 5. Update masteries for correct exercises
+    // 6. Update masteries for correct exercises
     const { wordMasteriesUpdated, grammarMasteriesUpdated } =
       await this.masteryUpdateService.updateMasteries(
         userId,
@@ -60,7 +70,7 @@ export class SubmitLessonResultUseCase {
         grammarsMap,
       );
 
-    // 6. Generate progress message
+    // 7. Generate progress message
     let message = this.skillProgressService.generateProgressMessage(
       correctExercises,
       totalExercises,
@@ -69,9 +79,9 @@ export class SubmitLessonResultUseCase {
       grammarMasteriesUpdated,
     );
 
-    // 7. Update skill progress if successful and valid
+    // 8. Update skill progress if successful and valid (skip for review lessons)
     let skillProgressMessage: string | null = null;
-    if (isLessonSuccessful && isValidProgress) {
+    if (!isReviewLesson && isLessonSuccessful && isValidProgress) {
       skillProgressMessage =
         await this.skillProgressService.updateSkillProgress(
           userId,
@@ -84,43 +94,65 @@ export class SubmitLessonResultUseCase {
       }
     }
 
-    // 8. Calculate real XP
+    // 9. Calculate real XP
     const isPerfect = correctExercises === totalExercises && totalExercises > 0;
     const accuracyPct = Math.round(lessonAccuracy * 100);
 
-    const baseXP = totalExercises * 10;                          // 10 XP mỗi exercise
+    const baseXP = totalExercises * 10; // 10 XP mỗi exercise
     const bonusXP = isLessonSuccessful ? Math.round(accuracyPct * 0.5) : 0; // bonus theo accuracy
-    const perfectBonusXP = isPerfect ? 20 : 0;                  // perfect score bonus
+    const perfectBonusXP = isPerfect ? 20 : 0; // perfect score bonus
     const totalXpEarned = baseXP + bonusXP + perfectBonusXP;
 
-    // 9. Trigger real gamification (XP + Streak + currency rewards)
+    // 10. Trigger real gamification (XP + Streak + currency rewards)
     let gamificationResult: any = null;
     if (isLessonSuccessful) {
-      gamificationResult = await this.lessonCompletedUseCase.execute({
-        userId,
-        lessonId: submitDto.lessonId,
-        lessonType: 'lesson',
-        xpEarned: totalXpEarned,
-      }).catch(() => null);  // never fail the main response
+      gamificationResult = await this.lessonCompletedUseCase
+        .execute({
+          userId,
+          lessonId: submitDto.lessonId,
+          lessonType: 'lesson',
+          xpEarned: totalXpEarned,
+        })
+        .catch(() => null); // never fail the main response
     }
 
     // Build rewards list for UI
     const rewards: { type: string; amount: number; title?: string }[] = [];
     if (gamificationResult) {
       if (gamificationResult.xp.added > 0) {
-        rewards.push({ type: 'XP', amount: gamificationResult.xp.added, title: 'XP Earned' });
+        rewards.push({
+          type: 'XP',
+          amount: gamificationResult.xp.added,
+          title: 'XP Earned',
+        });
       }
       if (gamificationResult.currency.gemsEarned > 0) {
-        rewards.push({ type: 'GEMS', amount: gamificationResult.currency.gemsEarned, title: 'Gems' });
+        rewards.push({
+          type: 'GEMS',
+          amount: gamificationResult.currency.gemsEarned,
+          title: 'Gems',
+        });
       }
       if (gamificationResult.currency.coinsEarned > 0) {
-        rewards.push({ type: 'COINS', amount: gamificationResult.currency.coinsEarned, title: 'Coins' });
+        rewards.push({
+          type: 'COINS',
+          amount: gamificationResult.currency.coinsEarned,
+          title: 'Coins',
+        });
       }
       if (gamificationResult.xp.leveledUp) {
-        rewards.push({ type: 'LEVEL_UP', amount: gamificationResult.xp.newLevel, title: 'Level Up!' });
+        rewards.push({
+          type: 'LEVEL_UP',
+          amount: gamificationResult.xp.newLevel,
+          title: 'Level Up!',
+        });
       }
       if (gamificationResult.streak.milestoneReached) {
-        rewards.push({ type: 'STREAK_MILESTONE', amount: gamificationResult.streak.milestoneReached, title: '🔥 Streak Milestone' });
+        rewards.push({
+          type: 'STREAK_MILESTONE',
+          amount: gamificationResult.streak.milestoneReached,
+          title: '🔥 Streak Milestone',
+        });
       }
     }
 
@@ -135,7 +167,9 @@ export class SubmitLessonResultUseCase {
       isLessonSuccessful,
       message,
       // Real XP/gamification data
-      xpEarned: gamificationResult?.xp.added ?? (isLessonSuccessful ? totalXpEarned : 0),
+      xpEarned:
+        gamificationResult?.xp.added ??
+        (isLessonSuccessful ? totalXpEarned : 0),
       bonuses: { baseXP, bonusXP, perfectBonusXP },
       isPerfect,
       rewards,
@@ -146,7 +180,8 @@ export class SubmitLessonResultUseCase {
             currentStreak: gamificationResult.streak.currentStreak,
             longestStreak: 0, // pulled from DB if needed
             hasStreakIncreased:
-              gamificationResult.streak.currentStreak > gamificationResult.streak.previousStreak,
+              gamificationResult.streak.currentStreak >
+              gamificationResult.streak.previousStreak,
           }
         : null,
     };

@@ -21,8 +21,12 @@ import { AddCurrencyUseCase } from './application/use-cases/currency/add-currenc
 import { GetCurrencyBalanceUseCase } from './application/use-cases/currency/get-currency-balance.usecase';
 
 // Energy Use Cases
-import { ConsumeEnergyUseCase, GetEnergyUseCase } from './application/use-cases/energy/energy.usecase';
+import {
+  ConsumeEnergyUseCase,
+  GetEnergyUseCase,
+} from './application/use-cases/energy/energy.usecase';
 import { BuyEnergyUseCase } from './application/use-cases/energy/buy-energy.usecase';
+import { AwardEnergyUseCase } from './application/use-cases/energy/award-energy.usecase';
 
 // Lesson Integration
 import { LessonCompletedUseCase } from './application/use-cases/lesson-completed.usecase';
@@ -46,7 +50,9 @@ import { GamificationController } from './presentation/gamification.controller';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any },
+        signOptions: {
+          expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any,
+        },
       }),
     }),
   ],
@@ -55,21 +61,33 @@ import { GamificationController } from './presentation/gamification.controller';
     // XP
     AddXpUseCase,
     // Streak
-    UpdateStreakUseCase, UseStreakFreezeUseCase,
-    GetStreakStatusUseCase, GetStreakCalendarUseCase, GetStreakHistoryUseCase,
+    UpdateStreakUseCase,
+    UseStreakFreezeUseCase,
+    GetStreakStatusUseCase,
+    GetStreakCalendarUseCase,
+    GetStreakHistoryUseCase,
     // Currency
-    SpendCurrencyUseCase, AddCurrencyUseCase, GetCurrencyBalanceUseCase,
+    SpendCurrencyUseCase,
+    AddCurrencyUseCase,
+    GetCurrencyBalanceUseCase,
     // Energy
-    ConsumeEnergyUseCase, GetEnergyUseCase, BuyEnergyUseCase,
+    ConsumeEnergyUseCase,
+    GetEnergyUseCase,
+    BuyEnergyUseCase,
+    AwardEnergyUseCase,
     // Lesson
     LessonCompletedUseCase,
     // Scheduler
     StreakScheduler,
   ],
   exports: [
-    AddXpUseCase, UpdateStreakUseCase,
-    SpendCurrencyUseCase, AddCurrencyUseCase,
-    ConsumeEnergyUseCase, GetEnergyUseCase,
+    AddXpUseCase,
+    UpdateStreakUseCase,
+    SpendCurrencyUseCase,
+    AddCurrencyUseCase,
+    ConsumeEnergyUseCase,
+    GetEnergyUseCase,
+    AwardEnergyUseCase,
     LessonCompletedUseCase,
   ],
 })
