@@ -151,7 +151,11 @@ export class QuestService {
       include: { quest: true },
     });
 
-    const relevant = activeQuests.filter((uq) => uq.quest.category === category);
+    // Exclude special quests that have their own conditions (handled via updateQuestByKey)
+    const SPECIAL_KEYS = ['challenge_perfectionist'];
+    const relevant = activeQuests.filter(
+      (uq) => uq.quest.category === category && !SPECIAL_KEYS.includes(uq.quest.key),
+    );
 
     for (const uq of relevant) {
       const newProgress = Math.min(uq.progress + amount, uq.requirement);
@@ -180,6 +184,45 @@ export class QuestService {
     }
 
     // Invalidate cache
+    await this.redis.del(`quest:user:${userId}`);
+  }
+
+  /** Update quest progress by specific quest key (for special conditions like perfectionist) */
+  async updateQuestByKey(userId: string, questKey: string, amount: number) {
+    const activeQuest = await this.prisma.userQuest.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        quest: { key: questKey },
+      },
+      include: { quest: true },
+    });
+
+    if (!activeQuest) return;
+
+    const newProgress = Math.min(activeQuest.progress + amount, activeQuest.requirement);
+
+    if (newProgress > activeQuest.progress) {
+      const isCompleted = newProgress >= activeQuest.requirement;
+
+      await this.prisma.userQuest.update({
+        where: { id: activeQuest.id },
+        data: {
+          progress: newProgress,
+          ...(isCompleted
+            ? { status: 'COMPLETED' as QuestStatus, completedAt: new Date() }
+            : {}),
+        },
+      });
+
+      if (isCompleted) {
+        await this.prisma.questChest.updateMany({
+          where: { userQuestId: activeQuest.id, status: 'LOCKED' },
+          data: { status: 'UNLOCKED', unlockedAt: new Date() },
+        });
+      }
+    }
+
     await this.redis.del(`quest:user:${userId}`);
   }
 

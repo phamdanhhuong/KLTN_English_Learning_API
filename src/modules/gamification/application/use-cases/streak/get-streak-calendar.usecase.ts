@@ -1,14 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
 
-export interface CalendarDay {
-  date: string; // 'YYYY-MM-DD'
-  studied: boolean;
-  streakCount: number;
-  xpEarned: number;
-  freezeUsed: boolean;
-}
-
 @Injectable()
 export class GetStreakCalendarUseCase {
   constructor(private readonly prisma: PrismaService) {}
@@ -39,44 +31,92 @@ export class GetStreakCalendarUseCase {
       ]),
     );
 
-    // Fill calendar days
-    const days: CalendarDay[] = [];
+    const streak = await this.prisma.streakData.findUnique({ where: { userId } });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Fill calendar days matching mobile CalendarDayModel
+    const days: {
+      date: string;
+      status: string;
+      streakCount: number;
+      isStreakStart: boolean;
+      isStreakEnd: boolean;
+      freezeUsed: boolean;
+    }[] = [];
+
     const cursor = new Date(start);
     while (cursor <= end) {
       const key = cursor.toISOString().split('T')[0];
       const activity = studiedMap.get(key);
+      const isFuture = cursor > today;
+
+      let status: string;
+      if (isFuture) {
+        status = 'future';
+      } else if (activity?.freezeUsed) {
+        status = 'frozen';
+      } else if (activity && (activity.streakCount > 0 || activity.xpEarned > 0)) {
+        status = 'active';
+      } else if (cursor < today) {
+        status = 'missed';
+      } else {
+        status = 'no_streak';
+      }
+
       days.push({
         date: key,
-        studied: !!activity,
+        status,
         streakCount: activity?.streakCount ?? 0,
-        xpEarned: activity?.xpEarned ?? 0,
+        isStreakStart: false,
+        isStreakEnd: false,
         freezeUsed: activity?.freezeUsed ?? false,
       });
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
 
-    // Calculate summary
-    const totalStudied = days.filter(d => d.studied).length;
-    const totalXp = days.reduce((sum, d) => sum + d.xpEarned, 0);
-    const freezesUsed = days.filter(d => d.freezeUsed).length;
-    const streak = await this.prisma.streakData.findUnique({ where: { userId } });
+    // Compute isStreakStart / isStreakEnd
+    for (let i = 0; i < days.length; i++) {
+      if (days[i].status === 'active') {
+        const prevActive = i > 0 && days[i - 1].status === 'active';
+        const nextActive = i < days.length - 1 && days[i + 1].status === 'active';
+        days[i].isStreakStart = !prevActive;
+        days[i].isStreakEnd = !nextActive;
+      }
+    }
 
-    // Return wrapped object matching mobile GetStreakCalendarResponseModel
+    // Calculate summary matching mobile CalendarSummaryModel
+    const totalDays = days.length;
+    const activeDays = days.filter(d => d.status === 'active').length;
+    const frozenDays = days.filter(d => d.status === 'frozen').length;
+    const missedDays = days.filter(d => d.status === 'missed').length;
+
+    // Longest streak in the displayed range
+    let longestStreakInRange = 0;
+    let currentRun = 0;
+    for (const d of days) {
+      if (d.status === 'active' || d.status === 'frozen') {
+        currentRun++;
+        longestStreakInRange = Math.max(longestStreakInRange, currentRun);
+      } else {
+        currentRun = 0;
+      }
+    }
+
     return {
       userId,
       startDate: start.toISOString().split('T')[0],
       endDate: end.toISOString().split('T')[0],
       days,
       summary: {
-        totalStudied,
-        totalXp,
-        freezesUsed,
+        totalDays,
+        activeDays,
+        frozenDays,
+        missedDays,
         currentStreak: streak?.currentStreak ?? 0,
-        longestStreak: streak?.longestStreak ?? 0,
+        longestStreakInRange,
       },
       success: true,
-      error: null,
     };
   }
 }
-

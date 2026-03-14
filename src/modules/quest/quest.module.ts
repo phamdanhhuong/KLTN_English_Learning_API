@@ -15,6 +15,7 @@ import {
 import { QuestScheduler } from './application/schedulers/quest.scheduler';
 
 import { QuestController } from './presentation/quest.controller';
+import { UserQuestController } from './presentation/user-quest.controller';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { QuestController } from './presentation/quest.controller';
       }),
     }),
   ],
-  controllers: [QuestController],
+  controllers: [QuestController, UserQuestController],
   providers: [
     QuestService,
     QuestScheduler,

@@ -76,7 +76,15 @@ export class LeaderboardService {
     await this.redis.zAdd(this.getRedisKey(group.id), 0, userId);
     await this.redis.expire(this.getRedisKey(group.id), 7 * 24 * 3600); // 7 days
 
-    return participant;
+    return {
+      id: participant.id,
+      tier: userTier.currentTier,
+      groupNumber: group.groupNumber,
+      weekStartDate: weekStart,
+      weekEndDate: weekEnd,
+      weeklyXp: 0,
+      joined: true,
+    };
   }
 
   // ─── Core: Update XP (DB + Redis) ───
