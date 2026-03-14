@@ -6,3 +6,4 @@ export { UpdateExerciseUseCase } from './update-exercise.usecase';
 export { DeleteExerciseUseCase } from './delete-exercise.usecase';
 export { DeleteExercisesByLessonIdUseCase } from './delete-exercises-by-lesson-id.usecase';
 export { GetExerciseCountUseCase } from './get-exercise-count.usecase';
+export { GetReviewExercisesUseCase } from './get-review-exercises.usecase';
