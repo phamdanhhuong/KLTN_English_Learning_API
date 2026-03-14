@@ -101,6 +101,8 @@ export class SubmitLessonResultUseCase {
         lessonId: submitDto.lessonId,
         lessonType: 'lesson',
         xpEarned: totalXpEarned,
+        isPerfect,
+        exerciseCount: totalExercises,
       }).catch(() => null);  // never fail the main response
     }
 

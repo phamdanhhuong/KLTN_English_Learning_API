@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
 import { AchievementCheckerService } from '../../../../achievement/application/services/achievement-checker.service';
 import { FeedService } from '../../../../feed/application/services/feed.service';
+import { LeaderboardService } from '../../../../leaderboard/application/services/leaderboard.service';
 
 export interface AddXpResult {
     newXp: number;
@@ -71,6 +72,7 @@ export class AddXpUseCase {
         private readonly prisma: PrismaService,
         private readonly achievementChecker: AchievementCheckerService,
         private readonly feedService: FeedService,
+        private readonly leaderboardService: LeaderboardService,
     ) { }
 
     async execute(
@@ -180,6 +182,9 @@ export class AddXpUseCase {
         }
         // XP milestone check
         this.feedService.autoCreatePost(userId, 'XP_MILESTONE', { totalXp: result.newXp }).catch(() => {});
+
+        // Update leaderboard XP (auto-joins league if needed)
+        this.leaderboardService.updateUserXp(userId, xpAmount).catch(() => {});
 
         return result;
     }

@@ -6,6 +6,7 @@ import { PrismaModule } from '../../infrastructure/database/prisma.module';
 import { AchievementModule } from '../achievement/achievement.module';
 import { FeedModule } from '../feed/feed.module';
 import { QuestModule } from '../quest/quest.module';
+import { LeaderboardModule } from '../leaderboard/leaderboard.module';
 
 // Streak Use Cases
 import { AddXpUseCase } from './application/use-cases/xp/add-xp.usecase';
@@ -39,6 +40,7 @@ import { GamificationController } from './presentation/gamification.controller';
     AchievementModule,
     FeedModule,
     QuestModule,
+    LeaderboardModule,
     ConfigModule,
     ScheduleModule.forRoot(),
     JwtModule.registerAsync({

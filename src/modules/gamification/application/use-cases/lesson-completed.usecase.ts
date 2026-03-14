@@ -11,6 +11,8 @@ export interface LessonCompletedDto {
   xpEarned: number;
   gemsEarned?: number;
   coinsEarned?: number;
+  isPerfect?: boolean;
+  exerciseCount?: number;
 }
 
 export interface LessonCompletionSummary {
@@ -69,6 +71,22 @@ export class LessonCompletedUseCase {
 
     // Fire-and-forget: update friends quest contribution
     this.questService.updateFriendsQuestContribution(dto.userId).catch(() => {});
+
+    // Fire-and-forget: init + update daily quest progress
+    this.questService.checkAndInitQuests(dto.userId)
+      .then(() => Promise.all([
+        this.questService.updateQuestProgress(dto.userId, 'LESSONS', 1),
+        this.questService.updateQuestProgress(dto.userId, 'XP_EARNED', dto.xpEarned),
+        // Exercise count quest
+        dto.exerciseCount
+          ? this.questService.updateQuestProgress(dto.userId, 'EXERCISES', dto.exerciseCount)
+          : Promise.resolve(),
+        // Perfectionist quest — only count when isPerfect
+        dto.isPerfect
+          ? this.questService.updateQuestByKey(dto.userId, 'challenge_perfectionist', 1)
+          : Promise.resolve(),
+      ]))
+      .catch(() => {});
 
     return {
       xp: {

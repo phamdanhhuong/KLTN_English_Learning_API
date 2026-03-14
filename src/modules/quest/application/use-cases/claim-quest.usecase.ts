@@ -11,11 +11,19 @@ export class ClaimQuestUseCase {
 
   async execute(userId: string, questId: string) {
     return this.prisma.$transaction(async (tx) => {
-      // Find completed, unclaimed quest
-      const userQuest = await tx.userQuest.findFirst({
+      // Find completed, unclaimed quest — try by questId (definition) first, then by userQuest id (instance)
+      let userQuest = await tx.userQuest.findFirst({
         where: { userId, questId, status: 'COMPLETED' },
         include: { quest: true },
       });
+
+      if (!userQuest) {
+        // Fallback: mobile may pass the userQuest instance ID
+        userQuest = await tx.userQuest.findFirst({
+          where: { id: questId, userId, status: 'COMPLETED' },
+          include: { quest: true },
+        });
+      }
 
       if (!userQuest) {
         throw new NotFoundException('Completed quest not found or already claimed');
@@ -59,13 +67,13 @@ export class ClaimQuestUseCase {
       // Invalidate cache
       await this.redis.del(`quest:user:${userId}`);
 
-      return {
-        claimed: true,
-        rewards: {
-          xp: userQuest.quest.rewardXp,
-          gems: userQuest.quest.rewardGems,
-        },
-      };
+      // Return full updated userQuest for mobile to update UI
+      const updatedQuest = await tx.userQuest.findUnique({
+        where: { id: userQuest.id },
+        include: { quest: true },
+      });
+
+      return updatedQuest;
     });
   }
 }
