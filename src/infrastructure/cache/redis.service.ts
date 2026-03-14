@@ -14,12 +14,20 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private isConnected = false;
 
   constructor(private readonly configService: ConfigService) {
-    const host = this.configService.get('REDIS_HOST', 'localhost');
-    const port = parseInt(this.configService.get('REDIS_PORT', '6379'));
+    const redisUrl = this.configService.get('REDIS_URL');
 
-    this.client = createClient({
-      socket: { host, port },
-    });
+    if (redisUrl) {
+      this.client = createClient({ url: redisUrl });
+    } else {
+      const host = this.configService.get('REDIS_HOST', 'localhost');
+      const port = parseInt(this.configService.get('REDIS_PORT', '6379'));
+      const password = this.configService.get('REDIS_PASSWORD');
+
+      this.client = createClient({
+        socket: { host, port },
+        ...(password ? { password } : {}),
+      });
+    }
 
     this.client.on('error', (err) => {
       this.logger.error('Redis Client Error', err);
@@ -80,7 +88,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   // ─── Sorted Set operations (Leaderboard) ────────────────
 
   /** ZINCRBY — thêm/cộng score cho member. Trả về score mới. */
-  async zIncrBy(key: string, increment: number, member: string): Promise<number> {
+  async zIncrBy(
+    key: string,
+    increment: number,
+    member: string,
+  ): Promise<number> {
     if (!this.isConnected) return 0;
     try {
       return await this.client.zIncrBy(key, increment, member);
@@ -97,7 +109,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   ): Promise<{ value: string; score: number }[]> {
     if (!this.isConnected) return [];
     try {
-      return await this.client.zRangeWithScores(key, start, stop, { REV: true });
+      return await this.client.zRangeWithScores(key, start, stop, {
+        REV: true,
+      });
     } catch {
       return [];
     }

@@ -14,13 +14,19 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           // Dynamic import to avoid requiring redis in dev
           // eslint-disable-next-line @typescript-eslint/no-var-requires
           const { redisStore } = await import('cache-manager-redis-yet' as any);
+          const redisUrl = configService.get('REDIS_URL');
+
+          const storeConfig = redisUrl
+            ? { url: redisUrl }
+            : {
+                socket: {
+                  host: configService.get('REDIS_HOST', 'localhost'),
+                  port: parseInt(configService.get('REDIS_PORT', '6379')),
+                },
+              };
+
           return {
-            store: await redisStore({
-              socket: {
-                host: configService.get('REDIS_HOST', 'localhost'),
-                port: parseInt(configService.get('REDIS_PORT', '6379')),
-              },
-            }),
+            store: await redisStore(storeConfig),
             ttl: 600 * 1000, // 10 minutes
           };
         }
