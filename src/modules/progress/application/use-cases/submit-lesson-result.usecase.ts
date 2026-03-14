@@ -8,6 +8,7 @@ import {
   ProgressUpdateResultDto,
 } from '../dto/submit-lesson-result.dto';
 import { LessonCompletedUseCase } from '../../../gamification/application/use-cases/lesson-completed.usecase';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class SubmitLessonResultUseCase {
@@ -19,6 +20,7 @@ export class SubmitLessonResultUseCase {
     @Inject(PROGRESS_TOKENS.SKILL_PROGRESS_SERVICE)
     private readonly skillProgressService: SkillProgressServiceInterface,
     private readonly lessonCompletedUseCase: LessonCompletedUseCase,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(
@@ -114,6 +116,15 @@ export class SubmitLessonResultUseCase {
           xpEarned: totalXpEarned,
         })
         .catch(() => null); // never fail the main response
+    }
+
+    //11. Energy rewards for review lesson completion
+    if (isReviewLesson && isLessonSuccessful) {
+      this.eventEmitter.emit('energy.award', {
+        userId,
+        amount: 1, // reward 1 energy for completing a review lesson
+        reason: 'REVIEW_LESSON_COMPLETED',
+      });
     }
 
     // Build rewards list for UI

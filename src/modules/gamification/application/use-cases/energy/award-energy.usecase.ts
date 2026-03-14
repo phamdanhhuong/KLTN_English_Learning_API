@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
+import { OnEvent } from '@nestjs/event-emitter';
 
 export interface AwardEnergyRequest {
   userId: string;
@@ -22,6 +23,7 @@ export interface AwardEnergyResponse {
 export class AwardEnergyUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
+  @OnEvent('energy.award')
   async execute(request: AwardEnergyRequest): Promise<AwardEnergyResponse> {
     const { userId, amount, reason = 'DAILY_BONUS', metadata } = request;
 
