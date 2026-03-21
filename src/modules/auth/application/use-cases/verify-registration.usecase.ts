@@ -9,9 +9,24 @@ import { AuthUserRepository } from '../../domain/repositories/auth-user.reposito
 import { TokenService, TokenPair } from '../../domain/services/token.service';
 import { RefreshTokenRepository } from '../../domain/repositories/refresh-token.repository';
 import { UserProfileService } from '../../domain/services/user-profile.service';
-import { LearningService } from '../../domain/services/learning.service';
 import { CacheService } from '../../domain/services/cache.service';
-import { VerifyOtpDto } from '../dto/otp.dto';
+import { CompleteRegistrationDto } from '../dto/complete-registration.dto';
+
+interface CachedRegistrationData {
+  hashedPassword: string;
+  fullName?: string;
+  profilePictureUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nativeLanguage?: string;
+  targetLanguage?: string;
+  proficiencyLevel?: string;
+  learningGoals?: string[];
+  dailyGoalMinutes?: number;
+  timezone?: string;
+  studyReminder?: string;
+  reminderTime?: string;
+}
 
 @Injectable()
 export class VerifyRegistrationUseCase {
@@ -26,69 +41,77 @@ export class VerifyRegistrationUseCase {
     private readonly refreshTokenRepo: RefreshTokenRepository,
     @Inject(AUTH_TOKENS.USER_PROFILE_SERVICE)
     private readonly userProfileService: UserProfileService,
-    @Inject(AUTH_TOKENS.LEARNING_SERVICE)
-    private readonly learningService: LearningService,
     @Inject(AUTH_TOKENS.CACHE_SERVICE)
     private readonly cacheService: CacheService,
   ) {}
 
   async execute(
-    dto: VerifyOtpDto,
+    dto: CompleteRegistrationDto,
   ): Promise<{ tokens: TokenPair; message: string }> {
+    // Mobile sends email as "userId" and otp code as "otp"
+    const email = dto.userId;
+    const otpCode = dto.otp;
+
     // Verify OTP
     const isValid = await this.userProfileService.verifyRegistrationOtp(
-      dto.email,
-      dto.otpCode,
+      email,
+      otpCode,
     );
     if (!isValid) {
       throw new BadRequestException('Invalid or expired OTP');
     }
 
-    // Retrieve hashed password from cache (saved during register step)
-    const hashedPassword = await this.cacheService.get<string>(
-      `register:${dto.email}`,
+    // Retrieve cached registration data (saved during register/initiate step)
+    const cachedRaw = await this.cacheService.get<string>(
+      `register:${email}`,
     );
-    if (!hashedPassword) {
+    if (!cachedRaw) {
       throw new BadRequestException(
         'Registration session expired. Please register again.',
       );
     }
 
+    const registrationData: CachedRegistrationData =
+      typeof cachedRaw === 'string' ? JSON.parse(cachedRaw) : cachedRaw;
+
     // Check if user already exists (race condition protection)
-    const existingUser = await this.authUserRepo.findByEmail(dto.email);
+    const existingUser = await this.authUserRepo.findByEmail(email);
     if (existingUser) {
       throw new BadRequestException('Email already registered');
     }
 
-    // Get default USER role ID from cache or hardcode
+    // Get default USER role ID
     const defaultRoleId = await this.getDefaultRoleId();
 
-    // Create auth user (password already hashed from register step)
+    // Create user with full onboarding data
     const user = await this.authUserRepo.create({
-      email: dto.email,
-      password: hashedPassword,
+      email,
+      password: registrationData.hashedPassword,
       roleId: defaultRoleId,
       isEmailVerified: true,
+      fullName: registrationData.fullName,
+      profilePictureUrl: registrationData.profilePictureUrl,
+      dateOfBirth: registrationData.dateOfBirth
+        ? new Date(registrationData.dateOfBirth)
+        : undefined,
+      gender: registrationData.gender,
+      nativeLanguage: registrationData.nativeLanguage,
+      targetLanguage: registrationData.targetLanguage,
+      proficiencyLevel: registrationData.proficiencyLevel,
+      learningGoals: registrationData.learningGoals,
+      dailyGoalMinutes: registrationData.dailyGoalMinutes,
+      timezone: registrationData.timezone,
     });
 
-    // Clean up cached password
-    await this.cacheService.del(`register:${dto.email}`);
+    // Clean up cached registration data
+    await this.cacheService.del(`register:${email}`);
 
-    // Create user profile in UserModule (cross-module call)
+    // Initialize all user profiles (gamification + league + achievements)
     try {
       await this.userProfileService.createUserProfile(user.id, user.email);
     } catch (error) {
       this.logger.warn(
         `Failed to create user profile for ${user.id}: ${error.message}`,
-      );
-    }
-
-    // Initialize learning profile in LearningModule (cross-module call)
-    try {
-      await this.learningService.initializeLearningProfile(user.id);
-    } catch (error) {
-      this.logger.warn(
-        `Failed to initialize learning profile for ${user.id}: ${error.message}`,
       );
     }
 
@@ -122,12 +145,8 @@ export class VerifyRegistrationUseCase {
   }
 
   private async getDefaultRoleId(): Promise<string> {
-    // Try cache first
     const cached = await this.cacheService.get<string>('role:USER');
     if (cached) return cached;
-
-    // Fallback: This will be resolved when the role seed runs
-    // For now, return a placeholder that gets resolved by the repository
     return 'USER';
   }
 }

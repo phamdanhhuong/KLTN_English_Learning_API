@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
+import {
+  AuthUserRepository,
+  CreateAuthUserData,
+} from '../../domain/repositories/auth-user.repository';
 import { AuthUser } from '../../domain/entities/auth-user.entity';
 
 @Injectable()
@@ -39,14 +42,7 @@ export class PrismaAuthUserRepository implements AuthUserRepository {
     return user ? new AuthUser(user) : null;
   }
 
-  async create(data: {
-    email: string;
-    password?: string;
-    roleId: string;
-    googleId?: string;
-    facebookId?: string;
-    isEmailVerified?: boolean;
-  }): Promise<AuthUser> {
+  async create(data: CreateAuthUserData): Promise<AuthUser> {
     // Resolve roleId: if it's a name like 'USER', find the role first
     let resolvedRoleId = data.roleId;
     if (!this.isUUID(data.roleId)) {
@@ -72,6 +68,17 @@ export class PrismaAuthUserRepository implements AuthUserRepository {
         googleId: data.googleId || null,
         facebookId: data.facebookId || null,
         isEmailVerified: data.isEmailVerified ?? false,
+        // Onboarding profile fields
+        fullName: data.fullName || null,
+        profilePictureUrl: data.profilePictureUrl || null,
+        dateOfBirth: data.dateOfBirth || null,
+        gender: (data.gender as any) || null,
+        nativeLanguage: data.nativeLanguage || undefined,
+        targetLanguage: data.targetLanguage || undefined,
+        proficiencyLevel: (data.proficiencyLevel as any) || null,
+        learningGoals: (data.learningGoals as any) || undefined,
+        dailyGoalMinutes: data.dailyGoalMinutes || undefined,
+        timezone: data.timezone || undefined,
       },
       include: { role: true },
     });

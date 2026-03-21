@@ -72,7 +72,7 @@ export class GoogleLoginUseCase {
           isEmailVerified: true,
         });
 
-        // Create profile in UserModule
+        // Create profile in UserModule (includes all gamification + league + achievements)
         try {
           await this.userProfileService.createUserProfileWithDetails(
             user.id,
@@ -83,15 +83,6 @@ export class GoogleLoginUseCase {
         } catch (error) {
           this.logger.warn(
             `Failed to create user profile for Google user ${user.id}: ${error.message}`,
-          );
-        }
-
-        // Initialize learning profile
-        try {
-          await this.learningService.initializeLearningProfile(user.id);
-        } catch (error) {
-          this.logger.warn(
-            `Failed to initialize learning for Google user ${user.id}: ${error.message}`,
           );
         }
       }

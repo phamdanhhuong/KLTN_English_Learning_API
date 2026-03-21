@@ -21,18 +21,36 @@ export class RegisterUserUseCase {
     private readonly userProfileService: UserProfileService,
   ) {}
 
-  async execute(dto: RegisterDto): Promise<{ message: string }> {
+  async execute(dto: RegisterDto): Promise<{ message: string; userId: string }> {
     // Check if email already exists
     const existingUser = await this.authUserRepo.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('Email already registered');
     }
 
-    // Hash password and save to cache (TTL 10 minutes)
+    // Hash password
     const hashedPassword = await this.hashService.hash(dto.password);
+
+    // Cache ALL registration data (password + onboarding fields) — TTL 10 minutes
+    const registrationData = {
+      hashedPassword,
+      fullName: dto.fullName,
+      profilePictureUrl: dto.profilePictureUrl,
+      dateOfBirth: dto.dateOfBirth,
+      gender: dto.gender,
+      nativeLanguage: dto.nativeLanguage,
+      targetLanguage: dto.targetLanguage,
+      proficiencyLevel: dto.proficiencyLevel,
+      learningGoals: dto.learningGoals,
+      dailyGoalMinutes: dto.dailyGoalMinutes,
+      timezone: dto.timezone,
+      studyReminder: dto.studyReminder,
+      reminderTime: dto.reminderTime,
+    };
+
     await this.cacheService.set(
       `register:${dto.email}`,
-      hashedPassword,
+      JSON.stringify(registrationData),
       600, // 10 minutes
     );
 
@@ -42,6 +60,7 @@ export class RegisterUserUseCase {
     return {
       message:
         'OTP sent to your email. Please verify to complete registration.',
+      userId: dto.email, // mobile expects a "userId" field to pass to OTP step
     };
   }
 }

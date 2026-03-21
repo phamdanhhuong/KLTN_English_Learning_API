@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import {
     UserProfileRepository,
@@ -9,6 +9,8 @@ import { UserProfile } from '../../domain/entities/user-profile.entity';
 
 @Injectable()
 export class PrismaUserProfileRepository implements UserProfileRepository {
+    private readonly logger = new Logger(PrismaUserProfileRepository.name);
+
     constructor(private readonly prisma: PrismaService) { }
 
     async findById(id: string): Promise<UserProfile | null> {
@@ -27,13 +29,33 @@ export class PrismaUserProfileRepository implements UserProfileRepository {
     }
 
     async create(userId: string, email: string): Promise<UserProfile> {
-        // Create gamification records atomically
         const user = await this.prisma.$transaction(async (tx) => {
+            // Core gamification records
             await tx.userCurrency.create({ data: { userId } });
             await tx.streakData.create({ data: { userId } });
             await tx.userEnergy.create({ data: { userId } });
+
+            // League tier (default BRONZE)
+            await tx.userLeagueTier.create({ data: { userId } });
+
+            // Pre-create UserAchievement rows for all seeded achievements
+            const achievements = await tx.achievement.findMany({ select: { id: true } });
+            if (achievements.length > 0) {
+                await tx.userAchievement.createMany({
+                    data: achievements.map((a) => ({
+                        userId,
+                        achievementId: a.id,
+                        progress: 0,
+                        isUnlocked: false,
+                    })),
+                    skipDuplicates: true,
+                });
+            }
+
             return tx.user.findUniqueOrThrow({ where: { id: userId } });
         });
+
+        this.logger.log(`Initialized all profiles for userId=${userId}`);
         return this.toEntity(user);
     }
 
@@ -45,10 +67,27 @@ export class PrismaUserProfileRepository implements UserProfileRepository {
         username?: string;
     }): Promise<UserProfile> {
         const user = await this.prisma.$transaction(async (tx) => {
-            // Init gamification data
+            // Core gamification records
             await tx.userCurrency.create({ data: { userId: data.userId } });
             await tx.streakData.create({ data: { userId: data.userId } });
             await tx.userEnergy.create({ data: { userId: data.userId } });
+
+            // League tier (default BRONZE)
+            await tx.userLeagueTier.create({ data: { userId: data.userId } });
+
+            // Pre-create UserAchievement rows for all seeded achievements
+            const achievements = await tx.achievement.findMany({ select: { id: true } });
+            if (achievements.length > 0) {
+                await tx.userAchievement.createMany({
+                    data: achievements.map((a) => ({
+                        userId: data.userId,
+                        achievementId: a.id,
+                        progress: 0,
+                        isUnlocked: false,
+                    })),
+                    skipDuplicates: true,
+                });
+            }
 
             // Update user profile with details
             return tx.user.update({
@@ -60,6 +99,8 @@ export class PrismaUserProfileRepository implements UserProfileRepository {
                 },
             });
         });
+
+        this.logger.log(`Initialized all profiles for userId=${data.userId}`);
         return this.toEntity(user);
     }
 

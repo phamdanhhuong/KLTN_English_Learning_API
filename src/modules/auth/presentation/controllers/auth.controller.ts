@@ -13,7 +13,7 @@ import { CurrentUser } from '../../../../common/decorators/current-user.decorato
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RegisterDto } from '../../application/dto/register.dto';
 import { LoginDto } from '../../application/dto/login.dto';
-import { VerifyOtpDto } from '../../application/dto/otp.dto';
+import { CompleteRegistrationDto } from '../../application/dto/complete-registration.dto';
 import { RefreshTokenDto } from '../../application/dto/refresh-token.dto';
 import {
   ChangePasswordDto,
@@ -47,16 +47,16 @@ export class AuthController {
   ) {}
 
   @Public()
-  @Post('register')
+  @Post('register/initiate')
   @HttpCode(HttpStatus.OK)
   async register(@Body() dto: RegisterDto) {
     return this.registerUserUseCase.execute(dto);
   }
 
   @Public()
-  @Post('verify-registration')
+  @Post('register/complete')
   @HttpCode(HttpStatus.CREATED)
-  async verifyRegistration(@Body() dto: VerifyOtpDto) {
+  async verifyRegistration(@Body() dto: CompleteRegistrationDto) {
     return this.verifyRegistrationUseCase.execute(dto);
   }
 
@@ -107,14 +107,14 @@ export class AuthController {
   }
 
   @Public()
-  @Post('google')
+  @Post('google/login')
   @HttpCode(HttpStatus.OK)
   async googleLogin(@Body() dto: GoogleLoginDto) {
     return this.googleLoginUseCase.execute(dto.idToken);
   }
 
   @Public()
-  @Post('facebook')
+  @Post('facebook/login')
   @HttpCode(HttpStatus.OK)
   async facebookLogin(@Body() dto: FacebookLoginDto) {
     return this.facebookLoginUseCase.execute(dto.accessToken);

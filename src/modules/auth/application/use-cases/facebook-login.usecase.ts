@@ -67,6 +67,7 @@ export class FacebookLoginUseCase {
           isEmailVerified: true,
         });
 
+        // Create profile in UserModule (includes all gamification + league + achievements)
         try {
           await this.userProfileService.createUserProfileWithDetails(
             user.id,
@@ -77,14 +78,6 @@ export class FacebookLoginUseCase {
         } catch (error) {
           this.logger.warn(
             `Failed to create user profile for Facebook user ${user.id}: ${error.message}`,
-          );
-        }
-
-        try {
-          await this.learningService.initializeLearningProfile(user.id);
-        } catch (error) {
-          this.logger.warn(
-            `Failed to initialize learning for Facebook user ${user.id}: ${error.message}`,
           );
         }
       }
