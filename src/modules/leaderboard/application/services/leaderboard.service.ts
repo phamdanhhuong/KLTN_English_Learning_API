@@ -1,14 +1,25 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { RedisService } from '../../../../infrastructure/cache/redis.service';
+import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { LEADERBOARD_TOKENS } from '../../domain/di/tokens';
+import type { LeagueRepository } from '../../domain/repositories/league.repository.interface';
+import type { ParticipantRepository } from '../../domain/repositories/participant.repository.interface';
+import type { UserTierRepository } from '../../domain/repositories/user-tier.repository.interface';
+import type { LeagueHistoryRepository } from '../../domain/repositories/league-history.repository.interface';
+import { FeedService } from '../../../feed/application/services/feed.service';
 
 @Injectable()
 export class LeaderboardService {
   private readonly logger = new Logger(LeaderboardService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
+    @Inject(LEADERBOARD_TOKENS.LEAGUE_REPOSITORY)
+    private readonly leagueRepo: LeagueRepository,
+    @Inject(LEADERBOARD_TOKENS.PARTICIPANT_REPOSITORY)
+    private readonly participantRepo: ParticipantRepository,
+    @Inject(LEADERBOARD_TOKENS.USER_TIER_REPOSITORY)
+    private readonly userTierRepo: UserTierRepository,
+    @Inject(LEADERBOARD_TOKENS.LEAGUE_HISTORY_REPOSITORY)
+    private readonly historyRepo: LeagueHistoryRepository,
+    private readonly feedService: FeedService,
   ) {}
 
   // ─── Core: Join League ───
@@ -18,63 +29,36 @@ export class LeaderboardService {
     const weekEnd = this.getCurrentWeekEnd();
 
     // Check if already in a league this week
-    const existing = await this.findUserActiveParticipation(userId, weekStart);
+    const existing = await this.participantRepo.findUserActiveParticipation(userId, weekStart);
     if (existing) return existing;
 
     // Get or create user tier
-    let userTier = await this.prisma.userLeagueTier.findUnique({ where: { userId } });
-    if (!userTier) {
-      userTier = await this.prisma.userLeagueTier.create({
-        data: { userId, currentTier: 'BRONZE', highestTier: 'BRONZE' },
-      });
-    }
+    const userTier = await this.userTierRepo.getOrCreate(userId);
 
     // Get or create league for this tier & week
-    let league = await this.prisma.league.findUnique({
-      where: { tier_weekStartDate: { tier: userTier.currentTier, weekStartDate: weekStart } },
-    });
+    let league = await this.leagueRepo.findByTierAndWeek(userTier.currentTier, weekStart);
     if (!league) {
-      league = await this.prisma.league.create({
-        data: { tier: userTier.currentTier, weekStartDate: weekStart, weekEndDate: weekEnd },
-      });
+      league = await this.leagueRepo.create(userTier.currentTier, weekStart, weekEnd);
     }
 
     // Find available group or create new one
-    let group = await this.prisma.leagueGroup.findFirst({
-      where: { leagueId: league.id, isFull: false },
-      orderBy: { groupNumber: 'asc' },
-    });
-
+    let group = await this.leagueRepo.findAvailableGroup(league.id);
     if (!group) {
-      const groupCount = await this.prisma.leagueGroup.count({ where: { leagueId: league.id } });
-      group = await this.prisma.leagueGroup.create({
-        data: { leagueId: league.id, groupNumber: groupCount + 1 },
-      });
+      const groupCount = await this.leagueRepo.countGroups(league.id);
+      group = await this.leagueRepo.createGroup(league.id, groupCount + 1);
     }
 
     // Add user to group
-    const participant = await this.prisma.leagueParticipant.create({
-      data: { groupId: group.id, userId },
-    });
+    const participant = await this.participantRepo.create(group.id, userId);
 
     // Update group count
-    await this.prisma.leagueGroup.update({
-      where: { id: group.id },
-      data: {
-        participantCount: { increment: 1 },
-        isFull: group.participantCount + 1 >= group.maxParticipants,
-      },
-    });
+    await this.leagueRepo.incrementGroupParticipant(group.id, group.participantCount, group.maxParticipants);
 
     // Update user tier with current group
-    await this.prisma.userLeagueTier.update({
-      where: { userId },
-      data: { currentGroupId: group.id },
-    });
+    await this.userTierRepo.updateCurrentGroup(userId, group.id);
 
     // Add to Redis sorted set
-    await this.redis.zAdd(this.getRedisKey(group.id), 0, userId);
-    await this.redis.expire(this.getRedisKey(group.id), 7 * 24 * 3600); // 7 days
+    await this.participantRepo.addToRedis(group.id, 0, userId);
 
     return {
       id: participant.id,
@@ -91,59 +75,45 @@ export class LeaderboardService {
 
   async updateUserXp(userId: string, xpToAdd: number) {
     const weekStart = this.getCurrentWeekStart();
-    let participation = await this.findUserActiveParticipation(userId, weekStart);
+    let participation = await this.participantRepo.findUserActiveParticipation(userId, weekStart);
 
     if (!participation) {
-      // Auto-join league
       const joinResult = await this.joinLeague(userId);
-      participation = await this.prisma.leagueParticipant.findUnique({
-        where: { id: joinResult.id },
-        include: { group: { include: { league: true } } },
-      });
+      participation = await this.participantRepo.findUserActiveParticipation(userId, weekStart);
       if (!participation) return;
     }
 
     // Update DB
-    await this.prisma.leagueParticipant.update({
-      where: { id: participation.id },
-      data: {
-        weeklyXp: { increment: xpToAdd },
-        lastXpUpdate: new Date(),
-      },
-    });
+    await this.participantRepo.updateXp(participation.id, xpToAdd);
 
     // Update Redis sorted set — O(log N)
-    await this.redis.zIncrBy(this.getRedisKey(participation.groupId), xpToAdd, userId);
+    await this.participantRepo.incrXpRedis(participation.groupId, xpToAdd, userId);
   }
 
   // ─── Core: Get Standings ───
 
   async getLeaderboard(userId: string) {
     const weekStart = this.getCurrentWeekStart();
-    const participation = await this.findUserActiveParticipation(userId, weekStart);
+    const participation = await this.participantRepo.findUserActiveParticipation(userId, weekStart);
 
     if (!participation) {
       throw new NotFoundException('Not in any league this week. Call POST /leaderboard/join first.');
     }
 
     const groupId = participation.groupId;
-    const redisKey = this.getRedisKey(groupId);
 
     // Try Redis first
-    let standings = await this.getStandingsFromRedis(redisKey, userId, groupId);
+    let standings = await this.participantRepo.getStandingsFromRedis(groupId, userId);
 
     if (standings.length === 0) {
       // Fallback to DB
-      standings = await this.getStandingsFromDB(groupId, userId);
+      standings = await this.participantRepo.getStandingsFromDB(groupId, userId);
       // Backfill Redis
-      await this.backfillRedis(groupId);
+      await this.participantRepo.backfillRedis(groupId);
     }
 
     // Get league info
-    const group = await this.prisma.leagueGroup.findUnique({
-      where: { id: groupId },
-      include: { league: true },
-    });
+    const group = await this.leagueRepo.findGroupWithLeague(groupId);
 
     return {
       tier: group?.league?.tier,
@@ -159,31 +129,13 @@ export class LeaderboardService {
   // ─── Core: Get User Tier ───
 
   async getUserTier(userId: string) {
-    const cached = await this.redis.get(`lb:tier:${userId}`);
-    if (cached) return JSON.parse(cached);
-
-    let tier = await this.prisma.userLeagueTier.findUnique({
-      where: { userId },
-    });
-
-    if (!tier) {
-      tier = await this.prisma.userLeagueTier.create({
-        data: { userId, currentTier: 'BRONZE', highestTier: 'BRONZE' },
-      });
-    }
-
-    await this.redis.set(`lb:tier:${userId}`, JSON.stringify(tier), 86400); // 1 day
-    return tier;
+    return this.userTierRepo.getOrCreate(userId);
   }
 
   // ─── Core: Get History ───
 
   async getHistory(userId: string) {
-    return this.prisma.leagueHistory.findMany({
-      where: { userId },
-      orderBy: { weekStartDate: 'desc' },
-      take: 20,
-    });
+    return this.historyRepo.findByUser(userId);
   }
 
   // ─── Weekly Rotation ───
@@ -192,194 +144,65 @@ export class LeaderboardService {
     const previousWeekStart = new Date(this.getCurrentWeekStart());
     previousWeekStart.setDate(previousWeekStart.getDate() - 7);
 
-    const leagues = await this.prisma.league.findMany({
-      where: { status: 'ACTIVE', weekStartDate: previousWeekStart },
-      include: { groups: { include: { participants: true } } },
-    });
+    const leagues = await this.leagueRepo.findActiveLeaguesByWeek(previousWeekStart);
 
     for (const league of leagues) {
       for (const group of league.groups) {
         await this.processGroupRotation(group, league.tier);
       }
 
-      await this.prisma.league.update({
-        where: { id: league.id },
-        data: { status: 'ARCHIVED' },
-      });
-
-      // Cleanup Redis
-      await this.redis.del(this.getRedisKey(league.id));
+      await this.leagueRepo.archiveLeague(league.id);
+      await this.participantRepo.deleteRedisKey(league.id);
     }
   }
 
   // ─── Private helpers ───
 
   private async processGroupRotation(group: any, tier: string) {
-    // Get final standings from Redis or DB
-    const redisKey = this.getRedisKey(group.id);
-    let rankedParticipants = await this.redis.zRevRangeWithScores(redisKey, 0, -1);
-
-    if (rankedParticipants.length === 0) {
-      // Fallback to DB
-      const dbParticipants = await this.prisma.leagueParticipant.findMany({
-        where: { groupId: group.id },
-        orderBy: { weeklyXp: 'desc' },
-      });
-      rankedParticipants = dbParticipants.map((p) => ({ value: p.userId, score: p.weeklyXp }));
+    let standings = await this.participantRepo.getStandingsFromRedis(group.id, '');
+    if (standings.length === 0) {
+      standings = await this.participantRepo.getStandingsFromDB(group.id, '');
     }
 
-    const totalParticipants = rankedParticipants.length;
+    const totalParticipants = standings.length;
 
-    for (let i = 0; i < rankedParticipants.length; i++) {
-      const rank = i + 1;
-      const userId = rankedParticipants[i].value;
-      const weeklyXp = rankedParticipants[i].score;
+    for (const standing of standings) {
+      const rank = standing.rank;
+      const userId = standing.userId;
+      const weeklyXp = standing.weeklyXp;
       let outcome = 'MAINTAINED';
 
       if (this.shouldPromote(rank)) {
         outcome = 'PROMOTED';
-        await this.changeTier(userId, 'up');
+        const tierResult = await this.userTierRepo.changeTier(userId, 'up');
+
+        // Feed auto-create: LEAGUE_PROMOTION
+        this.feedService.autoCreatePost(userId, 'LEAGUE_PROMOTION', {
+          oldTier: tierResult.oldTier,
+          newTier: tierResult.newTier,
+        }).catch(() => {});
       } else if (this.shouldDemote(rank, totalParticipants)) {
         outcome = 'DEMOTED';
-        await this.changeTier(userId, 'down');
+        await this.userTierRepo.changeTier(userId, 'down');
       }
 
-      // Record history
-      await this.prisma.leagueHistory.create({
-        data: {
-          userId,
-          tier: tier as any,
-          weekStartDate: group.league?.weekStartDate ?? new Date(),
-          weeklyXp: Math.floor(weeklyXp),
+      // Feed auto-create: LEAGUE_TOP_3
+      if (rank <= 3) {
+        this.feedService.autoCreatePost(userId, 'LEAGUE_TOP_3', {
+          tier,
           rank,
-          outcome,
-        },
+        }).catch(() => {});
+      }
+
+      await this.historyRepo.create({
+        userId,
+        tier,
+        weekStartDate: group.league?.weekStartDate ?? new Date(),
+        weeklyXp: Math.floor(weeklyXp),
+        rank,
+        outcome,
       });
     }
-  }
-
-  private async changeTier(userId: string, direction: 'up' | 'down') {
-    const tierOrder = [
-      'BRONZE', 'SILVER', 'GOLD', 'SAPPHIRE', 'RUBY',
-      'EMERALD', 'AMETHYST', 'PEARL', 'OBSIDIAN', 'DIAMOND',
-    ];
-
-    const userTier = await this.prisma.userLeagueTier.findUnique({ where: { userId } });
-    if (!userTier) return;
-
-    const currentIndex = tierOrder.indexOf(userTier.currentTier);
-    let newIndex = direction === 'up' ? currentIndex + 1 : currentIndex - 1;
-    newIndex = Math.max(0, Math.min(newIndex, tierOrder.length - 1));
-
-    const newTier = tierOrder[newIndex] as any;
-    const updates: any = {
-      currentTier: newTier,
-      currentGroupId: null,
-    };
-
-    if (direction === 'up') {
-      updates.totalPromotions = { increment: 1 };
-      if (newIndex > tierOrder.indexOf(userTier.highestTier)) {
-        updates.highestTier = newTier;
-      }
-    } else {
-      updates.totalDemotions = { increment: 1 };
-    }
-
-    await this.prisma.userLeagueTier.update({
-      where: { userId },
-      data: updates,
-    });
-
-    // Invalidate tier cache
-    await this.redis.del(`lb:tier:${userId}`);
-  }
-
-  private async findUserActiveParticipation(userId: string, weekStart: Date) {
-    return this.prisma.leagueParticipant.findFirst({
-      where: {
-        userId,
-        group: {
-          league: {
-            weekStartDate: weekStart,
-            status: 'ACTIVE',
-          },
-        },
-      },
-      include: { group: { include: { league: true } } },
-    });
-  }
-
-  private async getStandingsFromRedis(redisKey: string, currentUserId: string, groupId: string) {
-    const entries = await this.redis.zRevRangeWithScores(redisKey, 0, 29);
-    if (entries.length === 0) return [];
-
-    // Fetch user details
-    const userIds = entries.map((e) => e.value);
-    const users = await this.prisma.user.findMany({
-      where: { id: { in: userIds } },
-      select: { id: true, username: true, fullName: true, profilePictureUrl: true },
-    });
-    const userMap = new Map(users.map((u) => [u.id, u]));
-
-    return entries.map((entry, index) => {
-      const user = userMap.get(entry.value);
-      const rank = index + 1;
-      return {
-        rank,
-        userId: entry.value,
-        username: user?.username,
-        fullName: user?.fullName,
-        profilePictureUrl: user?.profilePictureUrl,
-        weeklyXp: Math.floor(entry.score),
-        isCurrentUser: entry.value === currentUserId,
-        isPromoted: this.shouldPromote(rank),
-        isDemoted: this.shouldDemote(rank, entries.length),
-      };
-    });
-  }
-
-  private async getStandingsFromDB(groupId: string, currentUserId: string) {
-    const participants = await this.prisma.leagueParticipant.findMany({
-      where: { groupId },
-      include: {
-        user: {
-          select: { id: true, username: true, fullName: true, profilePictureUrl: true },
-        },
-      },
-      orderBy: { weeklyXp: 'desc' },
-    });
-
-    return participants.map((p, index) => {
-      const rank = index + 1;
-      return {
-        rank,
-        userId: p.userId,
-        username: p.user?.username,
-        fullName: p.user?.fullName,
-        profilePictureUrl: p.user?.profilePictureUrl,
-        weeklyXp: p.weeklyXp,
-        isCurrentUser: p.userId === currentUserId,
-        isPromoted: this.shouldPromote(rank),
-        isDemoted: this.shouldDemote(rank, participants.length),
-      };
-    });
-  }
-
-  private async backfillRedis(groupId: string) {
-    const participants = await this.prisma.leagueParticipant.findMany({
-      where: { groupId },
-    });
-
-    const redisKey = this.getRedisKey(groupId);
-    for (const p of participants) {
-      await this.redis.zAdd(redisKey, p.weeklyXp, p.userId);
-    }
-    await this.redis.expire(redisKey, 7 * 24 * 3600);
-  }
-
-  private getRedisKey(groupId: string): string {
-    return `lb:${groupId}`;
   }
 
   shouldPromote(rank: number): boolean {

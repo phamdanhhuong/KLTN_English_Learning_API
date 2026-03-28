@@ -7,6 +7,7 @@ import { FollowUserUseCase } from '../application/use-cases/follow-user.usecase'
 import { UnfollowUserUseCase } from '../application/use-cases/unfollow-user.usecase';
 import { GetFollowingUseCase, GetFollowersUseCase } from '../application/use-cases/get-follow-lists.usecase';
 import { GetSuggestedFriendsUseCase } from '../application/use-cases/get-suggested-friends.usecase';
+import { SearchUsersUseCase } from '../application/use-cases/search-users.usecase';
 
 @Controller('social')
 @UseGuards(JwtAuthGuard)
@@ -17,6 +18,7 @@ export class SocialController {
     private readonly getFollowingUseCase: GetFollowingUseCase,
     private readonly getFollowersUseCase: GetFollowersUseCase,
     private readonly getSuggestedFriendsUseCase: GetSuggestedFriendsUseCase,
+    private readonly searchUsersUseCase: SearchUsersUseCase,
   ) {}
 
   @Post('follow/:userId')
@@ -55,5 +57,10 @@ export class SocialController {
   @Get('suggestions')
   async getSuggestedFriends(@Request() req: any) {
     return this.getSuggestedFriendsUseCase.execute(req.user.sub);
+  }
+
+  @Get('search')
+  async searchUsers(@Request() req: any, @Query('query') query: string) {
+    return this.searchUsersUseCase.execute(req.user.sub, query);
   }
 }

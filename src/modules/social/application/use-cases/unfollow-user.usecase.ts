@@ -1,29 +1,23 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { RedisService } from '../../../../infrastructure/cache/redis.service';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { SOCIAL_TOKENS } from '../../domain/di/tokens';
+import type { SocialRepository } from '../../domain/repositories/social.repository.interface';
 
 @Injectable()
 export class UnfollowUserUseCase {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
+    @Inject(SOCIAL_TOKENS.SOCIAL_REPOSITORY)
+    private readonly socialRepo: SocialRepository,
   ) {}
 
   async execute(currentUserId: string, targetUserId: string) {
-    const result = await this.prisma.userRelationship.deleteMany({
-      where: {
-        followerId: currentUserId,
-        followingId: targetUserId,
-      },
-    });
-
-    if (result.count === 0) {
-      throw new BadRequestException('Not following this user');
+    try {
+      await this.socialRepo.unfollow(currentUserId, targetUserId);
+    } catch (error: any) {
+      if (error.message === 'NOT_FOLLOWING') {
+        throw new BadRequestException('Not following this user');
+      }
+      throw error;
     }
-
-    // Invalidate cached counts
-    await this.redis.del(`social:count:${currentUserId}`);
-    await this.redis.del(`social:count:${targetUserId}`);
 
     return { unfollowed: true, targetUserId };
   }

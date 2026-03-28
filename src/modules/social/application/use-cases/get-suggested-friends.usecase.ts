@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { Injectable, Inject } from '@nestjs/common';
+import { SOCIAL_TOKENS } from '../../domain/di/tokens';
+import type { SocialRepository } from '../../domain/repositories/social.repository.interface';
 import { RedisService } from '../../../../infrastructure/cache/redis.service';
 
 export interface SuggestedUser {
@@ -16,97 +17,42 @@ export class GetSuggestedFriendsUseCase {
   private readonly CACHE_TTL = 1800; // 30 minutes
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(SOCIAL_TOKENS.SOCIAL_REPOSITORY)
+    private readonly socialRepo: SocialRepository,
     private readonly redis: RedisService,
   ) {}
 
   async execute(currentUserId: string): Promise<SuggestedUser[]> {
-    // Check Redis cache
     const cached = await this.redis.get(`social:suggest:${currentUserId}`);
-    if (cached) {
-      return JSON.parse(cached);
-    }
+    if (cached) return JSON.parse(cached);
 
-    // Get users already followed
-    const following = await this.prisma.userRelationship.findMany({
-      where: { followerId: currentUserId },
-      select: { followingId: true },
-    });
-    const followingIds = following.map((f) => f.followingId);
+    const followingIds = await this.socialRepo.getFollowingIds(currentUserId);
+    const blockedIds = await this.socialRepo.getBlockedIds(currentUserId);
+    const excludeIds = [...new Set([...followingIds, ...blockedIds, currentUserId])];
 
-    // Get blocked users (both directions)
-    const blocks = await this.prisma.userBlock.findMany({
-      where: {
-        OR: [
-          { blockerId: currentUserId },
-          { blockedUserId: currentUserId },
-        ],
-      },
-      select: { blockerId: true, blockedUserId: true },
-    });
-    const blockedIds = blocks.map((b) =>
-      b.blockerId === currentUserId ? b.blockedUserId : b.blockerId,
-    );
-
-    const excludeIds: string[] = [...new Set([...followingIds, ...blockedIds, currentUserId])];
-
-    // Strategy 1: Friends of friends (mutual connections)
     let suggestions: SuggestedUser[] = [];
 
+    // Strategy 1: Friends of friends
     if (followingIds.length > 0) {
-      const friendsOfFriends = await this.prisma.userRelationship.findMany({
-        where: {
-          followerId: { in: followingIds },
-          followingId: { notIn: excludeIds },
-        },
-        select: { followingId: true },
-        take: 50,
-      });
-
-      const fofIds = [...new Set(friendsOfFriends.map((f) => f.followingId))];
-
-      if (fofIds.length > 0) {
-        const fofUsers = await this.prisma.user.findMany({
-          where: { id: { in: fofIds } },
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            profilePictureUrl: true,
-          },
-          take: 10,
-        });
-
-        suggestions = fofUsers.map((user) => ({
-          id: user.id,
-          username: user.username || '',
-          displayName: user.fullName || user.username || 'User',
-          avatarUrl: user.profilePictureUrl || '',
-          isFollowing: false,
-          subtext: 'Bạn có thể quen',
-        }));
-      }
+      const fofUsers = await (this.socialRepo as any).getFriendsOfFriends(followingIds, excludeIds);
+      suggestions = fofUsers.map((user: any) => ({
+        id: user.id,
+        username: user.username || '',
+        displayName: user.fullName || user.username || 'User',
+        avatarUrl: user.profilePictureUrl || '',
+        isFollowing: false,
+        subtext: 'Bạn có thể quen',
+      }));
     }
 
-    // Strategy 2: Fill remaining with recent active users
+    // Strategy 2: Fill with recent users
     if (suggestions.length < 10) {
-      const existingIds = [...excludeIds, ...suggestions.map((s) => s.id)];
+      const allExclude = [...excludeIds, ...suggestions.map((s) => s.id)];
       const remaining = 10 - suggestions.length;
-
-      const recentUsers = await this.prisma.user.findMany({
-        where: { id: { notIn: existingIds } },
-        select: {
-          id: true,
-          username: true,
-          fullName: true,
-          profilePictureUrl: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        take: remaining,
-      });
+      const recentUsers = await this.socialRepo.getSuggestedUsers(allExclude, remaining);
 
       suggestions.push(
-        ...recentUsers.map((user) => ({
+        ...recentUsers.map((user: any) => ({
           id: user.id,
           username: user.username || '',
           displayName: user.fullName || user.username || 'User',
@@ -117,7 +63,6 @@ export class GetSuggestedFriendsUseCase {
       );
     }
 
-    // Cache result
     await this.redis.set(
       `social:suggest:${currentUserId}`,
       JSON.stringify(suggestions),

@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { RedisService } from '../../../../infrastructure/cache/redis.service';
-import { QuestStatus } from '@prisma/client';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { QUEST_TOKENS } from '../../domain/di/tokens';
+import type { QuestRepository } from '../../domain/repositories/quest.repository.interface';
+import type { UserQuestRepository } from '../../domain/repositories/user-quest.repository.interface';
+import { FeedService } from '../../../feed/application/services/feed.service';
 
 /**
  * QuestService — đơn giản hóa DifficultyService + ChestService vào 1 service.
@@ -9,69 +10,47 @@ import { QuestStatus } from '@prisma/client';
 @Injectable()
 export class QuestService {
   private readonly logger = new Logger(QuestService.name);
-  private readonly DEFS_CACHE_KEY = 'quest:defs';
-  private readonly DEFS_CACHE_TTL = 3600; // 1 hour
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
+    @Inject(QUEST_TOKENS.QUEST_REPOSITORY)
+    private readonly questRepo: QuestRepository,
+    @Inject(QUEST_TOKENS.USER_QUEST_REPOSITORY)
+    private readonly userQuestRepo: UserQuestRepository,
+    private readonly feedService: FeedService,
   ) {}
 
-  /** Lây tất cả quest definitions (cached) */
+  /** Lấy tất cả quest definitions (cached) */
   async getQuestDefinitions() {
-    const cached = await this.redis.get(this.DEFS_CACHE_KEY);
-    if (cached) return JSON.parse(cached);
-
-    const quests = await this.prisma.quest.findMany({
-      where: { isActive: true },
-      orderBy: [{ type: 'asc' }, { order: 'asc' }],
-    });
-
-    await this.redis.set(this.DEFS_CACHE_KEY, JSON.stringify(quests), this.DEFS_CACHE_TTL);
-    return quests;
+    return this.questRepo.findAllActive();
   }
 
   /** Init daily quests cho user (3 quests: BRONZE, SILVER, GOLD) */
   async initializeDailyQuests(userId: string) {
-    const allQuests = await this.getQuestDefinitions();
-    const dailyQuests = allQuests.filter((q: any) => q.type === 'DAILY');
+    const allQuests = await this.questRepo.findAllActive();
+    const dailyQuests = allQuests.filter((q) => q.type === 'DAILY');
     const now = new Date();
     const endOfDay = this.getEndOfDay(now);
 
     const created: any[] = [];
 
     for (const quest of dailyQuests) {
-      const existing = await this.prisma.userQuest.findFirst({
-        where: {
-          userId,
-          questId: quest.id,
-          status: { in: ['ACTIVE', 'COMPLETED'] },
-          endDate: { gte: now },
-        },
-      });
+      const existing = await this.userQuestRepo.findExisting(userId, quest.id, now);
 
       if (!existing) {
-        const requirement = quest.baseRequirement;
-
-        const userQuest = await this.prisma.userQuest.create({
-          data: {
-            userId,
-            questId: quest.id,
-            requirement,
-            startDate: now,
-            endDate: endOfDay,
-          },
+        const userQuest = await this.userQuestRepo.create({
+          userId,
+          questId: quest.id,
+          requirement: quest.baseRequirement,
+          startDate: now,
+          endDate: endOfDay,
         });
 
-        // Create chest
         if (quest.chestType) {
-          await this.prisma.questChest.create({
-            data: {
-              userQuestId: userQuest.id,
-              chestType: quest.chestType,
-              ...this.getChestRewards(quest.chestType),
-            },
-          });
+          await this.userQuestRepo.createChest(
+            userQuest.id,
+            quest.chestType,
+            this.getChestRewards(quest.chestType),
+          );
         }
 
         created.push(userQuest);
@@ -83,42 +62,31 @@ export class QuestService {
 
   /** Init weekly (friends) quests */
   async initializeWeeklyQuests(userId: string) {
-    const allQuests = await this.getQuestDefinitions();
-    const friendsQuests = allQuests.filter((q: any) => q.type === 'FRIENDS');
+    const allQuests = await this.questRepo.findAllActive();
+    const friendsQuests = allQuests.filter((q) => q.type === 'FRIENDS');
     const now = new Date();
     const endOfWeek = this.getEndOfWeek(now);
 
     const created: any[] = [];
 
     for (const quest of friendsQuests) {
-      const existing = await this.prisma.userQuest.findFirst({
-        where: {
-          userId,
-          questId: quest.id,
-          status: { in: ['ACTIVE', 'COMPLETED'] },
-          endDate: { gte: now },
-        },
-      });
+      const existing = await this.userQuestRepo.findExisting(userId, quest.id, now);
 
       if (!existing) {
-        const userQuest = await this.prisma.userQuest.create({
-          data: {
-            userId,
-            questId: quest.id,
-            requirement: quest.baseRequirement,
-            startDate: now,
-            endDate: endOfWeek,
-          },
+        const userQuest = await this.userQuestRepo.create({
+          userId,
+          questId: quest.id,
+          requirement: quest.baseRequirement,
+          startDate: now,
+          endDate: endOfWeek,
         });
 
         if (quest.chestType) {
-          await this.prisma.questChest.create({
-            data: {
-              userQuestId: userQuest.id,
-              chestType: quest.chestType,
-              ...this.getChestRewards(quest.chestType),
-            },
-          });
+          await this.userQuestRepo.createChest(
+            userQuest.id,
+            quest.chestType,
+            this.getChestRewards(quest.chestType),
+          );
         }
 
         created.push(userQuest);
@@ -130,28 +98,15 @@ export class QuestService {
 
   /** Check + reset expired quests + init mới */
   async checkAndInitQuests(userId: string) {
-    // Mark expired
-    await this.prisma.userQuest.updateMany({
-      where: {
-        userId,
-        status: 'ACTIVE',
-        endDate: { lt: new Date() },
-      },
-      data: { status: 'EXPIRED' },
-    });
-
+    await this.userQuestRepo.markExpired(userId);
     await this.initializeDailyQuests(userId);
     await this.initializeWeeklyQuests(userId);
   }
 
   /** Update quest progress bằng category */
   async updateQuestProgress(userId: string, category: string, amount: number) {
-    const activeQuests = await this.prisma.userQuest.findMany({
-      where: { userId, status: 'ACTIVE' },
-      include: { quest: true },
-    });
+    const activeQuests = await this.userQuestRepo.findActiveByUser(userId);
 
-    // Exclude special quests that have their own conditions (handled via updateQuestByKey)
     const SPECIAL_KEYS = ['challenge_perfectionist'];
     const relevant = activeQuests.filter(
       (uq) => uq.quest.category === category && !SPECIAL_KEYS.includes(uq.quest.key),
@@ -163,40 +118,30 @@ export class QuestService {
       if (newProgress > uq.progress) {
         const isCompleted = newProgress >= uq.requirement;
 
-        await this.prisma.userQuest.update({
-          where: { id: uq.id },
-          data: {
-            progress: newProgress,
-            ...(isCompleted
-              ? { status: 'COMPLETED' as QuestStatus, completedAt: new Date() }
-              : {}),
-          },
-        });
+        await this.userQuestRepo.updateProgress(uq.id, newProgress, isCompleted);
 
-        // Unlock chest if completed
         if (isCompleted) {
-          await this.prisma.questChest.updateMany({
-            where: { userQuestId: uq.id, status: 'LOCKED' },
-            data: { status: 'UNLOCKED', unlockedAt: new Date() },
-          });
+          await this.userQuestRepo.unlockChest(uq.id);
+
+          // Feed auto-create: QUEST_COMPLETED
+          const chestType = uq.quest.chestType;
+          if (chestType === 'GOLD' || chestType === 'LEGENDARY') {
+            this.feedService.autoCreatePost(userId, 'QUEST_COMPLETED', {
+              questName: uq.quest.name,
+              isSpecial: true,
+            }).catch(() => {});
+          }
         }
       }
     }
 
-    // Invalidate cache
-    await this.redis.del(`quest:user:${userId}`);
+    await this.userQuestRepo.invalidateCache(userId);
   }
 
-  /** Update quest progress by specific quest key (for special conditions like perfectionist) */
+  /** Update quest progress by specific quest key */
   async updateQuestByKey(userId: string, questKey: string, amount: number) {
-    const activeQuest = await this.prisma.userQuest.findFirst({
-      where: {
-        userId,
-        status: 'ACTIVE',
-        quest: { key: questKey },
-      },
-      include: { quest: true },
-    });
+    const activeQuests = await this.userQuestRepo.findActiveByUser(userId);
+    const activeQuest = activeQuests.find((uq) => uq.quest.key === questKey);
 
     if (!activeQuest) return;
 
@@ -205,25 +150,22 @@ export class QuestService {
     if (newProgress > activeQuest.progress) {
       const isCompleted = newProgress >= activeQuest.requirement;
 
-      await this.prisma.userQuest.update({
-        where: { id: activeQuest.id },
-        data: {
-          progress: newProgress,
-          ...(isCompleted
-            ? { status: 'COMPLETED' as QuestStatus, completedAt: new Date() }
-            : {}),
-        },
-      });
+      await this.userQuestRepo.updateProgress(activeQuest.id, newProgress, isCompleted);
 
       if (isCompleted) {
-        await this.prisma.questChest.updateMany({
-          where: { userQuestId: activeQuest.id, status: 'LOCKED' },
-          data: { status: 'UNLOCKED', unlockedAt: new Date() },
-        });
+        await this.userQuestRepo.unlockChest(activeQuest.id);
       }
     }
 
-    await this.redis.del(`quest:user:${userId}`);
+    await this.userQuestRepo.invalidateCache(userId);
+  }
+
+  /**
+   * Increment contribution for all Friends Quest groups the user is part of this week.
+   */
+  async updateFriendsQuestContribution(userId: string): Promise<void> {
+    const weekStart = this.getWeekStart(new Date());
+    await this.userQuestRepo.updateFriendsContribution(userId, weekStart);
   }
 
   /** Chest rewards dựa trên type */
@@ -250,23 +192,6 @@ export class QuestService {
     end.setDate(end.getDate() + diff);
     end.setHours(23, 59, 59, 999);
     return end;
-  }
-
-  /**
-   * Increment contribution for all Friends Quest groups the user is part of this week.
-   * Called after lesson completion — fire-and-forget.
-   */
-  async updateFriendsQuestContribution(userId: string): Promise<void> {
-    try {
-      const weekStart = this.getWeekStart(new Date());
-      await this.prisma.friendsQuestParticipant.updateMany({
-        where: { userId, weekStartDate: weekStart },
-        data: { contribution: { increment: 1 } },
-      });
-      // Also invalidate potentially cached participants
-    } catch (e) {
-      this.logger.warn(`updateFriendsQuestContribution failed for ${userId}: ${e}`);
-    }
   }
 
   private getWeekStart(date: Date): Date {

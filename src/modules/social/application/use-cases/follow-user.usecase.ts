@@ -1,12 +1,14 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { RedisService } from '../../../../infrastructure/cache/redis.service';
+import { Injectable, Inject, BadRequestException, ConflictException } from '@nestjs/common';
+import { SOCIAL_TOKENS } from '../../domain/di/tokens';
+import type { SocialRepository } from '../../domain/repositories/social.repository.interface';
+import { FeedService } from '../../../feed/application/services/feed.service';
 
 @Injectable()
 export class FollowUserUseCase {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
+    @Inject(SOCIAL_TOKENS.SOCIAL_REPOSITORY)
+    private readonly socialRepo: SocialRepository,
+    private readonly feedService: FeedService,
   ) {}
 
   async execute(currentUserId: string, targetUserId: string) {
@@ -15,51 +17,31 @@ export class FollowUserUseCase {
     }
 
     // Check if target user exists
-    const targetUser = await this.prisma.user.findUnique({
-      where: { id: targetUserId },
-      select: { id: true },
-    });
-    if (!targetUser) {
+    const exists = await (this.socialRepo as any).userExists(targetUserId);
+    if (!exists) {
       throw new BadRequestException('User not found');
     }
 
     // Check if blocked
-    const blocked = await this.prisma.userBlock.findFirst({
-      where: {
-        OR: [
-          { blockerId: currentUserId, blockedUserId: targetUserId },
-          { blockerId: targetUserId, blockedUserId: currentUserId },
-        ],
-      },
-    });
+    const blocked = await this.socialRepo.isBlocked(currentUserId, targetUserId);
     if (blocked) {
       throw new BadRequestException('Cannot follow this user');
     }
 
     // Check if already following
-    const existing = await this.prisma.userRelationship.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId: currentUserId,
-          followingId: targetUserId,
-        },
-      },
-    });
-    if (existing) {
+    const alreadyFollowing = await this.socialRepo.isFollowing(currentUserId, targetUserId);
+    if (alreadyFollowing) {
       throw new ConflictException('Already following this user');
     }
 
-    await this.prisma.userRelationship.create({
-      data: {
-        followerId: currentUserId,
-        followingId: targetUserId,
-      },
-    });
+    await this.socialRepo.follow(currentUserId, targetUserId);
 
-    // Invalidate cached counts
-    await this.redis.del(`social:count:${currentUserId}`);
-    await this.redis.del(`social:count:${targetUserId}`);
-    await this.redis.del(`social:suggest:${currentUserId}`);
+    // Feed auto-create: NEW_FOLLOWER post
+    const currentUser = await this.socialRepo.getUserBasicInfo(currentUserId);
+    this.feedService.autoCreatePost(targetUserId, 'NEW_FOLLOWER', {
+      followerName: currentUser?.fullName || currentUser?.username || 'Someone',
+      followerId: currentUserId,
+    }).catch(() => {}); // fire-and-forget
 
     return { followed: true, targetUserId };
   }

@@ -3,7 +3,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../../infrastructure/database/prisma.module';
 import { RedisModule } from '../../infrastructure/cache/redis.module';
+import { FeedModule } from '../feed/feed.module';
 
+// Domain
+import { QUEST_TOKENS } from './domain/di/tokens';
+
+// Application
 import { QuestService } from './application/services/quest.service';
 import { GetUserQuestsUseCase, GetCompletedQuestsUseCase } from './application/use-cases/get-quests.usecase';
 import { ClaimQuestUseCase, GetUnlockedChestsUseCase, OpenChestUseCase } from './application/use-cases/claim-quest.usecase';
@@ -14,6 +19,11 @@ import {
 } from './application/use-cases/friends-quest.usecase';
 import { QuestScheduler } from './application/schedulers/quest.scheduler';
 
+// Infrastructure
+import { PrismaQuestRepository } from './infrastructure/repositories/prisma-quest.repository';
+import { PrismaUserQuestRepository } from './infrastructure/repositories/prisma-user-quest.repository';
+
+// Presentation
 import { QuestController } from './presentation/quest.controller';
 import { UserQuestController } from './presentation/user-quest.controller';
 
@@ -21,6 +31,7 @@ import { UserQuestController } from './presentation/user-quest.controller';
   imports: [
     PrismaModule,
     RedisModule,
+    FeedModule,
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -33,8 +44,19 @@ import { UserQuestController } from './presentation/user-quest.controller';
   ],
   controllers: [QuestController, UserQuestController],
   providers: [
+    // Repository bindings
+    {
+      provide: QUEST_TOKENS.QUEST_REPOSITORY,
+      useClass: PrismaQuestRepository,
+    },
+    {
+      provide: QUEST_TOKENS.USER_QUEST_REPOSITORY,
+      useClass: PrismaUserQuestRepository,
+    },
+    // Services
     QuestService,
     QuestScheduler,
+    // Use Cases
     GetUserQuestsUseCase,
     GetCompletedQuestsUseCase,
     ClaimQuestUseCase,
