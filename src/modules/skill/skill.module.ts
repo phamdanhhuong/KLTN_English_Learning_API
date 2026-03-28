@@ -49,6 +49,7 @@ import {
   DeleteExercisesByLessonIdUseCase,
   GetExerciseCountUseCase,
   GetReviewExercisesUseCase,
+  GetTrainingExercisesUseCase,
 } from './application/use-cases/exercise';
 
 // Application Services
@@ -61,6 +62,7 @@ import { PrismaSkillPartRepository } from './infrastructure/repositories/prisma-
 import { PrismaLessonRepository } from './infrastructure/repositories/prisma-lesson.repository';
 import { PrismaExerciseRepository } from './infrastructure/repositories/prisma-exercise.repository';
 import { PrismaReviewExerciseRepository } from './infrastructure/repositories/prisma-review-exercise.repository';
+import { PrismaTrainingExerciseRepository } from './infrastructure/repositories/prisma-training-exercise.repository';
 
 // Infrastructure - Domain Service
 import { SkillDomainServiceImpl } from './infrastructure/services/skill-domain.service';
@@ -106,6 +108,7 @@ const exerciseUseCases = [
   DeleteExercisesByLessonIdUseCase,
   GetExerciseCountUseCase,
   GetReviewExercisesUseCase,
+  GetTrainingExercisesUseCase,
 ];
 
 @Module({
@@ -142,6 +145,10 @@ const exerciseUseCases = [
       provide: SKILL_TOKENS.REVIEW_EXERCISE_REPOSITORY,
       useClass: PrismaReviewExerciseRepository,
     },
+    {
+      provide: SKILL_TOKENS.TRAINING_EXERCISE_REPOSITORY,
+      useClass: PrismaTrainingExerciseRepository,
+    },
 
     // Domain Service
     {
@@ -168,6 +175,7 @@ const exerciseUseCases = [
     SKILL_TOKENS.LESSON_REPOSITORY,
     SKILL_TOKENS.EXERCISE_REPOSITORY,
     SKILL_TOKENS.REVIEW_EXERCISE_REPOSITORY,
+    SKILL_TOKENS.TRAINING_EXERCISE_REPOSITORY,
     SKILL_TOKENS.SKILL_DOMAIN_SERVICE,
   ],
 })

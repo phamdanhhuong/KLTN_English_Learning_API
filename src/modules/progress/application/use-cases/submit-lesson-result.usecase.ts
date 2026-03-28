@@ -27,13 +27,19 @@ export class SubmitLessonResultUseCase {
     userId: string,
     submitDto: SubmitLessonResultDto,
   ): Promise<ProgressUpdateResultDto> {
-    // 1. Check if this is a review lesson
+    // 1. Check if this is a review or training lesson
     const isReviewLesson =
       submitDto.lessonId.startsWith('review-') ||
       submitDto.skillId === 'review';
 
-    // 2. Validate lesson progress (skip for review lessons)
-    const isValidProgress = isReviewLesson
+    const isTrainingLesson =
+      submitDto.lessonId.startsWith('training-') ||
+      submitDto.skillId === 'training';
+
+    const isSpecialLesson = isReviewLesson || isTrainingLesson;
+
+    // 2. Validate lesson progress (skip for review/training lessons)
+    const isValidProgress = isSpecialLesson
       ? false
       : await this.lessonSubmissionService.validateLessonProgress(
           userId,
@@ -81,9 +87,9 @@ export class SubmitLessonResultUseCase {
       grammarMasteriesUpdated,
     );
 
-    // 8. Update skill progress if successful and valid (skip for review lessons)
+    // 8. Update skill progress if successful and valid (skip for review/training lessons)
     let skillProgressMessage: string | null = null;
-    if (!isReviewLesson && isLessonSuccessful && isValidProgress) {
+    if (!isSpecialLesson && isLessonSuccessful && isValidProgress) {
       skillProgressMessage =
         await this.skillProgressService.updateSkillProgress(
           userId,
@@ -103,7 +109,9 @@ export class SubmitLessonResultUseCase {
     const baseXP = totalExercises * 10; // 10 XP mỗi exercise
     const bonusXP = isLessonSuccessful ? Math.round(accuracyPct * 0.5) : 0; // bonus theo accuracy
     const perfectBonusXP = isPerfect ? 20 : 0; // perfect score bonus
-    const totalXpEarned = baseXP + bonusXP + perfectBonusXP;
+    // Training lessons get 1.5x XP multiplier
+    const xpMultiplier = isTrainingLesson ? 1.5 : 1;
+    const totalXpEarned = Math.round((baseXP + bonusXP + perfectBonusXP) * xpMultiplier);
 
     // 10. Trigger real gamification (XP + Streak + currency rewards)
     let gamificationResult: any = null;
@@ -120,7 +128,7 @@ export class SubmitLessonResultUseCase {
         .catch(() => null); // never fail the main response
     }
 
-    //11. Energy rewards for review lesson completion
+    //11. Energy rewards for review lesson completion (not for training)
     if (isReviewLesson && isLessonSuccessful) {
       this.eventEmitter.emit('energy.award', {
         userId,

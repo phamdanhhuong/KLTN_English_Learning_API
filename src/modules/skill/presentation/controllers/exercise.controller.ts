@@ -26,6 +26,7 @@ import {
   DeleteExerciseUseCase,
   DeleteExercisesByLessonIdUseCase,
   GetReviewExercisesUseCase,
+  GetTrainingExercisesUseCase,
 } from '../../application/use-cases/exercise';
 
 @Controller('learning/exercises')
@@ -40,12 +41,19 @@ export class ExerciseController {
     private readonly deleteExerciseUseCase: DeleteExerciseUseCase,
     private readonly deleteExercisesByLessonIdUseCase: DeleteExercisesByLessonIdUseCase,
     private readonly getReviewExercisesUseCase: GetReviewExercisesUseCase,
+    private readonly getTrainingExercisesUseCase: GetTrainingExercisesUseCase,
   ) {}
 
   @Get('review')
   @UseGuards(JwtAuthGuard)
   async getReviewExercises(@Req() req: any) {
     return this.getReviewExercisesUseCase.execute(req.user.sub);
+  }
+
+  @Get('training')
+  @UseGuards(JwtAuthGuard)
+  async getTrainingExercises(@Req() req: any) {
+    return this.getTrainingExercisesUseCase.execute(req.user.sub);
   }
 
   @Get(':id')

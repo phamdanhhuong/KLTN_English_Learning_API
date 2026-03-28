@@ -8,6 +8,9 @@ export const SKILL_PART_REPOSITORY = Symbol('SKILL_PART_REPOSITORY');
 // Review repository token
 export const REVIEW_EXERCISE_REPOSITORY = Symbol('REVIEW_EXERCISE_REPOSITORY');
 
+// Training repository token
+export const TRAINING_EXERCISE_REPOSITORY = Symbol('TRAINING_EXERCISE_REPOSITORY');
+
 // Service tokens for dependency injection
 export const SKILL_DOMAIN_SERVICE = Symbol('SKILL_DOMAIN_SERVICE');
 
@@ -19,5 +22,6 @@ export const SKILL_TOKENS = {
   EXERCISE_REPOSITORY,
   SKILL_PART_REPOSITORY,
   REVIEW_EXERCISE_REPOSITORY,
+  TRAINING_EXERCISE_REPOSITORY,
   SKILL_DOMAIN_SERVICE,
 };
