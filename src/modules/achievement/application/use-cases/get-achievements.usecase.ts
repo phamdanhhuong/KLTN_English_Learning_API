@@ -69,13 +69,29 @@ export class GetAchievementsSummaryUseCase {
       };
     });
 
-    const personal = allMerged.filter(
-      (a) => a.achievement.category.toLowerCase() === 'personal',
+    // Gom nhóm các mốc thành tựu (VD: speed_racer_t1, speed_racer_t2) để tránh lặp lại trên UI
+    const grouped = new Map<string, any[]>();
+    for (const a of allMerged) {
+      const baseKey = a.achievement.key.replace(/_t\d+$/, '');
+      if (!grouped.has(baseKey)) grouped.set(baseKey, []);
+      grouped.get(baseKey)!.push(a);
+    }
+
+    const filteredMerged: any[] = [];
+    for (const tiers of grouped.values()) {
+      tiers.sort((a: any, b: any) => a.achievement.tier - b.achievement.tier);
+      // Tìm mốc thấp nhất mà user CHƯA đạt được
+      const activeTier = tiers.find((t: any) => !t.isUnlocked) || tiers[tiers.length - 1]; // nếu hoàn thành hết, lấy mốc max
+      filteredMerged.push(activeTier);
+    }
+
+    const personal = filteredMerged.filter(
+      (a: any) => a.achievement.category.toLowerCase() === 'personal',
     );
 
-    const awards = allMerged
-      .filter((a) => a.achievement.category.toLowerCase() !== 'personal')
-      .sort((a, b) => {
+    const awards = filteredMerged
+      .filter((a: any) => a.achievement.category.toLowerCase() !== 'personal')
+      .sort((a: any, b: any) => {
         const aScore = a.isUnlocked ? 0 : a.progress > 0 ? 1 : 2;
         const bScore = b.isUnlocked ? 0 : b.progress > 0 ? 1 : 2;
         if (aScore !== bScore) return aScore - bScore;
@@ -85,6 +101,7 @@ export class GetAchievementsSummaryUseCase {
       });
 
     const totalAchievements = allDefinitions.length;
+    // Đếm theo toàn bộ mốc chứ không dùng filteredMerged để tiến độ (Progress) trên Header vẫn đúng
     const unlockedCount = allMerged.filter((a) => a.isUnlocked).length;
 
     return {

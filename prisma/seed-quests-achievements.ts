@@ -317,11 +317,44 @@ export async function seedQuestsAndAchievements() {
       key: 'legend_t1',
       name: 'Legend',
       description: 'Đạt cấp bậc Legend trong bảng xếp hạng',
-      category: 'xp',
-      tier: 5,
+      category: 'competitive',
+      tier: 1,
       requirement: 50000,
       rewardXp: 2000,
       rewardGems: 200,
+    },
+    // Asset: league_mvp_doing.png / league_mvp_done.png
+    {
+      key: 'league_mvp_t1',
+      name: 'League MVP',
+      description: 'Kết thúc ở vị trí #1 trong bảng xếp hạng',
+      category: 'competitive',
+      tier: 1,
+      requirement: 1,
+      rewardXp: 1000,
+      rewardGems: 100,
+    },
+    // Asset: rarest_diamond_doing.png / rarest_diamond_done.png
+    {
+      key: 'rarest_diamond_t1',
+      name: 'Rarest Diamond',
+      description: 'Kết thúc ở vị trí #1 trong giải đấu Kim Cương',
+      category: 'competitive',
+      tier: 1,
+      requirement: 1,
+      rewardXp: 5000,
+      rewardGems: 500,
+    },
+    // Asset: year_of_the_dragon_doing.png / year_of_the_dragon_done.png
+    {
+      key: 'year_of_the_dragon_t1',
+      name: 'Year of the Dragon',
+      description: 'Hoàn thành 30 bài học trong dịp Tết Nguyên Đán (Sự kiện đặc biệt)',
+      category: 'limited',
+      tier: 1,
+      requirement: 30,
+      rewardXp: 888,
+      rewardGems: 88,
     },
 
     // ==================== Personal Records ====================
@@ -361,12 +394,16 @@ export async function seedQuestsAndAchievements() {
 
   console.log('  📜 Seeding Achievement definitions...');
   for (const ach of achievementDefinitions) {
+    // Generate badgeUrl from key by stripping tier suffix
+    const badgeUrl = ach.key.replace(/_t\d+$/, '');
+    const dataToUpsert = { ...ach, badgeUrl };
+
     await prisma.achievement.upsert({
       where: { key: ach.key },
-      update: ach,
-      create: ach,
+      update: dataToUpsert,
+      create: dataToUpsert,
     });
-    console.log(`    ✅ Achievement "${ach.name}" (${ach.key})`);
+    console.log(`    ✅ Achievement "${ach.name}" (${ach.key}) -> badgeUrl: ${badgeUrl}`);
   }
 
   // ============================================================
