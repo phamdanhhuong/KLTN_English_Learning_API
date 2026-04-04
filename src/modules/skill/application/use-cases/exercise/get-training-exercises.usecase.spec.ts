@@ -77,6 +77,7 @@ describe('GetTrainingExercisesUseCase', () => {
     expect(trainingExerciseRepository.findExercisesWithNoMastery).toHaveBeenCalledWith(
       'user-1',
       expect.any(Number),
+      undefined,
     );
   });
 });
