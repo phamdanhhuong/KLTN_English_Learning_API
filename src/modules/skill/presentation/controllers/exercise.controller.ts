@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   Req,
@@ -28,6 +29,7 @@ import {
   GetReviewExercisesUseCase,
   GetTrainingExercisesUseCase,
 } from '../../application/use-cases/exercise';
+import { TrainingType } from '../../domain/enums/training-type.enum';
 
 @Controller('learning/exercises')
 export class ExerciseController {
@@ -52,8 +54,14 @@ export class ExerciseController {
 
   @Get('training')
   @UseGuards(JwtAuthGuard)
-  async getTrainingExercises(@Req() req: any) {
-    return this.getTrainingExercisesUseCase.execute(req.user.sub);
+  async getTrainingExercises(
+    @Req() req: any,
+    @Query('type') type?: string,
+  ) {
+    const trainingType = type && Object.values(TrainingType).includes(type as TrainingType)
+      ? (type as TrainingType)
+      : undefined;
+    return this.getTrainingExercisesUseCase.execute(req.user.sub, trainingType);
   }
 
   @Get(':id')

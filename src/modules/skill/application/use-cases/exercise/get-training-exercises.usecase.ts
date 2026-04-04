@@ -3,7 +3,11 @@ import type { TrainingExerciseRepository } from '../../../domain/repositories/tr
 import { SKILL_TOKENS } from '../../../domain/di/tokens';
 import { ReviewLessonDto } from '../../dto/review.dto';
 import { ExerciseMapper } from '../../mappers/exercise.mapper';
-import { Exercise } from '../../../domain/entities/exercise.entity';
+import { ExerciseType } from '../../../domain/entities/exercise.entity';
+import {
+  TrainingType,
+  TRAINING_TYPE_EXERCISE_MAP,
+} from '../../../domain/enums/training-type.enum';
 
 @Injectable()
 export class GetTrainingExercisesUseCase {
@@ -14,13 +18,22 @@ export class GetTrainingExercisesUseCase {
     private readonly trainingExerciseRepository: TrainingExerciseRepository,
   ) {}
 
-  async execute(userId: string): Promise<ReviewLessonDto> {
+  async execute(
+    userId: string,
+    trainingType?: TrainingType,
+  ): Promise<ReviewLessonDto> {
+    // Resolve exercise type filter from training type
+    const exerciseTypes: ExerciseType[] | undefined = trainingType
+      ? TRAINING_TYPE_EXERCISE_MAP[trainingType]
+      : undefined;
+
     // Priority 1: Frequently incorrect exercises (40% = 4 exercises)
     const frequentlyIncorrect =
       await this.trainingExerciseRepository.findFrequentlyIncorrect(userId, {
         minIncorrectCount: 2,
         maxSuccessRate: 0.5,
         limit: Math.ceil(this.TRAINING_LIMIT * 0.4),
+        exerciseTypes,
       });
 
     // Priority 2: Exercises with low mastery words/grammars (30% = 3 exercises)
@@ -28,6 +41,7 @@ export class GetTrainingExercisesUseCase {
       await this.trainingExerciseRepository.findExercisesWithLowMastery(userId, {
         maxMasteryLevel: 1,
         limit: Math.ceil(this.TRAINING_LIMIT * 0.3),
+        exerciseTypes,
       });
 
     // Priority 3: Exercises with no mastery (30% = 3 exercises)
@@ -35,6 +49,7 @@ export class GetTrainingExercisesUseCase {
       await this.trainingExerciseRepository.findExercisesWithNoMastery(
         userId,
         Math.ceil(this.TRAINING_LIMIT * 0.3),
+        exerciseTypes,
       );
 
     // Combine and deduplicate
@@ -53,6 +68,7 @@ export class GetTrainingExercisesUseCase {
         await this.trainingExerciseRepository.findRandomExercises(
           needed,
           usedIds,
+          exerciseTypes,
         );
       finalExercises = [...uniqueExercises, ...randomExercises];
     }
@@ -61,11 +77,15 @@ export class GetTrainingExercisesUseCase {
 
     const exerciseDtos = finalExercises.map((e) => ExerciseMapper.toDto(e));
 
+    const title = trainingType
+      ? `Training: ${trainingType.charAt(0).toUpperCase() + trainingType.slice(1)}`
+      : 'Training Practice';
+
     return {
       id: `training-${userId}-${Date.now()}`,
       skillId: 'training',
       skillLevel: 0,
-      title: 'Training Practice',
+      title,
       position: 0,
       exercises: exerciseDtos,
       exerciseCount: exerciseDtos.length,

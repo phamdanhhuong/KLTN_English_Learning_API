@@ -61,8 +61,13 @@ export class PrismaTrainingExerciseRepository implements TrainingExerciseReposit
 
     if (exerciseIds.size === 0) return [];
 
+    const whereClause: any = { id: { in: Array.from(exerciseIds) } };
+    if (options.exerciseTypes && options.exerciseTypes.length > 0) {
+      whereClause.exerciseType = { in: options.exerciseTypes };
+    }
+
     const exercises = await this.prisma.exercise.findMany({
-      where: { id: { in: Array.from(exerciseIds) } },
+      where: whereClause,
       take: options.limit,
     });
 
@@ -72,6 +77,7 @@ export class PrismaTrainingExerciseRepository implements TrainingExerciseReposit
   async findExercisesWithNoMastery(
     userId: string,
     limit: number,
+    exerciseTypes?: ExerciseType[],
   ): Promise<Exercise[]> {
     // Find exercises with words that have NO mastery record for this user
     const wordExercises = await this.prisma.exerciseWord.findMany({
@@ -101,8 +107,13 @@ export class PrismaTrainingExerciseRepository implements TrainingExerciseReposit
 
     if (exerciseIds.size === 0) return [];
 
+    const whereClause: any = { id: { in: Array.from(exerciseIds) } };
+    if (exerciseTypes && exerciseTypes.length > 0) {
+      whereClause.exerciseType = { in: exerciseTypes };
+    }
+
     const exercises = await this.prisma.exercise.findMany({
-      where: { id: { in: Array.from(exerciseIds) } },
+      where: whereClause,
       take: limit,
     });
 
@@ -136,8 +147,13 @@ export class PrismaTrainingExerciseRepository implements TrainingExerciseReposit
     const exerciseIds = filtered.slice(0, options.limit).map((r) => r.exerciseId);
     if (exerciseIds.length === 0) return [];
 
+    const whereClause: any = { id: { in: exerciseIds } };
+    if (options.exerciseTypes && options.exerciseTypes.length > 0) {
+      whereClause.exerciseType = { in: options.exerciseTypes };
+    }
+
     const exercises = await this.prisma.exercise.findMany({
-      where: { id: { in: exerciseIds } },
+      where: whereClause,
     });
 
     return exercises.map((e) => this.toDomain(e));
@@ -146,10 +162,14 @@ export class PrismaTrainingExerciseRepository implements TrainingExerciseReposit
   async findRandomExercises(
     limit: number,
     excludeIds: string[],
+    exerciseTypes?: ExerciseType[],
   ): Promise<Exercise[]> {
     const whereClause: any = {};
     if (excludeIds.length > 0) {
       whereClause.id = { notIn: excludeIds };
+    }
+    if (exerciseTypes && exerciseTypes.length > 0) {
+      whereClause.exerciseType = { in: exerciseTypes };
     }
 
     const totalCount = await this.prisma.exercise.count({ where: whereClause });

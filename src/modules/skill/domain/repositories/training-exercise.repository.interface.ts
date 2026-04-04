@@ -1,14 +1,16 @@
-import { Exercise } from '../entities/exercise.entity';
+import { Exercise, ExerciseType } from '../entities/exercise.entity';
 
 export interface TrainingExerciseQueryOptions {
   maxMasteryLevel: number;
   limit: number;
+  exerciseTypes?: ExerciseType[];
 }
 
 export interface FrequentlyIncorrectQueryOptions {
   minIncorrectCount: number;
   maxSuccessRate: number;
   limit: number;
+  exerciseTypes?: ExerciseType[];
 }
 
 export interface TrainingExerciseRepository {
@@ -26,6 +28,7 @@ export interface TrainingExerciseRepository {
   findExercisesWithNoMastery(
     userId: string,
     limit: number,
+    exerciseTypes?: ExerciseType[],
   ): Promise<Exercise[]>;
 
   /**
@@ -39,5 +42,9 @@ export interface TrainingExerciseRepository {
   /**
    * Find random exercises excluding given IDs
    */
-  findRandomExercises(limit: number, excludeIds: string[]): Promise<Exercise[]>;
+  findRandomExercises(
+    limit: number,
+    excludeIds: string[],
+    exerciseTypes?: ExerciseType[],
+  ): Promise<Exercise[]>;
 }
