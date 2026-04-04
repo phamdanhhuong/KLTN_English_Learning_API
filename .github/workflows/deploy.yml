@@ -60,4 +60,4 @@ jobs:
           script: |
             cd ${{ secrets.TARGET_DIR }}
             npm install --production
-            pm2 restart kltn-api || pm2 start dist/main.js --name "kltn-api"
+            pm2 restart KLTN_BACKEND || pm2 start dist/src/main.js --name "KLTN_BACKEND"
