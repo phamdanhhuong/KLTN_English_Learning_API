@@ -453,34 +453,6 @@ model Tag {
   @@map("tags")
 }
 
-model Vowel {
-  id          String   @id @default(uuid())
-  symbol      String   @unique @db.VarChar(10)
-  name        String   @db.VarChar(100)
-  description String?  @db.Text
-  examples    Json?    @db.JsonB
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  pronunciationLessons PronunciationLessonVowel[]
-  masteryRecords       VowelMastery[]
-
-  @@map("vowels")
-}
-
-model Consonant {
-  id          String   @id @default(uuid())
-  symbol      String   @unique @db.VarChar(10)
-  name        String   @db.VarChar(100)
-  description String?  @db.Text
-  examples    Json?    @db.JsonB
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  pronunciationLessons PronunciationLessonConsonant[]
-  masteryRecords       ConsonantMastery[]
-
-  @@map("consonants")
-}
-
 model Exercise {
   id           String       @id @default(uuid())
   lessonId     String       @map("lesson_id")
@@ -496,94 +468,6 @@ model Exercise {
   exerciseResults  ExerciseResult[]
 
   @@map("exercises")
-}
-
-model PronunciationLesson {
-  id          String   @id @default(uuid())
-  title       String   @db.VarChar(255)
-  description String?  @db.Text
-  position    Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  vowels     PronunciationLessonVowel[]
-  consonants PronunciationLessonConsonant[]
-  exercises  PronunciationExercise[]
-
-  @@map("pronunciation_lessons")
-}
-
-model PronunciationLessonVowel {
-  lessonId String @map("lesson_id")
-  vowelId  String @map("vowel_id")
-
-  lesson PronunciationLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  vowel  Vowel               @relation(fields: [vowelId], references: [id], onDelete: Cascade)
-
-  @@id([lessonId, vowelId])
-  @@map("pronunciation_lesson_vowels")
-}
-
-model PronunciationLessonConsonant {
-  lessonId    String @map("lesson_id")
-  consonantId String @map("consonant_id")
-
-  lesson    PronunciationLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  consonant Consonant           @relation(fields: [consonantId], references: [id], onDelete: Cascade)
-
-  @@id([lessonId, consonantId])
-  @@map("pronunciation_lesson_consonants")
-}
-
-model PronunciationExercise {
-  id           String       @id @default(uuid())
-  lessonId     String       @map("lesson_id")
-  exerciseType ExerciseType @map("exercise_type")
-  prompt       String?      @db.Text
-  meta         Json?        @db.JsonB
-  position     Int          @default(0)
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  lesson          PronunciationLesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  exerciseResults PronunciationExerciseResult[]
-
-  @@map("pronunciation_exercises")
-}
-
-model PronunciationExerciseResult {
-  id             String   @id @default(uuid())
-  userId         String   @map("user_id")
-  exerciseId     String   @map("exercise_id")
-  correctCount   Int      @map("correct_count") @default(0)
-  incorrectCount Int      @map("incorrect_count") @default(0)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  exercise PronunciationExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-
-  @@map("pronunciation_exercise_results")
-}
-
-model VowelMastery {
-  userId       String    @map("user_id")
-  vowelId      String    @map("vowel_id")
-  masteryLevel Int       @default(0) @map("mastery_level")
-  lastReview   DateTime? @map("last_review") @db.Timestamptz(6)
-
-  vowel Vowel @relation(fields: [vowelId], references: [id], onDelete: Cascade)
-
-  @@id([userId, vowelId])
-  @@map("vowel_mastery")
-}
-
-model ConsonantMastery {
-  userId       String    @map("user_id")
-  consonantId  String    @map("consonant_id")
-  masteryLevel Int       @default(0) @map("mastery_level")
-  lastReview   DateTime? @map("last_review") @db.Timestamptz(6)
-
-  consonant Consonant @relation(fields: [consonantId], references: [id], onDelete: Cascade)
-
-  @@id([userId, consonantId])
-  @@map("consonant_mastery")
 }
 
 // ==================== PROGRESS TRACKING ====================
