@@ -17,6 +17,7 @@ import {
   CreateExerciseDto,
   UpdateExerciseDto,
 } from '../../application/dto/exercise.dto';
+import { GenerateAiExercisesDto } from '../../application/dto/generate-ai-exercises.dto';
 import {
   GetExerciseByIdUseCase,
   GetExercisesByLessonIdUseCase,
@@ -28,6 +29,7 @@ import {
   DeleteExercisesByLessonIdUseCase,
   GetReviewExercisesUseCase,
   GetTrainingExercisesUseCase,
+  GenerateAiExercisesUseCase,
 } from '../../application/use-cases/exercise';
 import { TrainingType } from '../../domain/enums/training-type.enum';
 
@@ -44,6 +46,7 @@ export class ExerciseController {
     private readonly deleteExercisesByLessonIdUseCase: DeleteExercisesByLessonIdUseCase,
     private readonly getReviewExercisesUseCase: GetReviewExercisesUseCase,
     private readonly getTrainingExercisesUseCase: GetTrainingExercisesUseCase,
+    private readonly generateAiExercisesUseCase: GenerateAiExercisesUseCase,
   ) {}
 
   @Get('review')
@@ -62,6 +65,16 @@ export class ExerciseController {
       ? (type as TrainingType)
       : undefined;
     return this.getTrainingExercisesUseCase.execute(req.user.sub, trainingType);
+  }
+
+  @Post('generate')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async generateAiExercises(
+    @Req() req: any,
+    @Body() dto: GenerateAiExercisesDto,
+  ) {
+    return this.generateAiExercisesUseCase.execute(req.user.sub, dto);
   }
 
   @Get(':id')
@@ -112,3 +125,4 @@ export class ExerciseController {
     return this.deleteExercisesByLessonIdUseCase.execute(lessonId);
   }
 }
+

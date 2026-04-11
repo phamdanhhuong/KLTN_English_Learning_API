@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { RedisModule } from '../../infrastructure/cache/redis.module';
 import { AuthModule } from '../auth/auth.module';
 
@@ -50,6 +51,7 @@ import {
   GetExerciseCountUseCase,
   GetReviewExercisesUseCase,
   GetTrainingExercisesUseCase,
+  GenerateAiExercisesUseCase,
 } from './application/use-cases/exercise';
 
 // Application Services
@@ -63,9 +65,11 @@ import { PrismaLessonRepository } from './infrastructure/repositories/prisma-les
 import { PrismaExerciseRepository } from './infrastructure/repositories/prisma-exercise.repository';
 import { PrismaReviewExerciseRepository } from './infrastructure/repositories/prisma-review-exercise.repository';
 import { PrismaTrainingExerciseRepository } from './infrastructure/repositories/prisma-training-exercise.repository';
+import { PrismaUserCustomSkillRepository } from './infrastructure/repositories/prisma-user-custom-skill.repository';
 
 // Infrastructure - Domain Service
 import { SkillDomainServiceImpl } from './infrastructure/services/skill-domain.service';
+import { AiExerciseGeneratorServiceImpl } from './infrastructure/services/ai-exercise-generator.service';
 
 // DI Tokens
 import { SKILL_TOKENS } from './domain/di/tokens';
@@ -109,10 +113,11 @@ const exerciseUseCases = [
   GetExerciseCountUseCase,
   GetReviewExercisesUseCase,
   GetTrainingExercisesUseCase,
+  GenerateAiExercisesUseCase,
 ];
 
 @Module({
-  imports: [RedisModule, AuthModule],
+  imports: [RedisModule, AuthModule, HttpModule],
   controllers: [
     SkillController,
     SkillPartController,
@@ -149,11 +154,19 @@ const exerciseUseCases = [
       provide: SKILL_TOKENS.TRAINING_EXERCISE_REPOSITORY,
       useClass: PrismaTrainingExerciseRepository,
     },
+    {
+      provide: SKILL_TOKENS.USER_CUSTOM_SKILL_REPOSITORY,
+      useClass: PrismaUserCustomSkillRepository,
+    },
 
-    // Domain Service
+    // Domain Services
     {
       provide: SKILL_TOKENS.SKILL_DOMAIN_SERVICE,
       useClass: SkillDomainServiceImpl,
+    },
+    {
+      provide: SKILL_TOKENS.AI_EXERCISE_GENERATOR_SERVICE,
+      useClass: AiExerciseGeneratorServiceImpl,
     },
 
     // Use Cases
@@ -176,7 +189,10 @@ const exerciseUseCases = [
     SKILL_TOKENS.EXERCISE_REPOSITORY,
     SKILL_TOKENS.REVIEW_EXERCISE_REPOSITORY,
     SKILL_TOKENS.TRAINING_EXERCISE_REPOSITORY,
+    SKILL_TOKENS.USER_CUSTOM_SKILL_REPOSITORY,
     SKILL_TOKENS.SKILL_DOMAIN_SERVICE,
+    SKILL_TOKENS.AI_EXERCISE_GENERATOR_SERVICE,
   ],
 })
 export class SkillModule {}
+

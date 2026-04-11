@@ -384,8 +384,20 @@ model Skill {
   skillProgress  SkillProgress[]
   skillWords     SkillWord[]
   skillGrammars  SkillGrammar[]
+  userCustomSkill UserCustomSkill?
 
   @@map("skills")
+}
+
+model UserCustomSkill {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  skillId   String   @unique @map("skill_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@map("user_custom_skills")
 }
 
 model SkillLevel {

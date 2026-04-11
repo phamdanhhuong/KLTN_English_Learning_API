@@ -11,8 +11,12 @@ export const REVIEW_EXERCISE_REPOSITORY = Symbol('REVIEW_EXERCISE_REPOSITORY');
 // Training repository token
 export const TRAINING_EXERCISE_REPOSITORY = Symbol('TRAINING_EXERCISE_REPOSITORY');
 
+// User custom skill repository token
+export const USER_CUSTOM_SKILL_REPOSITORY = Symbol('USER_CUSTOM_SKILL_REPOSITORY');
+
 // Service tokens for dependency injection
 export const SKILL_DOMAIN_SERVICE = Symbol('SKILL_DOMAIN_SERVICE');
+export const AI_EXERCISE_GENERATOR_SERVICE = Symbol('AI_EXERCISE_GENERATOR_SERVICE');
 
 // Namespace export for convenience
 export const SKILL_TOKENS = {
@@ -23,5 +27,7 @@ export const SKILL_TOKENS = {
   SKILL_PART_REPOSITORY,
   REVIEW_EXERCISE_REPOSITORY,
   TRAINING_EXERCISE_REPOSITORY,
+  USER_CUSTOM_SKILL_REPOSITORY,
   SKILL_DOMAIN_SERVICE,
+  AI_EXERCISE_GENERATOR_SERVICE,
 };
