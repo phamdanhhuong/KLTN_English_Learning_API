@@ -15,6 +15,7 @@ import { FeedModule } from './modules/feed/feed.module';
 import { SpeechModule } from './modules/speech/speech.module';
 import { ScoringModule } from './modules/scoring/scoring.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { VoiceModule } from './modules/voice/voice.module';
 import { EventEmitterModule } from '@nestjs/event-emitter/dist/event-emitter.module';
 
 @Module({
@@ -48,6 +49,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter/dist/event-emitter.mod
     SpeechModule,
     ScoringModule,
     ChatModule,
+    VoiceModule,
   ],
   controllers: [],
   providers: [],
