@@ -11,7 +11,8 @@ export type FeedPostType =
   | 'LEVEL_UP'
   | 'QUEST_COMPLETED'
   | 'PERFECT_SCORE'
-  | 'XP_MILESTONE';
+  | 'XP_MILESTONE'
+  | 'BATTLE_WIN_STREAK';
 
 @Injectable()
 export class FeedService {
@@ -47,6 +48,8 @@ export class FeedService {
         return `Đạt điểm tuyệt đối trong ${metadata.lessonName || 'bài học'}! 💯`;
       case 'XP_MILESTONE':
         return `Đã đạt ${metadata.totalXp} XP! ⭐`;
+      case 'BATTLE_WIN_STREAK':
+        return `Chuỗi thắng ${metadata.winStreak} trận thi đấu liên tiếp! ⚔️🔥`;
       default:
         return 'Đã đạt một thành tựu mới!';
     }
@@ -73,6 +76,8 @@ export class FeedService {
         return false;
       case 'XP_MILESTONE':
         return [1000, 5000, 10000, 25000, 50000, 100000].includes(metadata.totalXp);
+      case 'BATTLE_WIN_STREAK':
+        return metadata.winStreak >= 3;
       default:
         return false;
     }

@@ -151,6 +151,22 @@ enum ReportStatus {
   DISMISSED
 }
 
+// ==================== BATTLE ENUMS ====================
+
+enum BattleStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ABANDONED
+}
+
+enum BattleOutcome {
+  WIN
+  LOSE
+  DRAW
+}
+
 // ==================== AUTH MODULE ====================
 
 model User {
@@ -218,6 +234,10 @@ model User {
   feedPosts     FeedPost[]
   feedReactions FeedReaction[]
   feedComments  FeedComment[]
+
+  // Battle relations
+  battleAsPlayer1  BattleMatch[] @relation("BattlePlayer1")
+  battleAsPlayer2  BattleMatch[] @relation("BattlePlayer2")
 
   @@map("users")
 }
@@ -942,4 +962,71 @@ model FeedComment {
   @@index([postId, createdAt])
   @@index([userId])
   @@map("feed_comments")
+}
+
+// ==================== BATTLE MODULE ====================
+
+model BattleMatch {
+  id            String       @id @default(uuid())
+  status        BattleStatus @default(WAITING)
+
+  // Players
+  player1Id     String       @map("player1_id")
+  player2Id     String?      @map("player2_id")
+  player1       User         @relation("BattlePlayer1", fields: [player1Id], references: [id])
+  player2       User?        @relation("BattlePlayer2", fields: [player2Id], references: [id])
+
+  // Scoring
+  player1Score  Int          @default(0) @map("player1_score")
+  player2Score  Int          @default(0) @map("player2_score")
+
+  // Result
+  winnerId      String?      @map("winner_id")
+
+  // Rewards
+  xpAwarded1    Int          @default(0) @map("xp_awarded_1")
+  xpAwarded2    Int          @default(0) @map("xp_awarded_2")
+
+  // Match config
+  totalRounds   Int          @default(5) @map("total_rounds")
+  tier          String?
+  isBot         Boolean      @default(false) @map("is_bot")
+
+  // Timestamps
+  startedAt     DateTime?    @map("started_at")
+  completedAt   DateTime?    @map("completed_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  rounds        BattleRound[]
+
+  @@index([player1Id])
+  @@index([player2Id])
+  @@index([status])
+  @@map("battle_matches")
+}
+
+model BattleRound {
+  id            String      @id @default(uuid())
+  matchId       String      @map("match_id")
+  match         BattleMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  roundNumber   Int         @map("round_number")
+
+  // Question data
+  questionType  String      @map("question_type")
+  questionData  Json        @map("question_data")
+
+  // Player answers
+  player1Answer String?     @map("player1_answer")
+  player2Answer String?     @map("player2_answer")
+  player1TimeMs Int?        @map("player1_time_ms")
+  player2TimeMs Int?        @map("player2_time_ms")
+  player1Points Int         @default(0) @map("player1_points")
+  player2Points Int         @default(0) @map("player2_points")
+
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@unique([matchId, roundNumber])
+  @@map("battle_rounds")
 }

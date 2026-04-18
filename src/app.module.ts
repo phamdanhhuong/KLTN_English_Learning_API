@@ -16,6 +16,7 @@ import { SpeechModule } from './modules/speech/speech.module';
 import { ScoringModule } from './modules/scoring/scoring.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { VoiceModule } from './modules/voice/voice.module';
+import { BattleModule } from './modules/battle/battle.module';
 import { EventEmitterModule } from '@nestjs/event-emitter/dist/event-emitter.module';
 
 @Module({
@@ -50,6 +51,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter/dist/event-emitter.mod
     ScoringModule,
     ChatModule,
     VoiceModule,
+    BattleModule,
   ],
   controllers: [],
   providers: [],
