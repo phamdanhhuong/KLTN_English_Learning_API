@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { BattleGameService } from '../application/services/battle-game.service';
 import { Inject } from '@nestjs/common';
@@ -41,7 +41,7 @@ export class BattleController {
   }
 
   @Get('match/:matchId')
-  async getMatch(@Request() req: any, @Query('matchId') matchId: string) {
+  async getMatch(@Param('matchId') matchId: string) {
     return this.battleRepo.findMatchById(matchId);
   }
 }

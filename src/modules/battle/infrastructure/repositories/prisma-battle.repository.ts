@@ -11,18 +11,18 @@ const USER_SELECT = {
   profilePictureUrl: true, currentLevel: true,
 };
 
-// Tier difficulty mapping
+// Tier difficulty mapping — only types with options for battle quiz
 const TIER_DIFFICULTY: Record<string, string[]> = {
-  BRONZE: ['multiple_choice', 'fill_blank'],
+  BRONZE: ['multiple_choice'],
   SILVER: ['multiple_choice', 'fill_blank'],
-  GOLD: ['multiple_choice', 'fill_blank', 'translate'],
-  SAPPHIRE: ['multiple_choice', 'fill_blank', 'translate'],
-  RUBY: ['translate', 'fill_blank', 'multiple_choice'],
-  EMERALD: ['translate', 'fill_blank', 'listen_choose'],
-  AMETHYST: ['translate', 'fill_blank', 'listen_choose'],
-  PEARL: ['translate', 'listen_choose'],
-  OBSIDIAN: ['translate', 'listen_choose'],
-  DIAMOND: ['translate', 'listen_choose'],
+  GOLD: ['multiple_choice', 'fill_blank'],
+  SAPPHIRE: ['multiple_choice', 'fill_blank', 'listen_choose'],
+  RUBY: ['multiple_choice', 'fill_blank', 'listen_choose'],
+  EMERALD: ['multiple_choice', 'fill_blank', 'listen_choose'],
+  AMETHYST: ['multiple_choice', 'fill_blank', 'listen_choose'],
+  PEARL: ['multiple_choice', 'fill_blank', 'listen_choose'],
+  OBSIDIAN: ['multiple_choice', 'fill_blank', 'listen_choose'],
+  DIAMOND: ['multiple_choice', 'fill_blank', 'listen_choose'],
 };
 
 const TIER_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'SAPPHIRE', 'RUBY', 'EMERALD', 'AMETHYST', 'PEARL', 'OBSIDIAN', 'DIAMOND'];
@@ -271,17 +271,97 @@ export class PrismaBattleRepository implements BattleRepository {
 
     // Shuffle and pick
     const shuffled = exercises.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count).map((ex) => {
-      const meta = (ex.meta as any) || {};
-      return {
-        id: ex.id,
-        type: ex.exerciseType,
-        prompt: ex.prompt || meta.prompt || '',
-        options: meta.options || [],
-        correctAnswer: meta.correctAnswer || meta.answer || '',
-        audioUrl: meta.audioUrl || null,
-      };
-    });
+    return shuffled.slice(0, count).map((ex) => this.mapExerciseToBattleQuestion(ex)).filter(Boolean);
+  }
+
+  private mapExerciseToBattleQuestion(ex: {
+    id: string;
+    exerciseType: any;
+    prompt: string | null;
+    meta: any;
+  }) {
+    const meta = (ex.meta as any) || {};
+    const type = ex.exerciseType;
+
+    switch (type) {
+      case 'multiple_choice': {
+        // meta: { question, options: [{text, order}], correctOrder: number[] }
+        const opts = (meta.options || []) as Array<{ text: string; order: number }>;
+        const optionTexts = opts.sort((a: any, b: any) => a.order - b.order).map((o: any) => o.text);
+        const correctOrders = meta.correctOrder || [];
+        const correctOpt = opts.find((o: any) => correctOrders.includes(o.order));
+        return {
+          id: ex.id,
+          type,
+          prompt: meta.question || ex.prompt || '',
+          options: optionTexts,
+          correctAnswer: correctOpt?.text || optionTexts[0] || '',
+          audioUrl: null,
+        };
+      }
+
+      case 'fill_blank': {
+        // meta: { sentences: [{text, correctAnswer, options?}], context? }
+        const sentences = meta.sentences || [];
+        const sentence = sentences[0] || {};
+        const baseOptions = sentence.options || [];
+        // Ensure correctAnswer is in options
+        let options = [...baseOptions];
+        if (sentence.correctAnswer && !options.includes(sentence.correctAnswer)) {
+          options.push(sentence.correctAnswer);
+        }
+        // If not enough options, pad
+        if (options.length < 2) {
+          options = [sentence.correctAnswer || '', '___'];
+        }
+        // Shuffle options
+        options = options.sort(() => Math.random() - 0.5);
+        return {
+          id: ex.id,
+          type,
+          prompt: sentence.text || ex.prompt || 'Điền vào chỗ trống',
+          options,
+          correctAnswer: sentence.correctAnswer || '',
+          audioUrl: null,
+        };
+      }
+
+      case 'translate': {
+        // meta: { sourceText, correctAnswer, hints? }
+        // No options → generate fake options for battle MCQ style
+        const correct = meta.correctAnswer || '';
+        return {
+          id: ex.id,
+          type,
+          prompt: `Dịch: "${meta.sourceText || ex.prompt || ''}"`,
+          options: [], // Will be empty → frontend shows text input
+          correctAnswer: correct,
+          audioUrl: null,
+        };
+      }
+
+      case 'listen_choose': {
+        // meta: { correctAnswer, options: string[], sentence }
+        return {
+          id: ex.id,
+          type,
+          prompt: meta.sentence || ex.prompt || 'Chọn đáp án đúng',
+          options: meta.options || [],
+          correctAnswer: meta.correctAnswer || '',
+          audioUrl: meta.audioUrl || null,
+        };
+      }
+
+      default:
+        return {
+          id: ex.id,
+          type,
+          prompt: ex.prompt || meta.question || '',
+          options: meta.options || [],
+          correctAnswer: meta.correctAnswer || '',
+          audioUrl: null,
+        };
+    }
   }
 
   // ─── User info ───
