@@ -174,6 +174,15 @@ export class PrismaLessonRepository implements LessonRepositoryInterface {
     }
   }
 
+  async invalidateCacheForLesson(
+    lessonId: string,
+    skillId: string,
+    skillLevel: number,
+  ): Promise<void> {
+    await this.redis.del(`${this.cachePrefix}${lessonId}`);
+    await this.invalidateCache(skillId, skillLevel);
+  }
+
   private toDomain(data: any): Lesson {
     const exercises = data.exercises?.map(
       (exerciseData: any) =>

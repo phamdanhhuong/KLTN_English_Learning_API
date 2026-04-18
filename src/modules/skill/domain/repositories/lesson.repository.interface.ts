@@ -17,4 +17,5 @@ export interface LessonRepository {
   create(lesson: Lesson): Promise<Lesson>;
   update(lesson: Lesson): Promise<Lesson>;
   delete(id: string): Promise<void>;
+  invalidateCacheForLesson(lessonId: string, skillId: string, skillLevel: number): Promise<void>;
 }

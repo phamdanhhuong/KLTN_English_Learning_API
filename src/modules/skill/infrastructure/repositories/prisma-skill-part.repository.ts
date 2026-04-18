@@ -67,14 +67,31 @@ export class PrismaSkillPartRepository implements SkillPartRepository {
       include: { skill: true },
     });
 
-    // Lấy tất cả skill parts với skills và grammar (exclude custom AI skills)
+    // Lấy tất cả skill parts: regular + skill part AI của chính user này
     const skillParts = await this.prisma.skillPart.findMany({
+      where: {
+        OR: [
+          // Regular skill parts (không chứa custom skills)
+          {
+            skills: {
+              none: {
+                userCustomSkill: { isNot: null },
+              },
+            },
+          },
+          // Skill part AI của chính user này
+          {
+            skills: {
+              some: {
+                userCustomSkill: { userId },
+              },
+            },
+          },
+        ],
+      },
       orderBy: { position: 'asc' },
       include: {
         skills: {
-          where: {
-            userCustomSkill: { is: null }, // Exclude AI-generated custom skills
-          },
           orderBy: { position: 'asc' },
           include: {
             skillGrammars: {
