@@ -60,6 +60,8 @@ export class BattleGameService {
         correctAnswer: ex.correctAnswer,
         audioUrl: ex.audioUrl || null,
         exerciseId: ex.id,
+        exerciseType: ex.exerciseType || ex.type,
+        rawMeta: ex.rawMeta || null,
       },
     }));
 
@@ -74,6 +76,8 @@ export class BattleGameService {
           correctAnswer: 'Option A',
           audioUrl: null,
           exerciseId: null,
+          exerciseType: 'multiple_choice',
+          rawMeta: null,
         },
       });
     }
@@ -324,10 +328,13 @@ export class BattleGameService {
     return {
       roundNumber: round.roundNumber,
       questionType: round.questionType,
+      exerciseType: data.exerciseType || round.questionType,
+      exerciseId: data.exerciseId || null,
       prompt: data.prompt,
       options: data.options,
       audioUrl: data.audioUrl,
       timeLimit: ROUND_TIME_LIMIT,
+      rawMeta: data.rawMeta || null,
     };
   }
 

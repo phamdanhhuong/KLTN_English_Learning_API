@@ -11,18 +11,18 @@ const USER_SELECT = {
   profilePictureUrl: true, currentLevel: true,
 };
 
-// Tier difficulty mapping — only types with options for battle quiz
+// Tier difficulty mapping — only quick exercise types for battle
 const TIER_DIFFICULTY: Record<string, string[]> = {
   BRONZE: ['multiple_choice'],
   SILVER: ['multiple_choice', 'fill_blank'],
   GOLD: ['multiple_choice', 'fill_blank'],
-  SAPPHIRE: ['multiple_choice', 'fill_blank', 'listen_choose'],
-  RUBY: ['multiple_choice', 'fill_blank', 'listen_choose'],
-  EMERALD: ['multiple_choice', 'fill_blank', 'listen_choose'],
-  AMETHYST: ['multiple_choice', 'fill_blank', 'listen_choose'],
-  PEARL: ['multiple_choice', 'fill_blank', 'listen_choose'],
-  OBSIDIAN: ['multiple_choice', 'fill_blank', 'listen_choose'],
-  DIAMOND: ['multiple_choice', 'fill_blank', 'listen_choose'],
+  SAPPHIRE: ['multiple_choice', 'fill_blank'],
+  RUBY: ['multiple_choice', 'fill_blank'],
+  EMERALD: ['multiple_choice', 'fill_blank'],
+  AMETHYST: ['multiple_choice', 'fill_blank'],
+  PEARL: ['multiple_choice', 'fill_blank'],
+  OBSIDIAN: ['multiple_choice', 'fill_blank'],
+  DIAMOND: ['multiple_choice', 'fill_blank'],
 };
 
 const TIER_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'SAPPHIRE', 'RUBY', 'EMERALD', 'AMETHYST', 'PEARL', 'OBSIDIAN', 'DIAMOND'];
@@ -293,10 +293,12 @@ export class PrismaBattleRepository implements BattleRepository {
         return {
           id: ex.id,
           type,
+          exerciseType: type,
           prompt: meta.question || ex.prompt || '',
           options: optionTexts,
           correctAnswer: correctOpt?.text || optionTexts[0] || '',
           audioUrl: null,
+          rawMeta: meta, // full original meta for frontend exercise widget
         };
       }
 
@@ -305,62 +307,28 @@ export class PrismaBattleRepository implements BattleRepository {
         const sentences = meta.sentences || [];
         const sentence = sentences[0] || {};
         const baseOptions = sentence.options || [];
-        // Ensure correctAnswer is in options
         let options = [...baseOptions];
         if (sentence.correctAnswer && !options.includes(sentence.correctAnswer)) {
           options.push(sentence.correctAnswer);
         }
-        // If not enough options, pad
         if (options.length < 2) {
           options = [sentence.correctAnswer || '', '___'];
         }
-        // Shuffle options
         options = options.sort(() => Math.random() - 0.5);
         return {
           id: ex.id,
           type,
+          exerciseType: type,
           prompt: sentence.text || ex.prompt || 'Điền vào chỗ trống',
           options,
           correctAnswer: sentence.correctAnswer || '',
           audioUrl: null,
-        };
-      }
-
-      case 'translate': {
-        // meta: { sourceText, correctAnswer, hints? }
-        // No options → generate fake options for battle MCQ style
-        const correct = meta.correctAnswer || '';
-        return {
-          id: ex.id,
-          type,
-          prompt: `Dịch: "${meta.sourceText || ex.prompt || ''}"`,
-          options: [], // Will be empty → frontend shows text input
-          correctAnswer: correct,
-          audioUrl: null,
-        };
-      }
-
-      case 'listen_choose': {
-        // meta: { correctAnswer, options: string[], sentence }
-        return {
-          id: ex.id,
-          type,
-          prompt: meta.sentence || ex.prompt || 'Chọn đáp án đúng',
-          options: meta.options || [],
-          correctAnswer: meta.correctAnswer || '',
-          audioUrl: meta.audioUrl || null,
+          rawMeta: meta,
         };
       }
 
       default:
-        return {
-          id: ex.id,
-          type,
-          prompt: ex.prompt || meta.question || '',
-          options: meta.options || [],
-          correctAnswer: meta.correctAnswer || '',
-          audioUrl: null,
-        };
+        return null;
     }
   }
 
