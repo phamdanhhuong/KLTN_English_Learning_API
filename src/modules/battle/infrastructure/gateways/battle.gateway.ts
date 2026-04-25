@@ -7,7 +7,7 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
-import { Logger, Inject, UseGuards } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { BATTLE_TOKENS } from '../../domain/di/tokens';
 import type { BattleRepository } from '../../domain/repositories/battle.repository.interface';
@@ -23,9 +23,7 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server!: Server;
   private readonly logger = new Logger(BattleGateway.name);
 
-  // Map socket.id -> userId
   private socketUserMap = new Map<string, string>();
-  // Map userId -> socket.id
   private userSocketMap = new Map<string, string>();
 
   constructor(
@@ -39,17 +37,12 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: Socket) {
     try {
       const token = client.handshake.auth?.token || client.handshake.query?.token;
-      if (!token) {
-        client.disconnect();
-        return;
-      }
+      if (!token) { client.disconnect(); return; }
       const payload = this.jwtService.verify(token as string);
       const userId = payload.sub;
-
       this.socketUserMap.set(client.id, userId);
       this.userSocketMap.set(userId, client.id);
       client.join(`user:${userId}`);
-
       this.logger.log(`Battle connected: ${userId} (${client.id})`);
     } catch {
       client.disconnect();
@@ -73,25 +66,17 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.matchmakingService.findMatch(
       userId,
-      // onMatchFound
       (matchData) => {
-        // Emit to player 1
         this.emitToUser(userId, 'battle:matchFound', matchData);
-
-        // Emit to player 2 (if real player)
         if (!matchData.isBot && matchData.player2) {
           this.emitToUser(matchData.player2.id, 'battle:matchFound', {
             ...matchData,
-            // Swap player perspectives
             player1: matchData.player2,
             player2: matchData.player1,
           });
         }
       },
-      // onSearching
-      (data) => {
-        client.emit('battle:searching', data);
-      },
+      (data) => { client.emit('battle:searching', data); },
     );
   }
 
@@ -103,6 +88,7 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('battle:searchCancelled', {});
   }
 
+  // ─── HP Combat: Submit Answer → Instant Damage ───
   @SubscribeMessage('battle:submitAnswer')
   async handleSubmitAnswer(
     @ConnectedSocket() client: Socket,
@@ -121,89 +107,129 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // Notify opponent that this player answered
+      // ─── EMIT DAMAGE INSTANTLY to both players ───
+      const damagePayload = {
+        attackerId: result.attackerId,
+        targetId: result.targetId,
+        damage: result.damage,
+        selfDamage: result.selfDamage,
+        isCorrect: result.isCorrect,
+        correctAnswer: result.correctAnswer,
+        roundNumber: result.roundNumber,
+        player1Hp: result.player1Hp,
+        player2Hp: result.player2Hp,
+      };
+
       const match = await this.battleRepo.findMatchById(data.matchId);
-      if (match) {
-        const opponentId = match.player1Id === userId ? match.player2Id : match.player1Id;
-        if (opponentId && !match.isBot) {
-          this.emitToUser(opponentId, 'battle:opponentAnswered', {
-            roundNumber: data.roundNumber,
-          });
-        }
+      if (!match) return;
 
-        // If bot match, trigger bot answer after delay
-        if (match.isBot) {
-          const botDelay = 3000 + Math.floor(Math.random() * 7000);
-          setTimeout(async () => {
-            await this.gameService.botAnswer(data.matchId, data.roundNumber);
-            await this.sendRoundResult(data.matchId, data.roundNumber, userId);
-          }, botDelay);
-          return;
-        }
+      // Emit damage to both players
+      this.emitToUser(match.player1Id, 'battle:damage', damagePayload);
+      if (match.player2Id && !match.isBot) {
+        this.emitToUser(match.player2Id, 'battle:damage', damagePayload);
+      }
 
-        // If both real players answered, send round result
-        if (result.bothAnswered) {
-          await this.sendRoundResult(data.matchId, data.roundNumber, userId);
-        }
+      // ─── Check KO ───
+      if (result.isKO) {
+        await this.handleMatchEnd(data.matchId, true);
+        return;
+      }
+
+      // ─── Bot match: trigger bot answer after delay ───
+      if (match.isBot) {
+        const botDelay = 2000 + Math.floor(Math.random() * 5000);
+        setTimeout(async () => {
+          const botResult = await this.gameService.botAnswer(data.matchId, data.roundNumber);
+          if (!botResult) return;
+
+          // Emit bot damage
+          const botDamagePayload = {
+            attackerId: match.player2Id || 'BOT',
+            targetId: match.player1Id,
+            damage: botResult.damage,
+            selfDamage: botResult.selfDamage,
+            isCorrect: botResult.isCorrect,
+            correctAnswer: undefined,
+            roundNumber: botResult.roundNumber,
+            player1Hp: botResult.player1Hp,
+            player2Hp: botResult.player2Hp,
+          };
+          this.emitToUser(match.player1Id, 'battle:damage', botDamagePayload);
+
+          if (botResult.isKO) {
+            await this.handleMatchEnd(data.matchId, true);
+            return;
+          }
+
+          // Both answered → next round
+          this.sendNextRound(data.matchId, data.roundNumber);
+        }, botDelay);
+        return;
+      }
+
+      // ─── Real match: check if both answered → next round ───
+      if (result.bothAnswered) {
+        this.sendNextRound(data.matchId, data.roundNumber);
       }
     } catch (error: any) {
       client.emit('battle:error', { message: error.message });
     }
   }
 
-  private async sendRoundResult(matchId: string, roundNumber: number, triggerUserId: string) {
+  // ─── Send next round or end match ───
+  private async sendNextRound(matchId: string, currentRound: number) {
     const match = await this.battleRepo.findMatchById(matchId);
     if (!match) return;
 
-    const round = await this.battleRepo.findRound(matchId, roundNumber);
-    if (!round) return;
-
-    const correctAnswer = (round.questionData as any).correctAnswer;
-
-    const roundResult = {
-      roundNumber,
-      player1Points: round.player1Points,
-      player2Points: round.player2Points,
-      correctAnswer,
-      scores: { player1: match.player1Score, player2: match.player2Score },
-    };
-
-    // Emit to both players
-    this.emitToUser(match.player1Id, 'battle:roundResult', roundResult);
-    if (match.player2Id && !match.isBot) {
-      this.emitToUser(match.player2Id, 'battle:roundResult', roundResult);
+    if (currentRound >= match.totalRounds) {
+      // All rounds done → end by HP comparison
+      await this.handleMatchEnd(matchId, false);
+      return;
     }
 
-    // Check if match is complete
-    if (roundNumber >= match.totalRounds) {
-      // Complete match
-      setTimeout(async () => {
-        const finalResult = await this.gameService.completeMatch(matchId);
-        const resultPayload = {
-          ...finalResult,
-          player1: match.player1,
-          player2: match.isBot ? this.gameService.generateBotInfo() : match.player2,
-        };
+    const nextRound = match.rounds.find((r: any) => r.roundNumber === currentRound + 1);
+    if (!nextRound) return;
 
-        this.emitToUser(match.player1Id, 'battle:matchResult', resultPayload);
-        if (match.player2Id && !match.isBot) {
-          this.emitToUser(match.player2Id, 'battle:matchResult', resultPayload);
-        }
-      }, 2000);
-    } else {
-      // Send next round after 3 seconds
-      const nextRoundNumber = roundNumber + 1;
-      const nextRound = match.rounds.find((r: any) => r.roundNumber === nextRoundNumber);
-
-      if (nextRound) {
-        setTimeout(() => {
-          const question = this.gameService.getRoundQuestion(nextRound);
-          this.emitToUser(match.player1Id, 'battle:roundStart', question);
-          if (match.player2Id && !match.isBot) {
-            this.emitToUser(match.player2Id, 'battle:roundStart', question);
-          }
-        }, 3000);
+    // 2s delay then next question
+    setTimeout(() => {
+      const question = this.gameService.getRoundQuestion(nextRound);
+      this.emitToUser(match.player1Id, 'battle:roundStart', question);
+      if (match.player2Id && !match.isBot) {
+        this.emitToUser(match.player2Id, 'battle:roundStart', question);
       }
+    }, 2000);
+  }
+
+  // ─── End match (KO or rounds finished) ───
+  private async handleMatchEnd(matchId: string, isKO: boolean) {
+    const finalResult = await this.gameService.completeMatch(matchId);
+    const match = await this.battleRepo.findMatchById(matchId);
+
+    const resultPayload = {
+      ...finalResult,
+      isKO,
+      player1: match?.player1,
+      player2: match?.isBot ? this.gameService.generateBotInfo() : match?.player2,
+    };
+
+    if (isKO) {
+      // KO → emit immediately
+      if (match) {
+        this.emitToUser(match.player1Id, 'battle:ko', resultPayload);
+        if (match.player2Id && !match.isBot) {
+          this.emitToUser(match.player2Id, 'battle:ko', resultPayload);
+        }
+      }
+    } else {
+      // Rounds finished → short delay then result
+      setTimeout(() => {
+        if (match) {
+          this.emitToUser(match.player1Id, 'battle:matchResult', resultPayload);
+          if (match.player2Id && !match.isBot) {
+            this.emitToUser(match.player2Id, 'battle:matchResult', resultPayload);
+          }
+        }
+      }, 1500);
     }
   }
 
