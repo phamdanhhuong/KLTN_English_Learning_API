@@ -12,7 +12,14 @@ export class GetProfileUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(userId: string) {
-    const [user, streak, followCounts, xpHistory] = await Promise.all([
+    const now = new Date();
+    const day = now.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - diff);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const [user, streak, followCounts, xpHistory, userTier, leagueParticipation, top3Count] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -32,6 +39,25 @@ export class GetProfileUseCase {
         take: 7,
         select: { activityDate: true, xpEarned: true },
       }),
+      this.prisma.userLeagueTier.findUnique({ where: { userId } }),
+      this.prisma.leagueParticipant.findFirst({
+        where: {
+          userId,
+          group: {
+            league: {
+              weekStartDate: weekStart
+            }
+          }
+        }
+      }),
+      this.prisma.leagueHistory.count({
+        where: {
+          userId,
+          rank: {
+            lte: 3
+          }
+        }
+      })
     ]);
 
     if (!user) throw new NotFoundException('User profile not found');
@@ -52,9 +78,9 @@ export class GetProfileUseCase {
       totalExp: user.xpPoints ?? 0,
       totalXp: user.xpPoints ?? 0,         // alias for consistency
       currentLevel: user.currentLevel ?? 1,
-      isInTournament: false,
-      top3Count: 0,
-      currentLeagueTier: null as string | null,
+      isInTournament: !!leagueParticipation,
+      top3Count: top3Count,
+      currentLeagueTier: userTier?.currentTier ?? null,
       skillPosition: 1,
       isEmailVerified: user.isEmailVerified,
       xpHistory: xpHistory.map(h => ({
