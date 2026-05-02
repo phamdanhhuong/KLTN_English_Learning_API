@@ -167,6 +167,15 @@ enum BattleOutcome {
   DRAW
 }
 
+// ==================== PAYMENT ENUMS ====================
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
 // ==================== AUTH MODULE ====================
 
 model User {
@@ -239,6 +248,9 @@ model User {
   battleAsPlayer1  BattleMatch[] @relation("BattlePlayer1")
   battleAsPlayer2  BattleMatch[] @relation("BattlePlayer2")
 
+  // Payment relations
+  paymentOrders    PaymentOrder[]
+
   @@map("users")
 }
 
@@ -296,6 +308,29 @@ model CurrencyTransaction {
 
   @@index([userId, createdAt])
   @@map("currency_transactions")
+}
+
+model PaymentOrder {
+  id               String        @id @default(uuid())
+  userId           String        @map("user_id")
+  orderCode        String        @unique @map("order_code")
+  amount           Int
+  gems             Int           @default(0)
+  coins            Int           @default(0)
+  status           PaymentStatus @default(PENDING)
+  vnpTransactionNo String?       @map("vnp_transaction_no")
+  vnpBankCode      String?       @map("vnp_bank_code")
+  vnpPayDate       String?       @map("vnp_pay_date")
+  vnpResponseCode  String?       @map("vnp_response_code")
+  metadata         Json?
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([orderCode])
+  @@map("payment_orders")
 }
 
 model StreakData {

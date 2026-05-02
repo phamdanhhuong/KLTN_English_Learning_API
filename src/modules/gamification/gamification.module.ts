@@ -21,6 +21,14 @@ import { SpendCurrencyUseCase } from './application/use-cases/currency/spend-cur
 import { AddCurrencyUseCase } from './application/use-cases/currency/add-currency.usecase';
 import { GetCurrencyBalanceUseCase } from './application/use-cases/currency/get-currency-balance.usecase';
 
+// Payment Use Cases
+import { CreatePaymentUseCase } from './application/use-cases/currency/create-payment.usecase';
+import { VnpayIpnUseCase } from './application/use-cases/currency/vnpay-ipn.usecase';
+import { VnpayReturnUseCase } from './application/use-cases/currency/vnpay-return.usecase';
+
+// Payment Service
+import { VnpayService } from './application/services/vnpay.service';
+
 // Energy Use Cases
 import {
   ConsumeEnergyUseCase,
@@ -37,6 +45,7 @@ import { StreakScheduler } from './application/schedulers/streak.scheduler';
 
 // Presentation
 import { GamificationController } from './presentation/gamification.controller';
+import { PaymentController } from './presentation/payment.controller';
 
 @Module({
   imports: [
@@ -58,7 +67,7 @@ import { GamificationController } from './presentation/gamification.controller';
       }),
     }),
   ],
-  controllers: [GamificationController],
+  controllers: [GamificationController, PaymentController],
   providers: [
     // XP
     AddXpUseCase,
@@ -72,6 +81,11 @@ import { GamificationController } from './presentation/gamification.controller';
     SpendCurrencyUseCase,
     AddCurrencyUseCase,
     GetCurrencyBalanceUseCase,
+    // Payment
+    VnpayService,
+    CreatePaymentUseCase,
+    VnpayIpnUseCase,
+    VnpayReturnUseCase,
     // Energy
     ConsumeEnergyUseCase,
     GetEnergyUseCase,
