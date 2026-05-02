@@ -10,6 +10,7 @@ import {
   JoinFriendsQuestUseCase,
   InviteFriendToQuestUseCase,
 } from '../application/use-cases/friends-quest.usecase';
+import { FeedService } from '../../feed/application/services/feed.service';
 
 @Controller('quests')
 @UseGuards(JwtAuthGuard)
@@ -23,6 +24,7 @@ export class QuestController {
     private readonly getParticipants: GetFriendsQuestParticipantsUseCase,
     private readonly joinFriendsQuest: JoinFriendsQuestUseCase,
     private readonly inviteFriend: InviteFriendToQuestUseCase,
+    private readonly feedService: FeedService,
   ) {}
 
   @Get()
@@ -74,5 +76,16 @@ export class QuestController {
     @Body('friendId') friendId: string,
   ) {
     return this.inviteFriend.execute(req.user.sub, key, friendId);
+  }
+
+  @Post('friends/:key/nudge')
+  @HttpCode(HttpStatus.OK)
+  async nudgeQuest(@Request() req: any, @Param('key') key: string) {
+    // Create a feed post to nudge friends
+    await this.feedService.autoCreatePost(req.user.sub, 'FRIEND_QUEST_NUDGE', {
+      questKey: key,
+      questName: key.replace(/_/g, ' '),
+    });
+    return { message: 'Nudge sent!' };
   }
 }

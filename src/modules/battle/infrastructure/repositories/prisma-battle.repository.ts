@@ -266,11 +266,27 @@ export class PrismaBattleRepository implements BattleRepository {
         prompt: true,
         meta: true,
       },
-      take: count * 3,
+      take: count * 10, // fetch extra to filter
+    });
+
+    // Filter: only battle-safe exercises
+    const safe = exercises.filter((ex: any) => {
+      const meta = (ex.meta as any) || {};
+      if (ex.exerciseType === 'multiple_choice') {
+        // Only single-answer MC (no complex ordering)
+        const correctOrder = meta.correctOrder || [];
+        return correctOrder.length === 1;
+      }
+      if (ex.exerciseType === 'fill_blank') {
+        // Only single-sentence fill_blank
+        const sentences = meta.sentences || [];
+        return sentences.length === 1 && sentences[0]?.options?.length >= 2;
+      }
+      return false;
     });
 
     // Shuffle and pick
-    const shuffled = exercises.sort(() => Math.random() - 0.5);
+    const shuffled = safe.sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count).map((ex) => this.mapExerciseToBattleQuestion(ex)).filter(Boolean);
   }
 

@@ -901,6 +901,8 @@ enum FeedPostType {
   QUEST_COMPLETED
   PERFECT_SCORE
   XP_MILESTONE
+  BATTLE_WIN_STREAK
+  FRIEND_QUEST_NUDGE
 }
 
 enum FeedReactionType {

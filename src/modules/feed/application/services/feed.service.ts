@@ -12,7 +12,8 @@ export type FeedPostType =
   | 'QUEST_COMPLETED'
   | 'PERFECT_SCORE'
   | 'XP_MILESTONE'
-  | 'BATTLE_WIN_STREAK';
+  | 'BATTLE_WIN_STREAK'
+  | 'FRIEND_QUEST_NUDGE';
 
 @Injectable()
 export class FeedService {
@@ -50,6 +51,8 @@ export class FeedService {
         return `Đã đạt ${metadata.totalXp} XP! ⭐`;
       case 'BATTLE_WIN_STREAK':
         return `Chuỗi thắng ${metadata.winStreak} trận thi đấu liên tiếp! ⚔️🔥`;
+      case 'FRIEND_QUEST_NUDGE':
+        return `Đang cần bạn bè cùng hoàn thành nhiệm vụ: ${metadata.questName || 'Nhiệm vụ bạn bè'}! Hãy cùng tham gia nào! 👋🎯`;
       default:
         return 'Đã đạt một thành tựu mới!';
     }
@@ -78,6 +81,8 @@ export class FeedService {
         return [1000, 5000, 10000, 25000, 50000, 100000].includes(metadata.totalXp);
       case 'BATTLE_WIN_STREAK':
         return metadata.winStreak >= 3;
+      case 'FRIEND_QUEST_NUDGE':
+        return true;
       default:
         return false;
     }

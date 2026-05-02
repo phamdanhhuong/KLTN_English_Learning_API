@@ -141,6 +141,11 @@ export class InviteFriendToQuestUseCase {
         userId: invitedUserId,
         weekStartDate: weekStart,
       },
+      include: {
+        user: {
+          select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+        },
+      },
     });
   }
 
