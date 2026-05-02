@@ -13,6 +13,7 @@ import { GetUserStatsUseCase } from './application/use-cases/get-stats.usecase';
 import { GetXpHistoryUseCase } from './application/use-cases/get-xp-history.usecase';
 import { GetPublicProfileUseCase, SearchUsersUseCase } from './application/use-cases/get-public-profile.usecase';
 import { ReportUserUseCase, BlockUserUseCase, UnblockUserUseCase } from './application/use-cases/report-block.usecase';
+import { DeleteAccountUseCase } from './application/use-cases/delete-account.usecase';
 
 // Infrastructure
 import { PrismaUserProfileRepository } from './infrastructure/persistence/prisma-user-profile.repository';
@@ -54,6 +55,7 @@ import { UserController } from './presentation/user.controller';
     ReportUserUseCase,
     BlockUserUseCase,
     UnblockUserUseCase,
+    DeleteAccountUseCase,
   ],
   exports: [
     UserProfileServiceImpl,

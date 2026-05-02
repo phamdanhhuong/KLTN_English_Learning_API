@@ -8,6 +8,7 @@ import { GetUserStatsUseCase } from '../application/use-cases/get-stats.usecase'
 import { GetXpHistoryUseCase } from '../application/use-cases/get-xp-history.usecase';
 import { GetPublicProfileUseCase, SearchUsersUseCase } from '../application/use-cases/get-public-profile.usecase';
 import { ReportUserUseCase, BlockUserUseCase, UnblockUserUseCase } from '../application/use-cases/report-block.usecase';
+import { DeleteAccountUseCase } from '../application/use-cases/delete-account.usecase';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 
 @Controller('users')
@@ -24,6 +25,7 @@ export class UserController {
     private readonly reportUserUseCase: ReportUserUseCase,
     private readonly blockUserUseCase: BlockUserUseCase,
     private readonly unblockUserUseCase: UnblockUserUseCase,
+    private readonly deleteAccountUseCase: DeleteAccountUseCase,
   ) {}
 
   // ── Own profile ──────────────────────────────────────────
@@ -37,6 +39,12 @@ export class UserController {
   @Patch('profile')
   async updateMyProfile(@Request() req: any, @Body() dto: UpdateProfileDto) {
     return this.updateProfileUseCase.execute(req.user.sub, dto);
+  }
+
+  // Mobile: DELETE /users/profile
+  @Delete('profile')
+  async deleteMyProfile(@Request() req: any) {
+    return this.deleteAccountUseCase.execute(req.user.sub);
   }
 
   @Get('profile/stats')
