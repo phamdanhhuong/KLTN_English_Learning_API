@@ -1,7 +1,9 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import type { LessonRepository } from '../../../domain/repositories/lesson.repository.interface';
+import type { SkillLevelRepository } from '../../../domain/repositories/skill-level.repository.interface';
 import { SKILL_TOKENS } from '../../../domain/di/tokens';
 import { Lesson } from '../../../domain/entities/lesson.entity';
+import { SkillLevel } from '../../../domain/entities/skill-level.entity';
 import { CreateLessonDto, LessonDto } from '../../dto/lesson.dto';
 import { LessonMapper } from '../../mappers/lesson.mapper';
 
@@ -10,9 +12,22 @@ export class CreateLessonUseCase {
   constructor(
     @Inject(SKILL_TOKENS.LESSON_REPOSITORY)
     private readonly lessonRepository: LessonRepository,
+    @Inject(SKILL_TOKENS.SKILL_LEVEL_REPOSITORY)
+    private readonly skillLevelRepository: SkillLevelRepository,
   ) {}
 
   async execute(dto: CreateLessonDto): Promise<LessonDto> {
+    // Ensure the SkillLevel record exists (FK constraint requirement)
+    const existingLevel = await this.skillLevelRepository.findBySkillIdAndLevel(
+      dto.skillId,
+      dto.skillLevel,
+    );
+    if (!existingLevel) {
+      await this.skillLevelRepository.create(
+        new SkillLevel(dto.skillId, dto.skillLevel),
+      );
+    }
+
     let position = dto.position;
 
     if (position !== undefined) {
