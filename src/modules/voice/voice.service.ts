@@ -22,17 +22,10 @@ export class VoiceService {
   private readonly ttsUrl: string;
   private readonly chatbotUrl: string;
 
-  // ─── Fallback config ─────────────────────────────
+  // ─── Fallback endpoints (Faster-Whisper + Piper on VM) ──
   private readonly fallbackEnabled: boolean;
-  private readonly googleApiKey: string;
-  private readonly googleTtsVoice: string;
-  private readonly googleTtsLanguage: string;
-
-  // Google Cloud API base URLs
-  private readonly GOOGLE_STT_URL =
-    'https://speech.googleapis.com/v1/speech:recognize';
-  private readonly GOOGLE_TTS_URL =
-    'https://texttospeech.googleapis.com/v1/text:synthesize';
+  private readonly fallbackSttUrl: string;
+  private readonly fallbackTtsUrl: string;
 
   // ─── Health cache (avoid retrying dead services) ──
   private sttHealth: ServiceHealth = { available: true, lastChecked: 0 };
@@ -53,24 +46,19 @@ export class VoiceService {
       this.configService.get<string>('AI_SERVICE_ENDPOINT') ||
       'http://localhost:3006';
 
-    // Fallback
+    // Fallback — local Faster-Whisper + Piper on the same VM
     this.fallbackEnabled =
       this.configService.get<string>('SPEECH_FALLBACK_ENABLED') === 'true';
-    this.googleApiKey =
-      this.configService.get<string>('GOOGLE_CLOUD_API_KEY') || '';
-    this.googleTtsVoice =
-      this.configService.get<string>('GOOGLE_CLOUD_TTS_VOICE') ||
-      'en-US-Neural2-F';
-    this.googleTtsLanguage =
-      this.configService.get<string>('GOOGLE_CLOUD_TTS_LANGUAGE') || 'en-US';
+    this.fallbackSttUrl =
+      this.configService.get<string>('FALLBACK_STT_URL') ||
+      'http://localhost:8090';
+    this.fallbackTtsUrl =
+      this.configService.get<string>('FALLBACK_TTS_URL') ||
+      'http://localhost:8090';
 
-    if (this.fallbackEnabled && this.googleApiKey) {
+    if (this.fallbackEnabled) {
       this.logger.log(
-        '✅ Google Cloud STT/TTS fallback ENABLED',
-      );
-    } else if (this.fallbackEnabled && !this.googleApiKey) {
-      this.logger.warn(
-        '⚠️  Fallback enabled but GOOGLE_CLOUD_API_KEY is empty – fallback will not work',
+        `✅ Speech fallback ENABLED — STT: ${this.fallbackSttUrl}, TTS: ${this.fallbackTtsUrl}`,
       );
     }
   }
@@ -81,7 +69,7 @@ export class VoiceService {
 
   /**
    * Transcribe audio buffer to text.
-   * Tries ngrok STT first, then falls back to Google Cloud STT.
+   * Tries primary STT first, then falls back to local Faster-Whisper.
    */
   async transcribe(
     audioBuffer: Buffer,
@@ -90,7 +78,11 @@ export class VoiceService {
     // ── Try primary (ngrok) ──
     if (this.shouldTryPrimary(this.sttHealth)) {
       try {
-        const result = await this._transcribeNgrok(audioBuffer, filename);
+        const result = await this._transcribeViaHttp(
+          this.sttUrl,
+          audioBuffer,
+          filename,
+        );
         this.markAvailable(this.sttHealth);
         return { ...result, source: 'primary' };
       } catch (error: any) {
@@ -101,14 +93,18 @@ export class VoiceService {
       }
     }
 
-    // ── Try fallback (Google Cloud) ──
+    // ── Try fallback (local Faster-Whisper) ──
     if (this.canFallback()) {
       try {
-        const result = await this._transcribeGoogleCloud(audioBuffer);
-        return { ...result, source: 'google_cloud' };
+        const result = await this._transcribeViaHttp(
+          this.fallbackSttUrl,
+          audioBuffer,
+          filename,
+        );
+        return { ...result, source: 'fallback' };
       } catch (error: any) {
         this.logger.error(
-          `❌ Google Cloud STT also failed: ${error.message}`,
+          `❌ Fallback STT also failed: ${error.message}`,
           error.stack,
         );
       }
@@ -119,13 +115,13 @@ export class VoiceService {
 
   /**
    * Synthesize text to audio (WAV buffer).
-   * Tries ngrok TTS first, then falls back to Google Cloud TTS.
+   * Tries primary TTS first, then falls back to local Piper.
    */
   async synthesize(text: string): Promise<{ audio: Buffer; source: string }> {
     // ── Try primary (ngrok) ──
     if (this.shouldTryPrimary(this.ttsHealth)) {
       try {
-        const audio = await this._synthesizeNgrok(text);
+        const audio = await this._synthesizeViaHttp(this.ttsUrl, text);
         this.markAvailable(this.ttsHealth);
         return { audio, source: 'primary' };
       } catch (error: any) {
@@ -136,14 +132,17 @@ export class VoiceService {
       }
     }
 
-    // ── Try fallback (Google Cloud) ──
+    // ── Try fallback (local Piper) ──
     if (this.canFallback()) {
       try {
-        const audio = await this._synthesizeGoogleCloud(text);
-        return { audio, source: 'google_cloud' };
+        const audio = await this._synthesizeViaHttp(
+          this.fallbackTtsUrl,
+          text,
+        );
+        return { audio, source: 'fallback' };
       } catch (error: any) {
         this.logger.error(
-          `❌ Google Cloud TTS also failed: ${error.message}`,
+          `❌ Fallback TTS also failed: ${error.message}`,
           error.stack,
         );
       }
@@ -274,18 +273,46 @@ export class VoiceService {
       /* Chatbot unavailable */
     }
 
-    // Check fallback availability
-    results.stt.fallback = this.canFallback();
-    results.tts.fallback = this.canFallback();
+    // Check fallback services
+    if (this.canFallback()) {
+      try {
+        await firstValueFrom(
+          this.httpService.get(`${this.fallbackSttUrl}/stt/status`, {
+            timeout: 5000,
+          }),
+        );
+        results.stt.fallback = true;
+      } catch {
+        /* Fallback STT unavailable */
+      }
+
+      try {
+        await firstValueFrom(
+          this.httpService.get(`${this.fallbackTtsUrl}/tts/status`, {
+            timeout: 5000,
+          }),
+        );
+        results.tts.fallback = true;
+      } catch {
+        /* Fallback TTS unavailable */
+      }
+    }
 
     return results;
   }
 
   // ═══════════════════════════════════════════════════
-  //  PRIVATE — Primary (ngrok) implementations
+  //  PRIVATE — Generic HTTP helpers for STT/TTS
+  //  Both primary and fallback use the same API contract:
+  //    STT: POST /stt/transcribe  (multipart form)
+  //    TTS: POST /tts/synthesize  (JSON body → arraybuffer)
   // ═══════════════════════════════════════════════════
 
-  private async _transcribeNgrok(
+  /**
+   * Transcribe audio via any service that exposes POST /stt/transcribe
+   */
+  private async _transcribeViaHttp(
+    baseUrl: string,
     audioBuffer: Buffer,
     filename = 'audio.wav',
   ): Promise<{ text: string; confidence: number }> {
@@ -297,7 +324,7 @@ export class VoiceService {
     formData.append('language', 'en');
 
     const response = await firstValueFrom(
-      this.httpService.post(`${this.sttUrl}/stt/transcribe`, formData, {
+      this.httpService.post(`${baseUrl}/stt/transcribe`, formData, {
         headers: { ...formData.getHeaders() },
         timeout: 30000,
         maxContentLength: Infinity,
@@ -311,10 +338,16 @@ export class VoiceService {
     };
   }
 
-  private async _synthesizeNgrok(text: string): Promise<Buffer> {
+  /**
+   * Synthesize text via any service that exposes POST /tts/synthesize
+   */
+  private async _synthesizeViaHttp(
+    baseUrl: string,
+    text: string,
+  ): Promise<Buffer> {
     const response = await firstValueFrom(
       this.httpService.post(
-        `${this.ttsUrl}/tts/synthesize`,
+        `${baseUrl}/tts/synthesize`,
         { text, voice_style: 'friendly' },
         {
           timeout: 30000,
@@ -328,108 +361,14 @@ export class VoiceService {
   }
 
   // ═══════════════════════════════════════════════════
-  //  PRIVATE — Fallback (Google Cloud) implementations
-  // ═══════════════════════════════════════════════════
-
-  /**
-   * Google Cloud Speech-to-Text v1 REST API
-   * Docs: https://cloud.google.com/speech-to-text/docs/reference/rest/v1/speech/recognize
-   */
-  private async _transcribeGoogleCloud(
-    audioBuffer: Buffer,
-  ): Promise<{ text: string; confidence: number }> {
-    this.logger.debug('🔄 Using Google Cloud STT fallback');
-
-    const audioContent = audioBuffer.toString('base64');
-
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${this.GOOGLE_STT_URL}?key=${this.googleApiKey}`,
-        {
-          config: {
-            encoding: 'LINEAR16',
-            sampleRateHertz: 16000,
-            languageCode: 'en-US',
-            model: 'default',
-            enableAutomaticPunctuation: true,
-          },
-          audio: {
-            content: audioContent,
-          },
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 30000,
-        },
-      ),
-    );
-
-    const results = response.data?.results;
-    if (!results || results.length === 0) {
-      return { text: '', confidence: 0 };
-    }
-
-    const topAlternative = results[0]?.alternatives?.[0];
-    return {
-      text: topAlternative?.transcript || '',
-      confidence: topAlternative?.confidence || 0,
-    };
-  }
-
-  /**
-   * Google Cloud Text-to-Speech v1 REST API
-   * Docs: https://cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize
-   * Returns a WAV audio buffer.
-   */
-  private async _synthesizeGoogleCloud(text: string): Promise<Buffer> {
-    this.logger.debug('🔄 Using Google Cloud TTS fallback');
-
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${this.GOOGLE_TTS_URL}?key=${this.googleApiKey}`,
-        {
-          input: { text },
-          voice: {
-            languageCode: this.googleTtsLanguage,
-            name: this.googleTtsVoice,
-          },
-          audioConfig: {
-            audioEncoding: 'LINEAR16',
-            sampleRateHertz: 16000,
-          },
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 30000,
-        },
-      ),
-    );
-
-    // Google returns base64-encoded audio content
-    const audioContent = response.data?.audioContent;
-    if (!audioContent) {
-      throw new Error('Google Cloud TTS returned empty audio');
-    }
-
-    return Buffer.from(audioContent, 'base64');
-  }
-
-  // ═══════════════════════════════════════════════════
   //  PRIVATE — Health-cache helpers
   // ═══════════════════════════════════════════════════
 
   /** Should we try the primary service or skip straight to fallback? */
   private shouldTryPrimary(health: ServiceHealth): boolean {
-    // If marked available, always try
     if (health.available) return true;
-
-    // If marked unavailable but TTL expired, retry
-    const elapsed = Date.now() - health.lastChecked;
-    if (elapsed >= this.HEALTH_CACHE_TTL_MS) {
-      return true; // give it another chance
-    }
-
-    return false;
+    // If TTL expired, give primary another chance
+    return Date.now() - health.lastChecked >= this.HEALTH_CACHE_TTL_MS;
   }
 
   private markAvailable(health: ServiceHealth): void {
@@ -444,6 +383,6 @@ export class VoiceService {
 
   /** Is fallback configured and usable? */
   private canFallback(): boolean {
-    return this.fallbackEnabled && !!this.googleApiKey;
+    return this.fallbackEnabled;
   }
 }
