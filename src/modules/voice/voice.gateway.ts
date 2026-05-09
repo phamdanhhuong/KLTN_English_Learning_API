@@ -103,10 +103,10 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
           // Synthesize and send audio
           try {
-            const audioBuffer = await this.voiceService.synthesize(
+            const ttsResult = await this.voiceService.synthesize(
               greeting.content,
             );
-            const audioBase64 = audioBuffer.toString('base64');
+            const audioBase64 = ttsResult.audio.toString('base64');
             client.emit('voice:ai-audio', {
               audio: audioBase64,
               seq: 1,
@@ -302,10 +302,10 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Step 3: TTS — Synthesize AI response audio
       try {
         this.logger.debug(`Synthesizing: "${chatResult.content.substring(0, 50)}..."`);
-        const audioBuffer = await this.voiceService.synthesize(
+        const ttsResult = await this.voiceService.synthesize(
           chatResult.content,
         );
-        const audioBase64 = audioBuffer.toString('base64');
+        const audioBase64 = ttsResult.audio.toString('base64');
 
         client.emit('voice:ai-audio', {
           audio: audioBase64,

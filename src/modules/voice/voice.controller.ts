@@ -6,16 +6,21 @@ export class VoiceController {
   constructor(private readonly voiceService: VoiceService) {}
 
   /**
-   * Check if voice services (STT + TTS + Chatbot) are available
+   * Check if voice services (STT + TTS + Chatbot) are available.
+   * Returns detailed per-provider status including fallback availability.
    */
   @Get('status')
   async getStatus() {
     const status = await this.voiceService.checkStatus();
+
+    const sttReady = status.stt.primary || status.stt.fallback;
+    const ttsReady = status.tts.primary || status.tts.fallback;
+
     return {
       success: true,
       data: {
         ...status,
-        allReady: status.stt && status.tts && status.chatbot,
+        allReady: sttReady && ttsReady && status.chatbot,
       },
     };
   }
@@ -30,14 +35,15 @@ export class VoiceController {
     }
 
     try {
-      const audioBuffer = await this.voiceService.synthesize(body.text);
-      const audioBase64 = audioBuffer.toString('base64');
+      const result = await this.voiceService.synthesize(body.text);
+      const audioBase64 = result.audio.toString('base64');
       return {
         success: true,
         data: {
           audio: audioBase64,
           format: 'wav',
           text: body.text,
+          source: result.source,
         },
       };
     } catch (error: any) {

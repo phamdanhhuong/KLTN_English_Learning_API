@@ -1,0 +1,16 @@
+# VocabuRex Speech Fallback - Dependencies
+# Designed for Oracle Cloud ARM VM (aarch64)
+
+# FastAPI + Server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# STT - Faster Whisper
+faster-whisper==1.1.0
+
+# TTS - Piper (installed separately via binary, no pip package needed)
+# Install: wget https://github.com/rhasspy/piper/releases/download/...
+
+# Utilities
+numpy>=1.24.0
