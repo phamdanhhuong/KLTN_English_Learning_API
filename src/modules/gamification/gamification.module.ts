@@ -25,6 +25,7 @@ import { GetCurrencyBalanceUseCase } from './application/use-cases/currency/get-
 import { CreatePaymentUseCase } from './application/use-cases/currency/create-payment.usecase';
 import { VnpayIpnUseCase } from './application/use-cases/currency/vnpay-ipn.usecase';
 import { VnpayReturnUseCase } from './application/use-cases/currency/vnpay-return.usecase';
+import { GetAllOrdersUseCase } from './application/use-cases/currency/get-all-orders.usecase';
 
 // Payment Service
 import { VnpayService } from './application/services/vnpay.service';
@@ -86,6 +87,7 @@ import { PaymentController } from './presentation/payment.controller';
     CreatePaymentUseCase,
     VnpayIpnUseCase,
     VnpayReturnUseCase,
+    GetAllOrdersUseCase,
     // Energy
     ConsumeEnergyUseCase,
     GetEnergyUseCase,

@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CreatePaymentUseCase } from '../application/use-cases/currency/create-payment.usecase';
 import { VnpayIpnUseCase } from '../application/use-cases/currency/vnpay-ipn.usecase';
 import { VnpayReturnUseCase } from '../application/use-cases/currency/vnpay-return.usecase';
+import { GetAllOrdersUseCase } from '../application/use-cases/currency/get-all-orders.usecase';
 
 @Controller('gamification/payment')
 export class PaymentController {
@@ -23,6 +24,7 @@ export class PaymentController {
         private readonly createPaymentUseCase: CreatePaymentUseCase,
         private readonly vnpayIpnUseCase: VnpayIpnUseCase,
         private readonly vnpayReturnUseCase: VnpayReturnUseCase,
+        private readonly getAllOrdersUseCase: GetAllOrdersUseCase,
     ) {}
 
     // ─── PAYMENT PACKAGES ─────────────────────────────────────
@@ -62,5 +64,22 @@ export class PaymentController {
     @Get('vnpay-return')
     async vnpayReturn(@Query() query: Record<string, string>) {
         return this.vnpayReturnUseCase.execute(query);
+    }
+
+    // ─── ADMIN: GET ALL ORDERS ─────────────────────────────────
+    @Get('admin/orders')
+    @UseGuards(JwtAuthGuard)
+    async getAllOrders(
+        @Query('status') status?: string,
+        @Query('userId') userId?: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        return this.getAllOrdersUseCase.execute({
+            status,
+            userId,
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 20,
+        });
     }
 }
