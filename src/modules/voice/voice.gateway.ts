@@ -25,6 +25,8 @@ interface VoiceCallSession {
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/voice',
+  pingTimeout: 60000,    // 60s — allow slow STT on ARM CPU
+  pingInterval: 30000,   // 30s keepalive
 })
 export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -255,7 +257,12 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.debug(`Transcribing audio: ${fullAudio.length} bytes`);
       const sttResult = await this.voiceService.transcribe(fullAudio);
 
+      this.logger.debug(
+        `STT result [${sttResult.source}]: "${sttResult.text}" (confidence: ${sttResult.confidence})`,
+      );
+
       if (!sttResult.text || sttResult.text.trim().length === 0) {
+        this.logger.debug('STT returned empty text — skipping');
         session.isProcessing = false;
         return;
       }
