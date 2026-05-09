@@ -5,6 +5,7 @@ import { Lesson } from '../../../domain/entities/lesson.entity';
 describe('CreateLessonUseCase', () => {
   let useCase: CreateLessonUseCase;
   let lessonRepository: any;
+  let skillLevelRepository: any;
 
   beforeEach(() => {
     lessonRepository = {
@@ -12,7 +13,11 @@ describe('CreateLessonUseCase', () => {
       getNextAvailablePosition: jest.fn(),
       create: jest.fn(),
     };
-    useCase = new CreateLessonUseCase(lessonRepository);
+    skillLevelRepository = {
+      findBySkillIdAndLevel: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue(undefined),
+    };
+    useCase = new CreateLessonUseCase(lessonRepository, skillLevelRepository);
   });
 
   it('should create a lesson with auto-assigned position', async () => {
