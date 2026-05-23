@@ -232,31 +232,44 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const finalResult = await this.gameService.completeMatch(matchId);
     const match = await this.battleRepo.findMatchById(matchId);
 
-    const resultPayload = {
+    const p1Info = match?.player1;
+    const p2Info = match?.isBot ? this.gameService.generateBotInfo() : match?.player2;
+
+    // Player 1's perspective (player1 = me)
+    const p1Payload = {
       ...finalResult,
       isKO,
-      player1: match?.player1,
-      player2: match?.isBot ? this.gameService.generateBotInfo() : match?.player2,
+      player1: p1Info,
+      player2: p2Info,
+    };
+
+    // Player 2's perspective — swap everything so player1 = me
+    const p2Payload = {
+      ...finalResult,
+      isKO,
+      player1Hp: finalResult.player2Hp,
+      player2Hp: finalResult.player1Hp,
+      player1: p2Info,
+      player2: p1Info,
+      xpAwarded: {
+        player1: finalResult.xpAwarded?.player2 ?? 0,
+        player2: finalResult.xpAwarded?.player1 ?? 0,
+      },
+    };
+
+    const emitResult = (event: string) => {
+      if (match) {
+        this.emitToUser(match.player1Id, event, p1Payload);
+        if (match.player2Id && !match.isBot) {
+          this.emitToUser(match.player2Id, event, p2Payload);
+        }
+      }
     };
 
     if (isKO) {
-      // KO → emit immediately
-      if (match) {
-        this.emitToUser(match.player1Id, 'battle:ko', resultPayload);
-        if (match.player2Id && !match.isBot) {
-          this.emitToUser(match.player2Id, 'battle:ko', resultPayload);
-        }
-      }
+      emitResult('battle:ko');
     } else {
-      // Rounds finished → short delay then result
-      setTimeout(() => {
-        if (match) {
-          this.emitToUser(match.player1Id, 'battle:matchResult', resultPayload);
-          if (match.player2Id && !match.isBot) {
-            this.emitToUser(match.player2Id, 'battle:matchResult', resultPayload);
-          }
-        }
-      }, 1500);
+      setTimeout(() => emitResult('battle:matchResult'), 1500);
     }
   }
 
