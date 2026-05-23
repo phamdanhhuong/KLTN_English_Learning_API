@@ -25,13 +25,14 @@ export class BattleMatchmakingService {
   ) {
     const tier = await this.battleRepo.getUserTier(userId);
 
-    // Check if already in a match
+    // Check if already in a match — abandon old match and start fresh
     const activeMatch = await this.battleRepo.getActiveMatch(userId);
     if (activeMatch) {
       const match = await this.battleRepo.findMatchById(activeMatch);
       if (match && match.status === 'IN_PROGRESS') {
-        onMatchFound(match);
-        return;
+        this.logger.log(`Abandoning old match ${activeMatch} for user ${userId}`);
+        await this.battleRepo.updateMatch(activeMatch, { status: 'ABANDONED' });
+        await this.battleRepo.removeActiveMatch(userId);
       }
     }
 
