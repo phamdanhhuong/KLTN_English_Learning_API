@@ -219,15 +219,19 @@ export class PrismaBattleRepository implements BattleRepository {
     return null;
   }
 
-  async findOpponentExpandedTier(tier: string, excludeUserId: string) {
+  async findOpponentByMaxTierDiff(tier: string, excludeUserId: string, maxDiff: number) {
     const idx = TIER_ORDER.indexOf(tier);
-    const neighbors = [
-      ...(idx > 0 ? [TIER_ORDER[idx - 1]] : []),
-      ...(idx < TIER_ORDER.length - 1 ? [TIER_ORDER[idx + 1]] : []),
-    ];
-    for (const t of neighbors) {
-      const opponent = await this.findOpponentInQueue(t, excludeUserId);
-      if (opponent) return opponent;
+
+    // Search progressively: diff=1 first, then diff=2, then diff=3, etc.
+    for (let diff = 1; diff <= maxDiff; diff++) {
+      const tiersAtDiff: string[] = [];
+      if (idx - diff >= 0) tiersAtDiff.push(TIER_ORDER[idx - diff]);
+      if (idx + diff < TIER_ORDER.length) tiersAtDiff.push(TIER_ORDER[idx + diff]);
+
+      for (const t of tiersAtDiff) {
+        const opponent = await this.findOpponentInQueue(t, excludeUserId);
+        if (opponent) return opponent;
+      }
     }
     return null;
   }

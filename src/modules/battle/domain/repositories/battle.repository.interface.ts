@@ -37,7 +37,7 @@ export interface BattleRepository {
   addToQueue(userId: string, tier: string): Promise<void>;
   removeFromQueue(userId: string): Promise<void>;
   findOpponentInQueue(tier: string, excludeUserId: string): Promise<string | null>;
-  findOpponentExpandedTier(tier: string, excludeUserId: string): Promise<string | null>;
+  findOpponentByMaxTierDiff(tier: string, excludeUserId: string, maxDiff: number): Promise<string | null>;
   getQueueSize(tier: string): Promise<number>;
 
   // Active match tracking (Redis)

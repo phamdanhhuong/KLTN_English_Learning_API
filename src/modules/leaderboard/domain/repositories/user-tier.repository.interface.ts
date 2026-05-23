@@ -5,4 +5,5 @@ export interface UserTierRepository {
   updateCurrentGroup(userId: string, groupId: string): Promise<void>;
   changeTier(userId: string, direction: 'up' | 'down'): Promise<{ oldTier: string; newTier: string }>;
   invalidateCache(userId: string): Promise<void>;
+  findInactiveHighTierUsers(inactiveSinceDays: number): Promise<any[]>;
 }

@@ -46,19 +46,26 @@ export class BattleMatchmakingService {
 
     // Add to queue and start searching
     await this.battleRepo.addToQueue(userId, tier);
-    onSearching({ tier, estimatedWait: 10 });
+    onSearching({ tier, estimatedWait: 15 });
 
-    // Start polling for opponents
+    // Start polling for opponents with progressive tier expansion
     const startTime = Date.now();
     const timer = setInterval(async () => {
       const elapsed = Date.now() - startTime;
 
-      // Try same tier
+      // Always try same tier first
       let opp = await this.battleRepo.findOpponentInQueue(tier, userId);
 
-      // After 10s, try adjacent tiers
-      if (!opp && elapsed > 10000) {
-        opp = await this.battleRepo.findOpponentExpandedTier(tier, userId);
+      // Progressive tier expansion based on elapsed time
+      if (!opp) {
+        let maxDiff = 0;
+        if (elapsed > 15000) maxDiff = 3;       // 15-18s: ±3 ranks
+        else if (elapsed > 10000) maxDiff = 2;   // 10-15s: ±2 ranks
+        else if (elapsed > 5000) maxDiff = 1;    // 5-10s: ±1 rank
+
+        if (maxDiff > 0) {
+          opp = await this.battleRepo.findOpponentByMaxTierDiff(tier, userId, maxDiff);
+        }
       }
 
       if (opp) {

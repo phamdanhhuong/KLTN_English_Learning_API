@@ -10,4 +10,9 @@ export interface ParticipantRepository {
   getStandingsFromRedis(groupId: string, currentUserId: string): Promise<any[]>;
   backfillRedis(groupId: string): Promise<void>;
   deleteRedisKey(groupId: string): Promise<void>;
+
+  // Inactivity decay
+  findInactiveParticipants(inactiveSinceDays: number): Promise<any[]>;
+  decayXp(participantId: string, decayAmount: number): Promise<void>;
+  decrXpRedis(groupId: string, decayAmount: number, userId: string): Promise<void>;
 }

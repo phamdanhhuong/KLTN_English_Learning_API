@@ -84,4 +84,45 @@ export class PrismaUserTierRepository implements UserTierRepository {
   async invalidateCache(userId: string) {
     await this.redis.del(`lb:tier:${userId}`);
   }
+
+  async findInactiveHighTierUsers(inactiveSinceDays: number) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - inactiveSinceDays);
+
+    // Find users above BRONZE tier who either:
+    // 1. Have no active league participation, OR
+    // 2. Have lastXpUpdate older than the cutoff
+    return this.prisma.userLeagueTier.findMany({
+      where: {
+        currentTier: { not: 'BRONZE' },
+        OR: [
+          // No active participation at all
+          {
+            user: {
+              leagueParticipations: {
+                none: {
+                  group: { league: { status: 'ACTIVE' } },
+                },
+              },
+            },
+          },
+          // Has participation but inactive
+          {
+            user: {
+              leagueParticipations: {
+                every: {
+                  lastXpUpdate: { lt: cutoff },
+                },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        userId: true,
+        currentTier: true,
+        user: { select: { username: true } },
+      },
+    });
+  }
 }

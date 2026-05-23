@@ -20,4 +20,30 @@ export class LeagueScheduler {
       this.logger.error(`League rotation failed: ${error.message}`);
     }
   }
+
+  /** Daily inactivity decay — runs every day at 02:00 Vietnam time (19:00 UTC previous day) */
+  @Cron('0 19 * * *')
+  async handleInactivityDecay() {
+    this.logger.log('📉 Running daily inactivity XP decay...');
+
+    try {
+      await this.leaderboardService.processInactivityDecay();
+      this.logger.log('✅ Daily inactivity decay completed');
+    } catch (error: any) {
+      this.logger.error(`Inactivity decay failed: ${error.message}`);
+    }
+  }
+
+  /** Weekly tier demotion — runs Sunday 01:00 Vietnam time (Saturday 18:00 UTC) */
+  @Cron('0 18 * * 6')
+  async handlePeriodicTierDecay() {
+    this.logger.log('⬇️ Running weekly tier decay for inactive users...');
+
+    try {
+      await this.leaderboardService.processPeriodicTierDecay();
+      this.logger.log('✅ Weekly tier decay completed');
+    } catch (error: any) {
+      this.logger.error(`Tier decay failed: ${error.message}`);
+    }
+  }
 }

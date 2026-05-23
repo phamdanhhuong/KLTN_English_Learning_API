@@ -127,4 +127,46 @@ export class PrismaParticipantRepository implements ParticipantRepository {
   async deleteRedisKey(groupId: string) {
     await this.redis.del(this.getRedisKey(groupId));
   }
+
+  // ─── Inactivity decay ───
+
+  async findInactiveParticipants(inactiveSinceDays: number) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - inactiveSinceDays);
+
+    return this.prisma.leagueParticipant.findMany({
+      where: {
+        lastXpUpdate: { lt: cutoff },
+        weeklyXp: { gt: 0 },
+        group: {
+          league: { status: 'ACTIVE' },
+        },
+      },
+      include: {
+        user: { select: { id: true, username: true } },
+        group: { select: { id: true, leagueId: true } },
+      },
+    });
+  }
+
+  async decayXp(participantId: string, decayAmount: number) {
+    // Ensure weeklyXp doesn't go below 0
+    const participant = await this.prisma.leagueParticipant.findUnique({
+      where: { id: participantId },
+      select: { weeklyXp: true },
+    });
+    if (!participant) return;
+
+    const actualDecay = Math.min(decayAmount, participant.weeklyXp);
+    if (actualDecay <= 0) return;
+
+    await this.prisma.leagueParticipant.update({
+      where: { id: participantId },
+      data: { weeklyXp: { decrement: actualDecay } },
+    });
+  }
+
+  async decrXpRedis(groupId: string, decayAmount: number, userId: string) {
+    await this.redis.zIncrBy(this.getRedisKey(groupId), -decayAmount, userId);
+  }
 }

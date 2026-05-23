@@ -156,6 +156,80 @@ export class LeaderboardService {
     }
   }
 
+  // ─── Inactivity Decay ───
+
+  /**
+   * Daily: Trừ XP cho user inactive > 7 ngày
+   * Trừ tối đa 50 XP mỗi chu kỳ, không xuống dưới 0
+   */
+  async processInactivityDecay() {
+    const INACTIVE_DAYS = 7;
+    const DECAY_AMOUNT = 50;
+
+    const inactiveParticipants = await this.participantRepo.findInactiveParticipants(INACTIVE_DAYS);
+
+    let decayed = 0;
+    const errors: string[] = [];
+
+    for (const participant of inactiveParticipants) {
+      try {
+        const actualDecay = Math.min(DECAY_AMOUNT, participant.weeklyXp);
+        if (actualDecay <= 0) continue;
+
+        // Decay in DB
+        await this.participantRepo.decayXp(participant.id, actualDecay);
+
+        // Decay in Redis
+        await this.participantRepo.decrXpRedis(participant.groupId, actualDecay, participant.userId);
+
+        decayed++;
+        this.logger.debug(
+          `Decayed ${actualDecay} XP from user ${participant.user?.username || participant.userId}`,
+        );
+      } catch (err: any) {
+        errors.push(`userId=${participant.userId}: ${err.message}`);
+      }
+    }
+
+    this.logger.log(
+      `📉 Inactivity decay: ${inactiveParticipants.length} inactive found, ${decayed} decayed`,
+    );
+    if (errors.length) {
+      this.logger.warn(`⚠️ Decay errors: ${errors.join('; ')}`);
+    }
+  }
+
+  /**
+   * Weekly: Hạ tier cho user inactive > 14 ngày (tier > BRONZE)
+   */
+  async processPeriodicTierDecay() {
+    const INACTIVE_DAYS_FOR_DEMOTION = 14;
+
+    const inactiveUsers = await this.userTierRepo.findInactiveHighTierUsers(INACTIVE_DAYS_FOR_DEMOTION);
+
+    let demoted = 0;
+    const errors: string[] = [];
+
+    for (const userTier of inactiveUsers) {
+      try {
+        const result = await this.userTierRepo.changeTier(userTier.userId, 'down');
+        demoted++;
+        this.logger.log(
+          `⬇️ Tier decay: ${userTier.user?.username || userTier.userId} ${result.oldTier} → ${result.newTier}`,
+        );
+      } catch (err: any) {
+        errors.push(`userId=${userTier.userId}: ${err.message}`);
+      }
+    }
+
+    this.logger.log(
+      `📉 Periodic tier decay: ${inactiveUsers.length} inactive high-tier users, ${demoted} demoted`,
+    );
+    if (errors.length) {
+      this.logger.warn(`⚠️ Tier decay errors: ${errors.join('; ')}`);
+    }
+  }
+
   // ─── Private helpers ───
 
   private async processGroupRotation(group: any, tier: string) {
