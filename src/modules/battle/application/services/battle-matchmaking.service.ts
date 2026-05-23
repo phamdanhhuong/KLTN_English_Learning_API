@@ -45,6 +45,7 @@ export class BattleMatchmakingService {
     // Try instant match (someone already waiting in same tier)
     const opponent = await this.battleRepo.findOpponentInQueue(tier, userId);
     if (opponent) {
+      this.clearSearch(opponent); // Stop opponent's search interval!
       await this.battleRepo.removeFromQueue(opponent);
       const matchData = await this.createAndStartMatch(userId, opponent, tier);
       onMatchFound(matchData);
@@ -77,6 +78,7 @@ export class BattleMatchmakingService {
 
       if (opp) {
         this.clearSearch(userId);
+        this.clearSearch(opp); // Stop opponent's search interval!
         await this.battleRepo.removeFromQueue(opp);
         await this.battleRepo.removeFromQueue(userId);
         const matchData = await this.createAndStartMatch(userId, opp, tier);
