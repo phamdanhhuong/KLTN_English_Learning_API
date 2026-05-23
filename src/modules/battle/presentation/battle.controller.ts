@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { BattleGameService } from '../application/services/battle-game.service';
 import { Inject } from '@nestjs/common';
@@ -17,11 +17,13 @@ export class BattleController {
   @Get('history')
   async getHistory(
     @Request() req: any,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
   ) {
     const userId = req.user.sub;
-    const matches = await this.battleRepo.getUserMatches(userId, limit ?? 20, offset ?? 0);
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const parsedOffset = offset ? parseInt(offset, 10) : 0;
+    const matches = await this.battleRepo.getUserMatches(userId, parsedLimit, parsedOffset);
 
     return matches.map((m: any) => ({
       id: m.id,
