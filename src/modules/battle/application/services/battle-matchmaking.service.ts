@@ -33,6 +33,12 @@ export class BattleMatchmakingService {
         this.logger.log(`Abandoning old match ${activeMatch} for user ${userId}`);
         await this.battleRepo.updateMatch(activeMatch, { status: 'ABANDONED' });
         await this.battleRepo.removeActiveMatch(userId);
+
+        // Also clean up opponent's active match tracking
+        const oppId = match.player1Id === userId ? match.player2Id : match.player1Id;
+        if (oppId && !match.isBot) {
+          await this.battleRepo.removeActiveMatch(oppId);
+        }
       }
     }
 

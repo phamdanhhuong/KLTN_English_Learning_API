@@ -49,14 +49,41 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = this.socketUserMap.get(client.id);
-    if (userId) {
-      this.matchmakingService.cancelSearch(userId).catch(() => {});
-      this.socketUserMap.delete(client.id);
-      this.userSocketMap.delete(userId);
-      this.logger.log(`Battle disconnected: ${userId}`);
+    if (!userId) return;
+
+    this.matchmakingService.cancelSearch(userId).catch(() => {});
+
+    // If disconnecting player was in an active match, end it and notify opponent
+    try {
+      const activeMatchId = await this.battleRepo.getActiveMatch(userId);
+      if (activeMatchId) {
+        const match = await this.battleRepo.findMatchById(activeMatchId);
+        if (match && match.status === 'IN_PROGRESS') {
+          await this.battleRepo.updateMatch(activeMatchId, { status: 'ABANDONED' });
+          await this.battleRepo.removeActiveMatch(userId);
+
+          const opponentId = match.player1Id === userId ? match.player2Id : match.player1Id;
+          if (opponentId && !match.isBot) {
+            await this.battleRepo.removeActiveMatch(opponentId);
+            this.emitToUser(opponentId, 'battle:opponentLeft', {
+              matchId: activeMatchId,
+              winnerId: opponentId,
+              player1Hp: match.player1Hp ?? 0,
+              player2Hp: match.player2Hp ?? 0,
+            });
+            this.logger.log(`Match ${activeMatchId} abandoned — notified opponent ${opponentId}`);
+          }
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(`Disconnect cleanup failed: ${err.message}`);
     }
+
+    this.socketUserMap.delete(client.id);
+    this.userSocketMap.delete(userId);
+    this.logger.log(`Battle disconnected: ${userId}`);
   }
 
   @SubscribeMessage('battle:findMatch')
