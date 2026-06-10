@@ -13,6 +13,7 @@ export class UpdatePreferencesDto {
     learningGoals?: string[];
     dailyGoalMinutes?: number;
     timezone?: string;
+    hideBattleHistory?: boolean;
 }
 
 @Injectable()
@@ -35,6 +36,7 @@ export class UpdatePreferencesUseCase {
         if (dto.learningGoals !== undefined) data.learningGoals = dto.learningGoals;
         if (dto.dailyGoalMinutes !== undefined) data.dailyGoalMinutes = dto.dailyGoalMinutes;
         if (dto.timezone !== undefined) data.timezone = dto.timezone;
+        if (dto.hideBattleHistory !== undefined) data.hideBattleHistory = dto.hideBattleHistory;
 
         return this.userProfileRepo.updatePreferences(userId, data);
     }

@@ -139,6 +139,15 @@ export class PrismaBattleRepository implements BattleRepository {
     });
   }
 
+  async getUserPublicMatches(userId: string, limit: number, offset: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { hideBattleHistory: true },
+    });
+    if (user?.hideBattleHistory) return [];
+    return this.getUserMatches(userId, limit, offset);
+  }
+
   async getUserStats(userId: string) {
     const matches = await this.prisma.battleMatch.findMany({
       where: {

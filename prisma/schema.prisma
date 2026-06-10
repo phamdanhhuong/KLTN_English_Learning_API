@@ -208,6 +208,7 @@ model User {
   learningGoals    LearningGoal[]
   dailyGoalMinutes Int               @default(15) @map("daily_goal_minutes")
   timezone         String?           @default("Asia/Ho_Chi_Minh")
+  hideBattleHistory Boolean          @default(false) @map("hide_battle_history")
 
   // XP & Level (không tách bảng riêng)
   xpPoints      Int @default(0) @map("xp_points")

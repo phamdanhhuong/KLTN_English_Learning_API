@@ -23,6 +23,7 @@ export interface BattleRepository {
 
   // Match history & stats
   getUserMatches(userId: string, limit: number, offset: number): Promise<any[]>;
+  getUserPublicMatches(userId: string, limit: number, offset: number): Promise<any[]>;
   getUserStats(userId: string): Promise<{
     totalMatches: number;
     wins: number;

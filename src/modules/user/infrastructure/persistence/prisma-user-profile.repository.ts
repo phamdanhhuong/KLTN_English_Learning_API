@@ -128,6 +128,7 @@ export class PrismaUserProfileRepository implements UserProfileRepository {
                 learningGoals: data.learningGoals as any,
                 dailyGoalMinutes: data.dailyGoalMinutes,
                 timezone: data.timezone,
+                hideBattleHistory: data.hideBattleHistory,
             },
         });
         return this.toEntity(user);

@@ -14,6 +14,7 @@ export class UserProfile {
     learningGoals: string[];
     dailyGoalMinutes: number;
     timezone: string;
+    hideBattleHistory: boolean;
 
     // Gamification
     xpPoints: number;

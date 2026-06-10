@@ -15,6 +15,7 @@ export interface UpdateUserPreferencesData {
     learningGoals?: string[];
     dailyGoalMinutes?: number;
     timezone?: string;
+    hideBattleHistory?: boolean;
 }
 
 export interface UserProfileRepository {
