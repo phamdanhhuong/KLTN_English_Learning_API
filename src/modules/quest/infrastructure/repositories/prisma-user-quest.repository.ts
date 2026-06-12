@@ -93,22 +93,28 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
       // 2. Find all quest groups this user is in this week
       const userParticipations = await this.prisma.friendsQuestParticipant.findMany({
         where: { userId, weekStartDate: weekStart },
-        select: { questKey: true },
+        select: { groupId: true, questKey: true },
       });
 
       // 3. For each quest group, compute total contribution and update UserQuest.progress
-      for (const { questKey } of userParticipations) {
+      for (const { groupId, questKey } of userParticipations) {
+        // Find all participant userIds in this group
+        const participants = await this.prisma.friendsQuestParticipant.findMany({
+          where: { groupId },
+          select: { userId: true },
+        });
+        
+        // Enforce requirement: At least 2 people to accumulate progress
+        if (participants.length < 2) {
+          continue;
+        }
+
         const aggregate = await this.prisma.friendsQuestParticipant.aggregate({
-          where: { questKey, weekStartDate: weekStart },
+          where: { groupId },
           _sum: { contribution: true },
         });
         const totalContribution = aggregate._sum.contribution ?? 0;
 
-        // Find all participant userIds in this group
-        const participants = await this.prisma.friendsQuestParticipant.findMany({
-          where: { questKey, weekStartDate: weekStart },
-          select: { userId: true },
-        });
         const participantUserIds = participants.map(p => p.userId);
 
         // Find the Quest definition matching this questKey

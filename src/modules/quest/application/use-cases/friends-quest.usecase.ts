@@ -5,12 +5,25 @@ import { PrismaService } from '../../../../infrastructure/database/prisma.servic
 export class GetFriendsQuestParticipantsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(questKey: string) {
+  async execute(userId: string, questKey: string) {
     const now = new Date();
     const weekStart = this.getWeekStart(now);
 
+    const userParticipant = await this.prisma.friendsQuestParticipant.findUnique({
+      where: {
+        questKey_userId_weekStartDate: {
+          questKey,
+          userId,
+          weekStartDate: weekStart,
+        },
+      },
+      select: { groupId: true },
+    });
+
+    if (!userParticipant) return [];
+
     return this.prisma.friendsQuestParticipant.findMany({
-      where: { questKey, weekStartDate: weekStart },
+      where: { groupId: userParticipant.groupId },
       include: {
         user: {
           select: {
@@ -58,19 +71,23 @@ export class JoinFriendsQuestUseCase {
       throw new BadRequestException('Already joined this quest');
     }
 
-    // Check if first to join (becomes creator)
-    const participantCount = await this.prisma.friendsQuestParticipant.count({
-      where: { questKey, weekStartDate: weekStart },
+    // Create a new group for this user's participation
+    const group = await this.prisma.friendsQuestGroup.create({
+      data: {
+        questKey,
+        weekStartDate: weekStart,
+      },
     });
-    const isCreator = participantCount === 0;
 
     const participant = await this.prisma.friendsQuestParticipant.create({
       data: {
+        groupId: group.id,
         questKey,
         userId,
         weekStartDate: weekStart,
-        isCreator,
+        isCreator: true,
         joinedAt: now,
+        status: 'ACCEPTED' as any,
       },
       include: {
         user: {
@@ -137,15 +154,103 @@ export class InviteFriendToQuestUseCase {
 
     return this.prisma.friendsQuestParticipant.create({
       data: {
+        groupId: inviterParticipation.groupId,
         questKey,
         userId: invitedUserId,
         weekStartDate: weekStart,
+        status: 'PENDING' as any,
       },
       include: {
         user: {
           select: { id: true, username: true, fullName: true, profilePictureUrl: true },
         },
       },
+    });
+  }
+
+  private getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    d.setDate(d.getDate() - diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+}
+
+@Injectable()
+export class AcceptFriendsQuestInviteUseCase {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async execute(userId: string, questKey: string) {
+    const now = new Date();
+    const weekStart = this.getWeekStart(now);
+
+    const existing = await this.prisma.friendsQuestParticipant.findUnique({
+      where: {
+        questKey_userId_weekStartDate: {
+          questKey,
+          userId,
+          weekStartDate: weekStart,
+        },
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (existing.status !== 'PENDING') {
+      throw new BadRequestException('Not a pending invitation');
+    }
+
+    return this.prisma.friendsQuestParticipant.update({
+      where: { id: existing.id },
+      data: { status: 'ACCEPTED' as any, joinedAt: now },
+      include: {
+        user: { select: { id: true, username: true, fullName: true, profilePictureUrl: true } },
+      },
+    });
+  }
+
+  private getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    d.setDate(d.getDate() - diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+}
+
+@Injectable()
+export class RejectFriendsQuestInviteUseCase {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async execute(userId: string, questKey: string) {
+    const now = new Date();
+    const weekStart = this.getWeekStart(now);
+
+    const existing = await this.prisma.friendsQuestParticipant.findUnique({
+      where: {
+        questKey_userId_weekStartDate: {
+          questKey,
+          userId,
+          weekStartDate: weekStart,
+        },
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (existing.status !== 'PENDING') {
+      throw new BadRequestException('Not a pending invitation');
+    }
+
+    return this.prisma.friendsQuestParticipant.delete({
+      where: { id: existing.id },
     });
   }
 

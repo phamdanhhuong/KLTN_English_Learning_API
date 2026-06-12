@@ -9,6 +9,8 @@ import {
   GetFriendsQuestParticipantsUseCase,
   JoinFriendsQuestUseCase,
   InviteFriendToQuestUseCase,
+  AcceptFriendsQuestInviteUseCase,
+  RejectFriendsQuestInviteUseCase,
 } from '../application/use-cases/friends-quest.usecase';
 import { FeedService } from '../../feed/application/services/feed.service';
 
@@ -24,6 +26,8 @@ export class QuestController {
     private readonly getParticipants: GetFriendsQuestParticipantsUseCase,
     private readonly joinFriendsQuest: JoinFriendsQuestUseCase,
     private readonly inviteFriend: InviteFriendToQuestUseCase,
+    private readonly acceptInvite: AcceptFriendsQuestInviteUseCase,
+    private readonly rejectInvite: RejectFriendsQuestInviteUseCase,
     private readonly feedService: FeedService,
   ) {}
 
@@ -57,8 +61,8 @@ export class QuestController {
   }
 
   @Get('friends/:key/participants')
-  async getFriendsParticipants(@Param('key') key: string) {
-    return this.getParticipants.execute(key);
+  async getFriendsParticipants(@Request() req: any, @Param('key') key: string) {
+    return this.getParticipants.execute(req.user.sub, key);
   }
 
   @Post('friends/:key/join')
@@ -87,5 +91,17 @@ export class QuestController {
       questName: key.replace(/_/g, ' '),
     });
     return { message: 'Nudge sent!' };
+  }
+
+  @Post('friends/:key/accept')
+  @HttpCode(HttpStatus.OK)
+  async acceptInviteEndpoint(@Request() req: any, @Param('key') key: string) {
+    return this.acceptInvite.execute(req.user.sub, key);
+  }
+
+  @Post('friends/:key/reject')
+  @HttpCode(HttpStatus.OK)
+  async rejectInviteEndpoint(@Request() req: any, @Param('key') key: string) {
+    return this.rejectInvite.execute(req.user.sub, key);
   }
 }

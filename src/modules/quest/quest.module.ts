@@ -16,6 +16,8 @@ import {
   GetFriendsQuestParticipantsUseCase,
   JoinFriendsQuestUseCase,
   InviteFriendToQuestUseCase,
+  AcceptFriendsQuestInviteUseCase,
+  RejectFriendsQuestInviteUseCase,
 } from './application/use-cases/friends-quest.usecase';
 import { QuestScheduler } from './application/schedulers/quest.scheduler';
 
@@ -65,6 +67,8 @@ import { UserQuestController } from './presentation/user-quest.controller';
     GetFriendsQuestParticipantsUseCase,
     JoinFriendsQuestUseCase,
     InviteFriendToQuestUseCase,
+    AcceptFriendsQuestInviteUseCase,
+    RejectFriendsQuestInviteUseCase,
   ],
   exports: [QuestService],
 })

@@ -812,22 +812,44 @@ model QuestChest {
   @@map("quest_chests")
 }
 
+enum ParticipantStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model FriendsQuestGroup {
+  id            String   @id @default(uuid())
+  questKey      String   @map("quest_key")
+  weekStartDate DateTime @map("week_start_date")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  participants  FriendsQuestParticipant[]
+
+  @@index([questKey, weekStartDate])
+  @@map("friends_quest_groups")
+}
+
 model FriendsQuestParticipant {
   id            String   @id @default(uuid())
+  groupId       String   @map("group_id")
   questKey      String   @map("quest_key")
   userId        String   @map("user_id")
   weekStartDate DateTime @map("week_start_date")
   contribution  Int      @default(0)
+  status        ParticipantStatus @default(PENDING)
   isCreator     Boolean  @default(false) @map("is_creator")
   joinedAt      DateTime @default(now()) @map("joined_at")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group FriendsQuestGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([questKey, userId, weekStartDate])
   @@index([userId, weekStartDate])
-  @@index([questKey, weekStartDate])
+  @@index([groupId])
   @@map("friends_quest_participants")
 }
 
