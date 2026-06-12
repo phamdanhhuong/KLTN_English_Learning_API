@@ -70,7 +70,7 @@ export class LessonCompletedUseCase {
     totalCoinsEarned += streakResult.coinsEarned;
 
     // Fire-and-forget: update friends quest contribution
-    this.questService.updateFriendsQuestContribution(dto.userId).catch(() => {});
+    this.questService.updateFriendsQuestContribution(dto.userId, dto.xpEarned).catch(() => {});
 
     // Fire-and-forget: init + update daily quest progress
     this.questService.checkAndInitQuests(dto.userId)

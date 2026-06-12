@@ -82,12 +82,12 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
     });
   }
 
-  async updateFriendsContribution(userId: string, weekStart: Date): Promise<void> {
+  async updateFriendsContribution(userId: string, weekStart: Date, amount: number): Promise<void> {
     try {
       // 1. Increment this user's contribution in all quest groups they belong to
       await this.prisma.friendsQuestParticipant.updateMany({
         where: { userId, weekStartDate: weekStart },
-        data: { contribution: { increment: 1 } },
+        data: { contribution: { increment: amount } },
       });
 
       // 2. Find all quest groups this user is in this week

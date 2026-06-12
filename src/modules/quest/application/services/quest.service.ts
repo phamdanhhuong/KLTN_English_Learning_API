@@ -163,9 +163,9 @@ export class QuestService {
   /**
    * Increment contribution for all Friends Quest groups the user is part of this week.
    */
-  async updateFriendsQuestContribution(userId: string): Promise<void> {
+  async updateFriendsQuestContribution(userId: string, amount: number): Promise<void> {
     const weekStart = this.getWeekStart(new Date());
-    await this.userQuestRepo.updateFriendsContribution(userId, weekStart);
+    await this.userQuestRepo.updateFriendsContribution(userId, weekStart, amount);
   }
 
   /** Chest rewards dựa trên type */

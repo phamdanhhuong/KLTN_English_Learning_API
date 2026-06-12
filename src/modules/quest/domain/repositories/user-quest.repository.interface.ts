@@ -55,7 +55,7 @@ export interface UserQuestRepository {
   markExpired(userId: string): Promise<void>;
 
   /** Update friends quest contribution */
-  updateFriendsContribution(userId: string, weekStart: Date): Promise<void>;
+  updateFriendsContribution(userId: string, weekStart: Date, amount: number): Promise<void>;
 
   /** Invalidate user quest cache */
   invalidateCache(userId: string): Promise<void>;

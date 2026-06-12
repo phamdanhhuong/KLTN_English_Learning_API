@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
 import { AchievementCheckerService } from '../../../../achievement/application/services/achievement-checker.service';
 import { FeedService } from '../../../../feed/application/services/feed.service';
+import { QuestService } from '../../../../quest/application/services/quest.service';
 
 export interface UpdateStreakResult {
     currentStreak: number;
@@ -61,6 +62,7 @@ export class UpdateStreakUseCase {
     private readonly prisma: PrismaService,
     private readonly achievementChecker: AchievementCheckerService,
     private readonly feedService: FeedService,
+    private readonly questService: QuestService,
   ) {}
 
   async execute(userId: string): Promise<UpdateStreakResult> {
@@ -182,6 +184,11 @@ export class UpdateStreakUseCase {
 
     // Check achievements sau transaction (không block main flow)
     this.achievementChecker.check(userId, 'streak', result.currentStreak).catch(() => {});
+
+    // Update STREAK quest progress if it's a new day and streak is not broken
+    if (result.isNewDay && !result.streakBroken) {
+      this.questService.updateQuestProgress(userId, 'STREAK', 1).catch(() => {});
+    }
 
     // Auto-create feed post for streak milestone (fire and forget)
     if (result.milestoneReached) {
