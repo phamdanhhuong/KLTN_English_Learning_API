@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../../infrastructure/database/prisma.module';
 import { RedisModule } from '../../infrastructure/cache/redis.module';
 import { FeedModule } from '../feed/feed.module';
+import { AchievementModule } from '../achievement/achievement.module';
 
 // Domain
 import { QUEST_TOKENS } from './domain/di/tokens';
@@ -34,6 +35,7 @@ import { UserQuestController } from './presentation/user-quest.controller';
     PrismaModule,
     RedisModule,
     FeedModule,
+    AchievementModule,
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

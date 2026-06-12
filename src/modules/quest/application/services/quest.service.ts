@@ -3,6 +3,8 @@ import { QUEST_TOKENS } from '../../domain/di/tokens';
 import type { QuestRepository } from '../../domain/repositories/quest.repository.interface';
 import type { UserQuestRepository } from '../../domain/repositories/user-quest.repository.interface';
 import { FeedService } from '../../../feed/application/services/feed.service';
+import { AchievementCheckerService } from '../../../achievement/application/services/achievement-checker.service';
+import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 
 /**
  * QuestService — đơn giản hóa DifficultyService + ChestService vào 1 service.
@@ -17,6 +19,8 @@ export class QuestService {
     @Inject(QUEST_TOKENS.USER_QUEST_REPOSITORY)
     private readonly userQuestRepo: UserQuestRepository,
     private readonly feedService: FeedService,
+    private readonly achievementChecker: AchievementCheckerService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /** Lấy tất cả quest definitions (cached) */
@@ -131,6 +135,9 @@ export class QuestService {
               isSpecial: true,
             }).catch(() => {});
           }
+
+          // Update quests completed stats
+          this.trackQuestCompleted(userId).catch(() => {});
         }
       }
     }
@@ -154,10 +161,26 @@ export class QuestService {
 
       if (isCompleted) {
         await this.userQuestRepo.unlockChest(activeQuest.id);
+        this.trackQuestCompleted(userId).catch(() => {});
       }
     }
 
     await this.userQuestRepo.invalidateCache(userId);
+  }
+
+  private async trackQuestCompleted(userId: string) {
+    let stats = await this.prisma.userGamificationStats.findUnique({ where: { userId } });
+    if (!stats) {
+      stats = await this.prisma.userGamificationStats.create({ data: { userId } });
+    }
+    const newCount = stats.questsCompletedCount + 1;
+    await this.prisma.userGamificationStats.update({
+      where: { userId },
+      data: { questsCompletedCount: newCount },
+    });
+    
+    // Check achievements
+    this.achievementChecker.check(userId, 'quest_completed_count', newCount).catch(() => {});
   }
 
   /**

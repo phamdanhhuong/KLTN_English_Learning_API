@@ -184,6 +184,9 @@ export class UpdateStreakUseCase {
 
     // Check achievements sau transaction (không block main flow)
     this.achievementChecker.check(userId, 'streak', result.currentStreak).catch(() => {});
+    
+    // Cập nhật kỷ lục cá nhân Longest Streak
+    this.achievementChecker.updatePersonalRecord(userId, 'longest_streak', result.currentStreak).catch(() => {});
 
     // Update STREAK quest progress if it's a new day and streak is not broken
     if (result.isNewDay && !result.streakBroken) {

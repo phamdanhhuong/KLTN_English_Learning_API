@@ -6,6 +6,7 @@ import {
   IsNumber,
   ValidateNested,
   ArrayMinSize,
+  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -32,6 +33,10 @@ export class SubmitLessonResultDto {
   @ValidateNested({ each: true })
   @Type(() => ExerciseResultDto)
   exercises: ExerciseResultDto[];
+
+  @IsOptional()
+  @IsNumber()
+  timeSpent?: number;
 }
 
 export class ProgressUpdateResultDto {
@@ -59,4 +64,5 @@ export class ProgressUpdateResultDto {
     longestStreak: number;
     hasStreakIncreased: boolean;
   } | null;
+  timeSpent?: number;
 }

@@ -120,10 +120,11 @@ export class SubmitLessonResultUseCase {
         .execute({
           userId,
           lessonId: submitDto.lessonId,
-          lessonType: 'lesson',
+          lessonType: isReviewLesson ? 'review' : (isTrainingLesson ? 'training' : 'lesson'),
           xpEarned: totalXpEarned,
           isPerfect,
           exerciseCount: totalExercises,
+          timeSpent: submitDto.timeSpent,
         })
         .catch(() => null); // never fail the main response
     }

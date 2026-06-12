@@ -221,6 +221,7 @@ model User {
   energy               UserEnergy?
   currencyTransactions CurrencyTransaction[]
   dailyActivities      UserDailyActivity[]
+  gamificationStats    UserGamificationStats?
 
   // Social relations
   following      UserRelationship[] @relation("UserFollowing")
@@ -381,6 +382,21 @@ model UserDailyActivity {
   @@unique([userId, activityDate])
   @@index([userId, activityDate])
   @@map("user_daily_activities")
+}
+
+model UserGamificationStats {
+  userId               String   @id @map("user_id")
+  perfectLessonCount   Int      @default(0) @map("perfect_lesson_count")
+  perfectLessonStreak  Int      @default(0) @map("perfect_lesson_streak")
+  fastLessonCount      Int      @default(0) @map("fast_lesson_count")
+  questsCompletedCount Int      @default(0) @map("quests_completed_count")
+  cheersSentCount      Int      @default(0) @map("cheers_sent_count")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_gamification_stats")
 }
 
 model UserEnergy {

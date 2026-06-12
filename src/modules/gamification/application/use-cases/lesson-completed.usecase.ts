@@ -3,6 +3,7 @@ import { PrismaService } from '../../../../infrastructure/database/prisma.servic
 import { AddXpUseCase } from './xp/add-xp.usecase';
 import { UpdateStreakUseCase } from './streak/update-streak.usecase';
 import { QuestService } from '../../../quest/application/services/quest.service';
+import { AchievementCheckerService } from '../../../achievement/application/services/achievement-checker.service';
 
 export interface LessonCompletedDto {
   userId: string;
@@ -13,6 +14,7 @@ export interface LessonCompletedDto {
   coinsEarned?: number;
   isPerfect?: boolean;
   exerciseCount?: number;
+  timeSpent?: number;
 }
 
 export interface LessonCompletionSummary {
@@ -28,6 +30,7 @@ export class LessonCompletedUseCase {
     private readonly addXpUseCase: AddXpUseCase,
     private readonly updateStreakUseCase: UpdateStreakUseCase,
     private readonly questService: QuestService,
+    private readonly achievementChecker: AchievementCheckerService,
   ) {}
 
   async execute(dto: LessonCompletedDto): Promise<LessonCompletionSummary> {
@@ -88,6 +91,9 @@ export class LessonCompletedUseCase {
       ]))
       .catch(() => {});
 
+    // Fire-and-forget: Track gamification stats and achievements
+    this.trackGamificationStats(dto).catch(() => {});
+
     return {
       xp: {
         added: dto.xpEarned,
@@ -104,5 +110,91 @@ export class LessonCompletedUseCase {
       currency: { gemsEarned: totalGemsEarned, coinsEarned: totalCoinsEarned },
     };
   }
-}
 
+  private async trackGamificationStats(dto: LessonCompletedDto): Promise<void> {
+    const { userId, lessonType, exerciseCount, isPerfect, timeSpent, xpEarned } = dto;
+    
+    // 1. Update Personal Records
+    await Promise.all([
+      this.achievementChecker.updatePersonalRecord(userId, 'most_xp', xpEarned),
+      // Track most lessons in a day using UserDailyActivity which is already updated by AddXpUseCase
+      this.prisma.userDailyActivity.findUnique({
+        where: {
+          userId_activityDate: {
+            userId,
+            activityDate: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        }
+      }).then(activity => {
+        if (activity) {
+          return this.achievementChecker.updatePersonalRecord(userId, 'most_lessons_in_day', activity.lessonsCount);
+        }
+      })
+    ]);
+
+    // 2. Fetch or create UserGamificationStats
+    let stats = await this.prisma.userGamificationStats.findUnique({ where: { userId } });
+    if (!stats) {
+      stats = await this.prisma.userGamificationStats.create({ data: { userId } });
+    }
+
+    let updateData: any = {};
+    let shouldUpdate = false;
+
+    // 3. Process Review lessons
+    if (lessonType === 'review' && exerciseCount) {
+      // For review lessons, we track mistakes corrected
+      this.achievementChecker.check(userId, 'mistake_correction_count', exerciseCount).catch(() => {});
+    }
+
+    // 4. Process Perfect lessons
+    if (isPerfect) {
+      updateData.perfectLessonCount = { increment: 1 };
+      updateData.perfectLessonStreak = { increment: 1 };
+      shouldUpdate = true;
+
+      const newStreak = stats.perfectLessonStreak + 1;
+      const newCount = stats.perfectLessonCount + 1;
+
+      // Track personal records for perfect lessons
+      this.achievementChecker.updatePersonalRecord(userId, 'perfect_lessons', newCount).catch(() => {});
+      this.achievementChecker.updatePersonalRecord(userId, 'most_perfect_in_row', newStreak).catch(() => {});
+      
+      if (timeSpent) {
+        this.achievementChecker.updatePersonalRecord(userId, 'fastest_perfect_lesson', timeSpent, true).catch(() => {});
+      }
+
+      this.achievementChecker.check(userId, 'perfect_lesson_count', newCount).catch(() => {});
+      this.achievementChecker.check(userId, 'perfect_lesson_streak', newStreak).catch(() => {});
+    } else {
+      if (stats.perfectLessonStreak > 0) {
+        updateData.perfectLessonStreak = 0; // Reset streak
+        shouldUpdate = true;
+      }
+    }
+
+    // 5. Process Fast lessons (e.g. < 120 seconds)
+    if (timeSpent && timeSpent < 120) {
+      updateData.fastLessonCount = { increment: 1 };
+      shouldUpdate = true;
+      const newFastCount = stats.fastLessonCount + 1;
+      this.achievementChecker.check(userId, 'fast_lesson_count', newFastCount).catch(() => {});
+    }
+
+    // 6. Save stats if changed
+    if (shouldUpdate) {
+      await this.prisma.userGamificationStats.update({
+        where: { userId },
+        data: updateData
+      });
+    }
+
+    // 7. Time-based achievements
+    const currentHour = new Date().getHours();
+    if (currentHour < 8) {
+      this.achievementChecker.check(userId, 'early_riser', 1).catch(() => {});
+    } else if (currentHour >= 22) {
+      this.achievementChecker.check(userId, 'sleepwalker', 1).catch(() => {});
+    }
+  }
+}

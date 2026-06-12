@@ -13,7 +13,8 @@ export type FeedPostType =
   | 'PERFECT_SCORE'
   | 'XP_MILESTONE'
   | 'BATTLE_WIN_STREAK'
-  | 'FRIEND_QUEST_NUDGE';
+  | 'FRIEND_QUEST_NUDGE'
+  | 'PERSONAL_RECORD_BROKEN';
 
 @Injectable()
 export class FeedService {
@@ -53,6 +54,8 @@ export class FeedService {
         return `Chuỗi thắng ${metadata.winStreak} trận thi đấu liên tiếp! ⚔️🔥`;
       case 'FRIEND_QUEST_NUDGE':
         return `Đang cần bạn bè cùng hoàn thành nhiệm vụ: ${metadata.questName || 'Nhiệm vụ bạn bè'}! Hãy cùng tham gia nào! 👋🎯`;
+      case 'PERSONAL_RECORD_BROKEN':
+        return `Phá kỷ lục cá nhân: ${metadata.recordName} với thành tích ${metadata.value}! 🌟`;
       default:
         return 'Đã đạt một thành tựu mới!';
     }
@@ -82,6 +85,8 @@ export class FeedService {
       case 'BATTLE_WIN_STREAK':
         return metadata.winStreak >= 3;
       case 'FRIEND_QUEST_NUDGE':
+        return true;
+      case 'PERSONAL_RECORD_BROKEN':
         return true;
       default:
         return false;

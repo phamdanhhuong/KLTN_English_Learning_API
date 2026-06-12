@@ -2,6 +2,7 @@ import { Injectable, Inject, BadRequestException, ConflictException } from '@nes
 import { SOCIAL_TOKENS } from '../../domain/di/tokens';
 import type { SocialRepository } from '../../domain/repositories/social.repository.interface';
 import { FeedService } from '../../../feed/application/services/feed.service';
+import { AchievementCheckerService } from '../../../achievement/application/services/achievement-checker.service';
 
 @Injectable()
 export class FollowUserUseCase {
@@ -9,6 +10,7 @@ export class FollowUserUseCase {
     @Inject(SOCIAL_TOKENS.SOCIAL_REPOSITORY)
     private readonly socialRepo: SocialRepository,
     private readonly feedService: FeedService,
+    private readonly achievementChecker: AchievementCheckerService,
   ) {}
 
   async execute(currentUserId: string, targetUserId: string) {
@@ -42,6 +44,11 @@ export class FollowUserUseCase {
       followerName: currentUser?.fullName || currentUser?.username || 'Someone',
       followerId: currentUserId,
     }).catch(() => {}); // fire-and-forget
+
+    // Update achievement for following count
+    this.socialRepo.getFollowing(currentUserId).then((res) => {
+      this.achievementChecker.check(currentUserId, 'following_count', res.length).catch(() => {});
+    }).catch(() => {});
 
     return { followed: true, targetUserId };
   }
