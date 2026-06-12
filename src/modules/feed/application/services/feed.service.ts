@@ -150,17 +150,20 @@ export class FeedService {
     if (!existing) {
       await this.feedRepo.createReaction(postId, userId, reactionType);
       await this.feedRepo.invalidateCache(`feed:reactions:${postId}`);
+      await this.feedRepo.invalidateUserFeedCache(userId);
       return 'added';
     }
 
     if (existing.reactionType === reactionType) {
       await this.feedRepo.deleteReaction(postId, userId);
       await this.feedRepo.invalidateCache(`feed:reactions:${postId}`);
+      await this.feedRepo.invalidateUserFeedCache(userId);
       return 'removed';
     }
 
     await this.feedRepo.updateReaction(postId, userId, reactionType);
     await this.feedRepo.invalidateCache(`feed:reactions:${postId}`);
+    await this.feedRepo.invalidateUserFeedCache(userId);
     return 'changed';
   }
 

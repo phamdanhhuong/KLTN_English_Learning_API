@@ -242,6 +242,11 @@ export class PrismaFeedRepository implements FeedRepository {
     }
   }
 
+  async invalidateUserFeedCache(userId: string) {
+    const keys = await this.redis.keys(`feed:${userId}:*`);
+    for (const k of keys) await this.redis.del(k);
+  }
+
   // ─── Private helpers ───
 
   private aggregateReactions(reactions: { reactionType: string }[]) {

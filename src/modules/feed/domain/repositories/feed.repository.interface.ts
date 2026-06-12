@@ -34,6 +34,7 @@ export interface FeedRepository {
   // Cache
   getCached(key: string): Promise<string | null>;
   setCache(key: string, value: string, ttl: number): Promise<void>;
-  invalidateCache(pattern: string): Promise<void>;
+  invalidateCache(key: string): Promise<void>;
   invalidateFeedCachesForFollowers(userId: string): Promise<void>;
+  invalidateUserFeedCache(userId: string): Promise<void>;
 }
