@@ -4,15 +4,32 @@ import {
     NotFoundException,
     ConflictException,
 } from '@nestjs/common';
+import { IsOptional, IsString, IsDate } from 'class-validator';
+import { Type } from 'class-transformer';
 import { USER_TOKENS } from '../../domain/di/tokens';
 import { UserProfileRepository, UpdateUserProfileData } from '../../domain/repositories/user-profile.repository';
 import { UserProfile } from '../../domain/entities/user-profile.entity';
 
 export class UpdateProfileDto {
+    @IsOptional()
+    @IsString()
     username?: string;
+
+    @IsOptional()
+    @IsString()
     fullName?: string;
+
+    @IsOptional()
+    @IsString()
     profilePictureUrl?: string;
+
+    @IsOptional()
+    @IsDate()
+    @Type(() => Date)
     dateOfBirth?: Date;
+
+    @IsOptional()
+    @IsString()
     gender?: string;
 }
 

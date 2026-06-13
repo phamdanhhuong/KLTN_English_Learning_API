@@ -1,4 +1,5 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { IsOptional, IsString, IsInt, IsArray, IsBoolean } from 'class-validator';
 import { USER_TOKENS } from '../../domain/di/tokens';
 import {
     UserProfileRepository,
@@ -7,12 +8,33 @@ import {
 import { UserProfile } from '../../domain/entities/user-profile.entity';
 
 export class UpdatePreferencesDto {
+    @IsOptional()
+    @IsString()
     nativeLanguage?: string;
+
+    @IsOptional()
+    @IsString()
     targetLanguage?: string;
+
+    @IsOptional()
+    @IsString()
     proficiencyLevel?: string;
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
     learningGoals?: string[];
+
+    @IsOptional()
+    @IsInt()
     dailyGoalMinutes?: number;
+
+    @IsOptional()
+    @IsString()
     timezone?: string;
+
+    @IsOptional()
+    @IsBoolean()
     hideBattleHistory?: boolean;
 }
 
