@@ -13,8 +13,8 @@ export class VoiceController {
   async getStatus() {
     const status = await this.voiceService.checkStatus();
 
-    const sttReady = status.stt.primary || status.stt.fallback;
-    const ttsReady = status.tts.primary || status.tts.fallback;
+    const sttReady = status.stt;
+    const ttsReady = status.tts;
 
     return {
       success: true,
