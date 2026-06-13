@@ -23,7 +23,7 @@ export class SpeechController {
     private readonly configService: ConfigService,
   ) {
     this.speechEndpoint =
-      this.configService.get<string>('SPEECH_ENPOINT') || 'http://localhost:3005';
+      this.configService.get<string>('LOCAL_SPEECH_URL') || 'http://localhost:8090';
   }
 
   @Post('transcribe')
@@ -53,7 +53,7 @@ export class SpeechController {
 
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.speechEndpoint}/speech/transcribe`,
+          `${this.speechEndpoint}/stt/transcribe`,
           formData,
           {
             headers: {
