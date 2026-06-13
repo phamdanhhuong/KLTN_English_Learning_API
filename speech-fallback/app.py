@@ -128,7 +128,7 @@ async def transcribe(
         count = 0
         for segment in segments:
             text_parts.append(segment.text.strip())
-            total_confidence += segment.avg_log_prob
+            total_confidence += getattr(segment, 'avg_logprob', 0.0)
             count += 1
 
         full_text = " ".join(text_parts)
