@@ -144,7 +144,9 @@ export class PrismaTrainingExerciseRepository implements TrainingExerciseReposit
       return successRate <= options.maxSuccessRate;
     });
 
-    const exerciseIds = filtered.slice(0, options.limit).map((r) => r.exerciseId);
+    const exerciseIds = filtered
+      .slice(0, options.limit)
+      .map((r) => r.exerciseId);
     if (exerciseIds.length === 0) return [];
 
     const whereClause: any = { id: { in: exerciseIds } };

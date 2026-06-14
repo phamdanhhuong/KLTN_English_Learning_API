@@ -5,18 +5,25 @@ import { PrismaService } from '../../../../infrastructure/database/prisma.servic
 export class ReportUserUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(reporterId: string, targetUserId: string, reason: string, description?: string) {
+  async execute(
+    reporterId: string,
+    targetUserId: string,
+    reason: string,
+    description?: string,
+  ) {
     if (reporterId === targetUserId) {
       throw new BadRequestException('Cannot report yourself');
     }
 
-    const target = await this.prisma.user.findUnique({ where: { id: targetUserId } });
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
     if (!target) throw new BadRequestException('User not found');
 
     await this.prisma.userReport.create({
       data: {
         reporterId,
-        reportedUserId: targetUserId,   // schema field name
+        reportedUserId: targetUserId, // schema field name
         reason: 'OTHER' as any,
         description: description ?? null,
       },

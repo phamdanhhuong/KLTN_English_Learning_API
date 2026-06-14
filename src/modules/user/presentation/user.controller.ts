@@ -1,13 +1,35 @@
 import {
-  Controller, Get, Patch, Post, Delete, Body, UseGuards, Request, Param, Query,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Delete,
+  Body,
+  UseGuards,
+  Request,
+  Param,
+  Query,
 } from '@nestjs/common';
 import { GetProfileUseCase } from '../application/use-cases/get-profile.usecase';
-import { UpdateProfileUseCase, UpdateProfileDto } from '../application/use-cases/update-profile.usecase';
-import { UpdatePreferencesUseCase, UpdatePreferencesDto } from '../application/use-cases/update-preferences.usecase';
+import {
+  UpdateProfileUseCase,
+  UpdateProfileDto,
+} from '../application/use-cases/update-profile.usecase';
+import {
+  UpdatePreferencesUseCase,
+  UpdatePreferencesDto,
+} from '../application/use-cases/update-preferences.usecase';
 import { GetUserStatsUseCase } from '../application/use-cases/get-stats.usecase';
 import { GetXpHistoryUseCase } from '../application/use-cases/get-xp-history.usecase';
-import { GetPublicProfileUseCase, SearchUsersUseCase } from '../application/use-cases/get-public-profile.usecase';
-import { ReportUserUseCase, BlockUserUseCase, UnblockUserUseCase } from '../application/use-cases/report-block.usecase';
+import {
+  GetPublicProfileUseCase,
+  SearchUsersUseCase,
+} from '../application/use-cases/get-public-profile.usecase';
+import {
+  ReportUserUseCase,
+  BlockUserUseCase,
+  UnblockUserUseCase,
+} from '../application/use-cases/report-block.usecase';
 import { DeleteAccountUseCase } from '../application/use-cases/delete-account.usecase';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 
@@ -58,7 +80,10 @@ export class UserController {
   }
 
   @Patch('profile/preferences')
-  async updateMyPreferences(@Request() req: any, @Body() dto: UpdatePreferencesDto) {
+  async updateMyPreferences(
+    @Request() req: any,
+    @Body() dto: UpdatePreferencesDto,
+  ) {
     return this.updatePreferencesUseCase.execute(req.user.sub, dto);
   }
 
@@ -71,7 +96,10 @@ export class UserController {
 
   // ── Search ───────────────────────────────────────────────
   @Get('search')
-  async searchUsers(@Query('username') username: string, @Query('limit') limit?: number) {
+  async searchUsers(
+    @Query('username') username: string,
+    @Query('limit') limit?: number,
+  ) {
     return this.searchUsersUseCase.execute(username ?? '', limit ?? 10);
   }
 
@@ -84,7 +112,12 @@ export class UserController {
     @Body('reason') reason: string,
     @Body('description') description?: string,
   ) {
-    return this.reportUserUseCase.execute(req.user.sub, userId, reason, description);
+    return this.reportUserUseCase.execute(
+      req.user.sub,
+      userId,
+      reason,
+      description,
+    );
   }
 
   // Mobile: POST /users/:userId/block

@@ -111,7 +111,9 @@ export class SubmitLessonResultUseCase {
     const perfectBonusXP = isPerfect ? 20 : 0; // perfect score bonus
     // Training lessons get 1.5x XP multiplier
     const xpMultiplier = isTrainingLesson ? 1.5 : 1;
-    const totalXpEarned = Math.round((baseXP + bonusXP + perfectBonusXP) * xpMultiplier);
+    const totalXpEarned = Math.round(
+      (baseXP + bonusXP + perfectBonusXP) * xpMultiplier,
+    );
 
     // 10. Trigger real gamification (XP + Streak + currency rewards)
     let gamificationResult: any = null;
@@ -120,7 +122,11 @@ export class SubmitLessonResultUseCase {
         .execute({
           userId,
           lessonId: submitDto.lessonId,
-          lessonType: isReviewLesson ? 'review' : (isTrainingLesson ? 'training' : 'lesson'),
+          lessonType: isReviewLesson
+            ? 'review'
+            : isTrainingLesson
+              ? 'training'
+              : 'lesson',
           xpEarned: totalXpEarned,
           isPerfect,
           exerciseCount: totalExercises,

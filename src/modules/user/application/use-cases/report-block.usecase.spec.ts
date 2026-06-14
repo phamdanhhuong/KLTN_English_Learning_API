@@ -1,5 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
-import { ReportUserUseCase, BlockUserUseCase, UnblockUserUseCase } from './report-block.usecase';
+import {
+  ReportUserUseCase,
+  BlockUserUseCase,
+  UnblockUserUseCase,
+} from './report-block.usecase';
 
 describe('ReportUserUseCase', () => {
   let useCase: ReportUserUseCase;
@@ -21,12 +25,16 @@ describe('ReportUserUseCase', () => {
   });
 
   it('should throw BadRequestException when reporting yourself', async () => {
-    await expect(useCase.execute('u1', 'u1', 'spam')).rejects.toThrow(BadRequestException);
+    await expect(useCase.execute('u1', 'u1', 'spam')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should throw BadRequestException when target not found', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
-    await expect(useCase.execute('u1', 'u2', 'spam')).rejects.toThrow(BadRequestException);
+    await expect(useCase.execute('u1', 'u2', 'spam')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });
 
@@ -55,7 +63,9 @@ describe('BlockUserUseCase', () => {
   });
 
   it('should throw when blocking yourself', async () => {
-    await expect(useCase.execute('u1', 'u1')).rejects.toThrow(BadRequestException);
+    await expect(useCase.execute('u1', 'u1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });
 

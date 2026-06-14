@@ -62,9 +62,7 @@ export class VerifyRegistrationUseCase {
     }
 
     // Retrieve cached registration data (saved during register/initiate step)
-    const cachedRaw = await this.cacheService.get<string>(
-      `register:${email}`,
-    );
+    const cachedRaw = await this.cacheService.get<string>(`register:${email}`);
     if (!cachedRaw) {
       throw new BadRequestException(
         'Registration session expired. Please register again.',

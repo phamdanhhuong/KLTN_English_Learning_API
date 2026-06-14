@@ -4,9 +4,7 @@ import type { UserCustomSkillRepository as UserCustomSkillRepositoryInterface } 
 import { UserCustomSkill } from '../../domain/entities/user-custom-skill.entity';
 
 @Injectable()
-export class PrismaUserCustomSkillRepository
-  implements UserCustomSkillRepositoryInterface
-{
+export class PrismaUserCustomSkillRepository implements UserCustomSkillRepositoryInterface {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByUserId(userId: string): Promise<UserCustomSkill | null> {

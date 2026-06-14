@@ -10,11 +10,19 @@ describe('GetAllSkillPartsWithProgressUseCase', () => {
   });
 
   it('should return skill parts with progress for a user', async () => {
-    const mockData = [{
-      id: 'sp1', name: 'Part 1', position: 1, totalSkills: 5,
-      completedSkills: 2, progressPercentage: 40, skills: [],
-      createdAt: new Date(), updatedAt: new Date(),
-    }];
+    const mockData = [
+      {
+        id: 'sp1',
+        name: 'Part 1',
+        position: 1,
+        totalSkills: 5,
+        completedSkills: 2,
+        progressPercentage: 40,
+        skills: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
     skillPartRepository.findWithProgress.mockResolvedValue(mockData);
 
     const result = await useCase.execute('user-1');

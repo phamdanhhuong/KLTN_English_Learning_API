@@ -11,7 +11,9 @@ describe('GetAllSkillPartsUseCase', () => {
   });
 
   it('should return all skill parts', async () => {
-    skillPartRepository.findAll.mockResolvedValue([new SkillPart('sp1', 'Part 1')]);
+    skillPartRepository.findAll.mockResolvedValue([
+      new SkillPart('sp1', 'Part 1'),
+    ]);
     const result = await useCase.execute();
     expect(result).toHaveLength(1);
   });

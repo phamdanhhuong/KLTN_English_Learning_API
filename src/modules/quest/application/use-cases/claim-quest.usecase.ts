@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { RedisService } from '../../../../infrastructure/cache/redis.service';
 
@@ -26,7 +30,9 @@ export class ClaimQuestUseCase {
       }
 
       if (!userQuest) {
-        throw new NotFoundException('Completed quest not found or already claimed');
+        throw new NotFoundException(
+          'Completed quest not found or already claimed',
+        );
       }
 
       // Mark as claimed

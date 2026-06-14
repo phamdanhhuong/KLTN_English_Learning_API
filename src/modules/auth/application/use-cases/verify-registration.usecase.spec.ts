@@ -15,7 +15,13 @@ describe('VerifyRegistrationUseCase', () => {
     email: 'test@example.com',
     password: 'hashed-password',
     isActive: true,
-    role: { id: '1', name: 'USER', description: null, createdAt: new Date(), updatedAt: new Date() } as any,
+    role: {
+      id: '1',
+      name: 'USER',
+      description: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any,
   });
 
   const cachedData = JSON.stringify({
@@ -59,7 +65,10 @@ describe('VerifyRegistrationUseCase', () => {
     cacheService.get.mockResolvedValue(cachedData);
     authUserRepo.findByEmail.mockResolvedValue(null);
 
-    const result = await useCase.execute({ userId: 'test@example.com', otp: '123456' });
+    const result = await useCase.execute({
+      userId: 'test@example.com',
+      otp: '123456',
+    });
 
     expect(result.message).toBe('Registration successful');
     expect(result.tokens.accessToken).toBe('access-token');
@@ -100,9 +109,14 @@ describe('VerifyRegistrationUseCase', () => {
     userProfileService.verifyRegistrationOtp.mockResolvedValue(true);
     cacheService.get.mockResolvedValue(cachedData);
     authUserRepo.findByEmail.mockResolvedValue(null);
-    userProfileService.createUserProfile.mockRejectedValue(new Error('Profile service down'));
+    userProfileService.createUserProfile.mockRejectedValue(
+      new Error('Profile service down'),
+    );
 
-    const result = await useCase.execute({ userId: 'test@example.com', otp: '123456' });
+    const result = await useCase.execute({
+      userId: 'test@example.com',
+      otp: '123456',
+    });
 
     expect(result.message).toBe('Registration successful');
   });

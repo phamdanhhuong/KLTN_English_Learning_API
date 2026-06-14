@@ -1,10 +1,25 @@
 import {
-  Controller, Post, Get, UseGuards, Request, Param, Query, Body,
-  HttpCode, HttpStatus,
+  Controller,
+  Post,
+  Get,
+  UseGuards,
+  Request,
+  Param,
+  Query,
+  Body,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { GetUserQuestsUseCase, GetCompletedQuestsUseCase } from '../application/use-cases/get-quests.usecase';
-import { ClaimQuestUseCase, GetUnlockedChestsUseCase, OpenChestUseCase } from '../application/use-cases/claim-quest.usecase';
+import {
+  GetUserQuestsUseCase,
+  GetCompletedQuestsUseCase,
+} from '../application/use-cases/get-quests.usecase';
+import {
+  ClaimQuestUseCase,
+  GetUnlockedChestsUseCase,
+  OpenChestUseCase,
+} from '../application/use-cases/claim-quest.usecase';
 import {
   GetFriendsQuestParticipantsUseCase,
   JoinFriendsQuestUseCase,
@@ -56,7 +71,10 @@ export class QuestController {
 
   @Post('chests/:chestId/open')
   @HttpCode(HttpStatus.OK)
-  async openChestEndpoint(@Request() req: any, @Param('chestId') chestId: string) {
+  async openChestEndpoint(
+    @Request() req: any,
+    @Param('chestId') chestId: string,
+  ) {
     return this.openChest.execute(req.user.sub, chestId);
   }
 

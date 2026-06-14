@@ -10,7 +10,10 @@ import { ACHIEVEMENT_TOKENS } from './domain/di/tokens';
 
 // Application
 import { AchievementCheckerService } from './application/services/achievement-checker.service';
-import { GetUserAchievementsUseCase, GetAchievementsSummaryUseCase } from './application/use-cases/get-achievements.usecase';
+import {
+  GetUserAchievementsUseCase,
+  GetAchievementsSummaryUseCase,
+} from './application/use-cases/get-achievements.usecase';
 
 // Infrastructure
 import { PrismaAchievementRepository } from './infrastructure/repositories/prisma-achievement.repository';
@@ -29,7 +32,9 @@ import { AchievementController } from './presentation/achievement.controller';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any },
+        signOptions: {
+          expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any,
+        },
       }),
     }),
   ],
@@ -45,8 +50,6 @@ import { AchievementController } from './presentation/achievement.controller';
     GetUserAchievementsUseCase,
     GetAchievementsSummaryUseCase,
   ],
-  exports: [
-    AchievementCheckerService,
-  ],
+  exports: [AchievementCheckerService],
 })
 export class AchievementModule {}

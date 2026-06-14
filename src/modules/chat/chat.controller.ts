@@ -24,7 +24,8 @@ export class ChatController {
     private readonly configService: ConfigService,
   ) {
     this.aiEndpoint =
-      this.configService.get<string>('AI_SERVICE_ENDPOINT') || 'http://localhost:3006';
+      this.configService.get<string>('AI_SERVICE_ENDPOINT') ||
+      'http://localhost:3006';
   }
 
   @Post('start')
@@ -78,9 +79,14 @@ export class ChatController {
       );
       return response.data;
     } catch (error: any) {
-      console.error(`[ChatProxy] POST ${path} error:`, JSON.stringify(error.response?.data, null, 2));
+      console.error(
+        `[ChatProxy] POST ${path} error:`,
+        JSON.stringify(error.response?.data, null, 2),
+      );
       const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const data = error.response?.data || { message: 'AI service unavailable' };
+      const data = error.response?.data || {
+        message: 'AI service unavailable',
+      };
       throw new HttpException(data, status);
     }
   }
@@ -88,7 +94,9 @@ export class ChatController {
   private async forwardGet(req: any, path: string) {
     try {
       const userId = this.getUserId(req);
-      const queryString = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
+      const queryString = req.url.includes('?')
+        ? '?' + req.url.split('?')[1]
+        : '';
       const response = await firstValueFrom(
         this.httpService.get(`${this.aiEndpoint}${path}${queryString}`, {
           headers: {
@@ -100,9 +108,14 @@ export class ChatController {
       );
       return response.data;
     } catch (error: any) {
-      console.error(`[ChatProxy] GET ${path} error:`, JSON.stringify(error.response?.data, null, 2));
+      console.error(
+        `[ChatProxy] GET ${path} error:`,
+        JSON.stringify(error.response?.data, null, 2),
+      );
       const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const data = error.response?.data || { message: 'AI service unavailable' };
+      const data = error.response?.data || {
+        message: 'AI service unavailable',
+      };
       throw new HttpException(data, status);
     }
   }

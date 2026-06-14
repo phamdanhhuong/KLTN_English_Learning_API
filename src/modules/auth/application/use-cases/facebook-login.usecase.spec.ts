@@ -20,7 +20,13 @@ describe('FacebookLoginUseCase', () => {
     email: 'fb@example.com',
     facebookId: 'fb-123',
     isActive: true,
-    role: { id: '1', name: 'USER', description: null, createdAt: new Date(), updatedAt: new Date() } as any,
+    role: {
+      id: '1',
+      name: 'USER',
+      description: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any,
   });
 
   const fbProfileResponse = {
@@ -72,7 +78,10 @@ describe('FacebookLoginUseCase', () => {
 
     expect(result.isNewUser).toBe(false);
     expect(result.tokens.accessToken).toBe('access-token');
-    expect(authUserRepo.update).toHaveBeenCalledWith('user-1', expect.objectContaining({ lastLoginAt: expect.any(Date) }));
+    expect(authUserRepo.update).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ lastLoginAt: expect.any(Date) }),
+    );
   });
 
   it('should link Facebook account to existing email user', async () => {
@@ -102,7 +111,10 @@ describe('FacebookLoginUseCase', () => {
 
     expect(result.isNewUser).toBe(true);
     expect(authUserRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ email: 'fb@example.com', facebookId: 'fb-123' }),
+      expect.objectContaining({
+        email: 'fb@example.com',
+        facebookId: 'fb-123',
+      }),
     );
     expect(userProfileService.createUserProfileWithDetails).toHaveBeenCalled();
   });
@@ -110,12 +122,18 @@ describe('FacebookLoginUseCase', () => {
   it('should throw UnauthorizedException for invalid Facebook token', async () => {
     mockedAxios.get.mockRejectedValue(new Error('Invalid token'));
 
-    await expect(useCase.execute('bad-token')).rejects.toThrow(UnauthorizedException);
+    await expect(useCase.execute('bad-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('should throw UnauthorizedException when Facebook account has no email', async () => {
-    mockedAxios.get.mockResolvedValue({ data: { id: 'fb-123', name: 'No Email User' } });
+    mockedAxios.get.mockResolvedValue({
+      data: { id: 'fb-123', name: 'No Email User' },
+    });
 
-    await expect(useCase.execute('valid-fb-token')).rejects.toThrow(UnauthorizedException);
+    await expect(useCase.execute('valid-fb-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 });

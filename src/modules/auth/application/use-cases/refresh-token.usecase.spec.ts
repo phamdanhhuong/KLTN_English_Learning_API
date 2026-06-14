@@ -13,7 +13,13 @@ describe('RefreshTokenUseCase', () => {
     id: 'user-1',
     email: 'test@example.com',
     isActive: true,
-    role: { id: '1', name: 'USER', description: null, createdAt: new Date(), updatedAt: new Date() } as any,
+    role: {
+      id: '1',
+      name: 'USER',
+      description: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any,
   });
 
   const mockStoredToken = new RefreshToken({
@@ -31,13 +37,21 @@ describe('RefreshTokenUseCase', () => {
       create: jest.fn(),
     };
     tokenService = {
-      verifyRefreshToken: jest.fn().mockReturnValue({ sub: 'user-1', email: 'test@example.com', role: 'USER' }),
+      verifyRefreshToken: jest.fn().mockReturnValue({
+        sub: 'user-1',
+        email: 'test@example.com',
+        role: 'USER',
+      }),
       generateAccessToken: jest.fn().mockReturnValue('new-access-token'),
       generateRefreshToken: jest.fn().mockReturnValue('new-refresh-token'),
     };
     authUserRepo = { findById: jest.fn() };
 
-    useCase = new RefreshTokenUseCase(refreshTokenRepo, tokenService, authUserRepo);
+    useCase = new RefreshTokenUseCase(
+      refreshTokenRepo,
+      tokenService,
+      authUserRepo,
+    );
   });
 
   it('should rotate tokens successfully', async () => {
@@ -48,7 +62,9 @@ describe('RefreshTokenUseCase', () => {
 
     expect(result.tokens.accessToken).toBe('new-access-token');
     expect(result.tokens.refreshToken).toBe('new-refresh-token');
-    expect(refreshTokenRepo.revokeByToken).toHaveBeenCalledWith('valid-refresh-token');
+    expect(refreshTokenRepo.revokeByToken).toHaveBeenCalledWith(
+      'valid-refresh-token',
+    );
     expect(refreshTokenRepo.create).toHaveBeenCalled();
   });
 
@@ -57,7 +73,9 @@ describe('RefreshTokenUseCase', () => {
       throw new Error('invalid');
     });
 
-    await expect(useCase.execute('bad-token')).rejects.toThrow(UnauthorizedException);
+    await expect(useCase.execute('bad-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('should throw UnauthorizedException for revoked token', async () => {
@@ -65,28 +83,41 @@ describe('RefreshTokenUseCase', () => {
       new RefreshToken({ ...mockStoredToken, isRevoked: true }),
     );
 
-    await expect(useCase.execute('valid-refresh-token')).rejects.toThrow(UnauthorizedException);
+    await expect(useCase.execute('valid-refresh-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('should throw UnauthorizedException for expired token', async () => {
     refreshTokenRepo.findByToken.mockResolvedValue(
-      new RefreshToken({ ...mockStoredToken, expiresAt: new Date(Date.now() - 1000) }),
+      new RefreshToken({
+        ...mockStoredToken,
+        expiresAt: new Date(Date.now() - 1000),
+      }),
     );
 
-    await expect(useCase.execute('valid-refresh-token')).rejects.toThrow(UnauthorizedException);
+    await expect(useCase.execute('valid-refresh-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('should throw UnauthorizedException when user not found', async () => {
     refreshTokenRepo.findByToken.mockResolvedValue(mockStoredToken);
     authUserRepo.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute('valid-refresh-token')).rejects.toThrow(UnauthorizedException);
+    await expect(useCase.execute('valid-refresh-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('should throw UnauthorizedException when user is deactivated', async () => {
     refreshTokenRepo.findByToken.mockResolvedValue(mockStoredToken);
-    authUserRepo.findById.mockResolvedValue(new AuthUser({ ...mockUser, isActive: false }));
+    authUserRepo.findById.mockResolvedValue(
+      new AuthUser({ ...mockUser, isActive: false }),
+    );
 
-    await expect(useCase.execute('valid-refresh-token')).rejects.toThrow(UnauthorizedException);
+    await expect(useCase.execute('valid-refresh-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 });

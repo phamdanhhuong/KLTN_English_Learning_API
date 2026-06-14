@@ -9,4 +9,3 @@ export { GetExerciseCountUseCase } from './get-exercise-count.usecase';
 export { GetReviewExercisesUseCase } from './get-review-exercises.usecase';
 export { GetTrainingExercisesUseCase } from './get-training-exercises.usecase';
 export { GenerateAiExercisesUseCase } from './generate-ai-exercises.usecase';
-

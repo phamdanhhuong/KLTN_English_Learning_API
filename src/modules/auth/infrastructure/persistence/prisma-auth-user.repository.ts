@@ -96,7 +96,8 @@ export class PrismaAuthUserRepository implements AuthUserRepository {
     if (data.isEmailVerified !== undefined)
       updateData.isEmailVerified = data.isEmailVerified;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
-    if (data.lastLoginAt !== undefined) updateData.lastLoginAt = data.lastLoginAt;
+    if (data.lastLoginAt !== undefined)
+      updateData.lastLoginAt = data.lastLoginAt;
 
     const user = await this.prisma.user.update({
       where: { id },

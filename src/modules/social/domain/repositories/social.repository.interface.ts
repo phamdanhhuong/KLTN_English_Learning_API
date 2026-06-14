@@ -17,8 +17,13 @@ export interface SocialRepository {
 
   // Follow counts
   getFollowerCount(userId: string): Promise<number>;
-  getUserBasicInfo(userId: string): Promise<{ username: string | null; fullName: string | null } | null>;
+  getUserBasicInfo(
+    userId: string,
+  ): Promise<{ username: string | null; fullName: string | null } | null>;
 
   // Batch check following
-  getFollowingIdsFromList(currentUserId: string, userIds: string[]): Promise<Set<string>>;
+  getFollowingIdsFromList(
+    currentUserId: string,
+    userIds: string[],
+  ): Promise<Set<string>>;
 }

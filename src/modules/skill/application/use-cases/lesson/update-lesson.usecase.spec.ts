@@ -18,7 +18,9 @@ describe('UpdateLessonUseCase', () => {
 
   it('should update lesson title', async () => {
     lessonRepository.findById.mockResolvedValue(existing);
-    lessonRepository.update.mockImplementation((l: Lesson) => Promise.resolve(l));
+    lessonRepository.update.mockImplementation((l: Lesson) =>
+      Promise.resolve(l),
+    );
 
     const result = await useCase.execute('l1', { title: 'New Title' });
     expect(result.title).toBe('New Title');
@@ -27,7 +29,9 @@ describe('UpdateLessonUseCase', () => {
   it('should update lesson position when not taken', async () => {
     lessonRepository.findById.mockResolvedValue(existing);
     lessonRepository.findBySkillLevelAndPosition.mockResolvedValue(null);
-    lessonRepository.update.mockImplementation((l: Lesson) => Promise.resolve(l));
+    lessonRepository.update.mockImplementation((l: Lesson) =>
+      Promise.resolve(l),
+    );
 
     const result = await useCase.execute('l1', { position: 5 });
     expect(result.position).toBe(5);
@@ -35,13 +39,19 @@ describe('UpdateLessonUseCase', () => {
 
   it('should throw BadRequestException when position is taken', async () => {
     lessonRepository.findById.mockResolvedValue(existing);
-    lessonRepository.findBySkillLevelAndPosition.mockResolvedValue(new Lesson('l2', 's1', 1, 'Other', 5));
+    lessonRepository.findBySkillLevelAndPosition.mockResolvedValue(
+      new Lesson('l2', 's1', 1, 'Other', 5),
+    );
 
-    await expect(useCase.execute('l1', { position: 5 })).rejects.toThrow(BadRequestException);
+    await expect(useCase.execute('l1', { position: 5 })).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should throw NotFoundException when lesson not found', async () => {
     lessonRepository.findById.mockResolvedValue(null);
-    await expect(useCase.execute('non-existent', { title: 'X' })).rejects.toThrow(NotFoundException);
+    await expect(
+      useCase.execute('non-existent', { title: 'X' }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

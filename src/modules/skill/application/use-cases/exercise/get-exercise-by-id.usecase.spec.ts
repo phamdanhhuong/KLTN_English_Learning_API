@@ -1,6 +1,9 @@
 import { NotFoundException } from '@nestjs/common';
 import { GetExerciseByIdUseCase } from './get-exercise-by-id.usecase';
-import { Exercise, ExerciseType } from '../../../domain/entities/exercise.entity';
+import {
+  Exercise,
+  ExerciseType,
+} from '../../../domain/entities/exercise.entity';
 
 describe('GetExerciseByIdUseCase', () => {
   let useCase: GetExerciseByIdUseCase;
@@ -12,13 +15,17 @@ describe('GetExerciseByIdUseCase', () => {
   });
 
   it('should return exercise DTO when found', async () => {
-    exerciseRepository.findById.mockResolvedValue(new Exercise('e1', 'l1', ExerciseType.FILL_BLANK, 'Fill'));
+    exerciseRepository.findById.mockResolvedValue(
+      new Exercise('e1', 'l1', ExerciseType.FILL_BLANK, 'Fill'),
+    );
     const result = await useCase.execute('e1');
     expect(result.id).toBe('e1');
   });
 
   it('should throw NotFoundException when not found', async () => {
     exerciseRepository.findById.mockResolvedValue(null);
-    await expect(useCase.execute('non-existent')).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('non-existent')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

@@ -19,7 +19,8 @@ export class ScoringController {
     private readonly configService: ConfigService,
   ) {
     this.scoringEndpoint =
-      this.configService.get<string>('AI_SERVICE_ENDPOINT') || 'http://localhost:3006';
+      this.configService.get<string>('AI_SERVICE_ENDPOINT') ||
+      'http://localhost:3006';
   }
 
   @Post('image-description/score')
@@ -40,24 +41,21 @@ export class ScoringController {
   private async forwardJson(req: Request, path: string) {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.scoringEndpoint}${path}`,
-          req.body,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            timeout: 120000,
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
+        this.httpService.post(`${this.scoringEndpoint}${path}`, req.body, {
+          headers: {
+            'Content-Type': 'application/json',
           },
-        ),
+          timeout: 120000,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        }),
       );
 
       return response.data;
     } catch (error: any) {
       const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const message = error.response?.data?.message || 'Scoring service unavailable';
+      const message =
+        error.response?.data?.message || 'Scoring service unavailable';
       throw new HttpException(message, status);
     }
   }

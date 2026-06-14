@@ -38,7 +38,11 @@ export class QuestService {
     const created: any[] = [];
 
     for (const quest of dailyQuests) {
-      const existing = await this.userQuestRepo.findExisting(userId, quest.id, now);
+      const existing = await this.userQuestRepo.findExisting(
+        userId,
+        quest.id,
+        now,
+      );
 
       if (!existing) {
         const userQuest = await this.userQuestRepo.create({
@@ -74,7 +78,11 @@ export class QuestService {
     const created: any[] = [];
 
     for (const quest of friendsQuests) {
-      const existing = await this.userQuestRepo.findExisting(userId, quest.id, now);
+      const existing = await this.userQuestRepo.findExisting(
+        userId,
+        quest.id,
+        now,
+      );
 
       if (!existing) {
         const userQuest = await this.userQuestRepo.create({
@@ -113,7 +121,10 @@ export class QuestService {
 
     const SPECIAL_KEYS = ['challenge_perfectionist'];
     const relevant = activeQuests.filter(
-      (uq) => uq.quest.category === category && !SPECIAL_KEYS.includes(uq.quest.key),
+      (uq) =>
+        uq.quest.category === category &&
+        uq.quest.type !== 'FRIENDS' &&
+        !SPECIAL_KEYS.includes(uq.quest.key),
     );
 
     for (const uq of relevant) {
@@ -122,7 +133,11 @@ export class QuestService {
       if (newProgress > uq.progress) {
         const isCompleted = newProgress >= uq.requirement;
 
-        await this.userQuestRepo.updateProgress(uq.id, newProgress, isCompleted);
+        await this.userQuestRepo.updateProgress(
+          uq.id,
+          newProgress,
+          isCompleted,
+        );
 
         if (isCompleted) {
           await this.userQuestRepo.unlockChest(uq.id);
@@ -130,10 +145,12 @@ export class QuestService {
           // Feed auto-create: QUEST_COMPLETED
           const chestType = uq.quest.chestType;
           if (chestType === 'GOLD' || chestType === 'LEGENDARY') {
-            this.feedService.autoCreatePost(userId, 'QUEST_COMPLETED', {
-              questName: uq.quest.name,
-              isSpecial: true,
-            }).catch(() => {});
+            this.feedService
+              .autoCreatePost(userId, 'QUEST_COMPLETED', {
+                questName: uq.quest.name,
+                isSpecial: true,
+              })
+              .catch(() => {});
           }
 
           // Update quests completed stats
@@ -152,12 +169,19 @@ export class QuestService {
 
     if (!activeQuest) return;
 
-    const newProgress = Math.min(activeQuest.progress + amount, activeQuest.requirement);
+    const newProgress = Math.min(
+      activeQuest.progress + amount,
+      activeQuest.requirement,
+    );
 
     if (newProgress > activeQuest.progress) {
       const isCompleted = newProgress >= activeQuest.requirement;
 
-      await this.userQuestRepo.updateProgress(activeQuest.id, newProgress, isCompleted);
+      await this.userQuestRepo.updateProgress(
+        activeQuest.id,
+        newProgress,
+        isCompleted,
+      );
 
       if (isCompleted) {
         await this.userQuestRepo.unlockChest(activeQuest.id);
@@ -169,26 +193,39 @@ export class QuestService {
   }
 
   private async trackQuestCompleted(userId: string) {
-    let stats = await this.prisma.userGamificationStats.findUnique({ where: { userId } });
+    let stats = await this.prisma.userGamificationStats.findUnique({
+      where: { userId },
+    });
     if (!stats) {
-      stats = await this.prisma.userGamificationStats.create({ data: { userId } });
+      stats = await this.prisma.userGamificationStats.create({
+        data: { userId },
+      });
     }
     const newCount = stats.questsCompletedCount + 1;
     await this.prisma.userGamificationStats.update({
       where: { userId },
       data: { questsCompletedCount: newCount },
     });
-    
+
     // Check achievements
-    this.achievementChecker.check(userId, 'quest_completed_count', newCount).catch(() => {});
+    this.achievementChecker
+      .check(userId, 'quest_completed_count', newCount)
+      .catch(() => {});
   }
 
   /**
    * Increment contribution for all Friends Quest groups the user is part of this week.
    */
-  async updateFriendsQuestContribution(userId: string, amount: number): Promise<void> {
+  async updateFriendsQuestContribution(
+    userId: string,
+    amount: number,
+  ): Promise<void> {
     const weekStart = this.getWeekStart(new Date());
-    await this.userQuestRepo.updateFriendsContribution(userId, weekStart, amount);
+    await this.userQuestRepo.updateFriendsContribution(
+      userId,
+      weekStart,
+      amount,
+    );
   }
 
   /** Chest rewards dựa trên type */
@@ -197,7 +234,12 @@ export class QuestService {
       BRONZE: { rewardXp: 10, rewardGems: 1, rewardCoins: 25 },
       SILVER: { rewardXp: 25, rewardGems: 3, rewardCoins: 50 },
       GOLD: { rewardXp: 50, rewardGems: 5, rewardCoins: 100 },
-      LEGENDARY: { rewardXp: 100, rewardGems: 10, rewardCoins: 250, xpBoostMinutes: 30 },
+      LEGENDARY: {
+        rewardXp: 100,
+        rewardGems: 10,
+        rewardCoins: 250,
+        xpBoostMinutes: 30,
+      },
     };
     return rewards[chestType] || rewards.BRONZE;
   }

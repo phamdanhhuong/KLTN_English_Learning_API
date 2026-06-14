@@ -12,7 +12,10 @@ import { SOCIAL_TOKENS } from './domain/di/tokens';
 // Application
 import { FollowUserUseCase } from './application/use-cases/follow-user.usecase';
 import { UnfollowUserUseCase } from './application/use-cases/unfollow-user.usecase';
-import { GetFollowingUseCase, GetFollowersUseCase } from './application/use-cases/get-follow-lists.usecase';
+import {
+  GetFollowingUseCase,
+  GetFollowersUseCase,
+} from './application/use-cases/get-follow-lists.usecase';
 import { GetSuggestedFriendsUseCase } from './application/use-cases/get-suggested-friends.usecase';
 import { SearchUsersUseCase } from './application/use-cases/search-users.usecase';
 
@@ -34,7 +37,9 @@ import { SocialController } from './presentation/social.controller';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any },
+        signOptions: {
+          expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any,
+        },
       }),
     }),
   ],

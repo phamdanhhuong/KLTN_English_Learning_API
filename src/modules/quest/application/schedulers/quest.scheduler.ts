@@ -20,10 +20,10 @@ export class QuestScheduler {
     try {
       const now = new Date();
 
-      // Mark all expired active quests
+      // Mark all expired active and completed quests
       const result = await this.prisma.userQuest.updateMany({
         where: {
-          status: 'ACTIVE',
+          status: { in: ['ACTIVE', 'COMPLETED'] },
           endDate: { lt: now },
         },
         data: { status: 'EXPIRED' },

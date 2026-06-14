@@ -10,7 +10,10 @@ export class BattleMatchmakingService {
   private readonly logger = new Logger(BattleMatchmakingService.name);
 
   // Track search start times per user
-  private searchTimers = new Map<string, { timer: NodeJS.Timeout; startTime: number }>();
+  private searchTimers = new Map<
+    string,
+    { timer: NodeJS.Timeout; startTime: number }
+  >();
 
   constructor(
     @Inject(BATTLE_TOKENS.BATTLE_REPOSITORY)
@@ -30,12 +33,15 @@ export class BattleMatchmakingService {
     if (activeMatch) {
       const match = await this.battleRepo.findMatchById(activeMatch);
       if (match && match.status === 'IN_PROGRESS') {
-        this.logger.log(`Abandoning old match ${activeMatch} for user ${userId}`);
+        this.logger.log(
+          `Abandoning old match ${activeMatch} for user ${userId}`,
+        );
         await this.battleRepo.updateMatch(activeMatch, { status: 'ABANDONED' });
         await this.battleRepo.removeActiveMatch(userId);
 
         // Also clean up opponent's active match tracking
-        const oppId = match.player1Id === userId ? match.player2Id : match.player1Id;
+        const oppId =
+          match.player1Id === userId ? match.player2Id : match.player1Id;
         if (oppId && !match.isBot) {
           await this.battleRepo.removeActiveMatch(oppId);
         }
@@ -67,12 +73,18 @@ export class BattleMatchmakingService {
       // Progressive tier expansion based on elapsed time
       if (!opp) {
         let maxDiff = 0;
-        if (elapsed > 15000) maxDiff = 3;       // 15-18s: ±3 ranks
-        else if (elapsed > 10000) maxDiff = 2;   // 10-15s: ±2 ranks
-        else if (elapsed > 5000) maxDiff = 1;    // 5-10s: ±1 rank
+        if (elapsed > 15000)
+          maxDiff = 3; // 15-18s: ±3 ranks
+        else if (elapsed > 10000)
+          maxDiff = 2; // 10-15s: ±2 ranks
+        else if (elapsed > 5000) maxDiff = 1; // 5-10s: ±1 rank
 
         if (maxDiff > 0) {
-          opp = await this.battleRepo.findOpponentByMaxTierDiff(tier, userId, maxDiff);
+          opp = await this.battleRepo.findOpponentByMaxTierDiff(
+            tier,
+            userId,
+            maxDiff,
+          );
         }
       }
 
@@ -111,8 +123,17 @@ export class BattleMatchmakingService {
     }
   }
 
-  private async createAndStartMatch(player1Id: string, player2Id: string, tier: string) {
-    const result = await this.gameService.createMatchWithRounds(player1Id, player2Id, tier, false);
+  private async createAndStartMatch(
+    player1Id: string,
+    player2Id: string,
+    tier: string,
+  ) {
+    const result = await this.gameService.createMatchWithRounds(
+      player1Id,
+      player2Id,
+      tier,
+      false,
+    );
 
     await this.battleRepo.setActiveMatch(player1Id, result.matchId);
     await this.battleRepo.setActiveMatch(player2Id, result.matchId);
@@ -137,7 +158,12 @@ export class BattleMatchmakingService {
   }
 
   private async createBotMatch(userId: string, tier: string) {
-    const result = await this.gameService.createMatchWithRounds(userId, null, tier, true);
+    const result = await this.gameService.createMatchWithRounds(
+      userId,
+      null,
+      tier,
+      true,
+    );
 
     // For bot matches, update status to IN_PROGRESS directly
     await this.battleRepo.updateMatch(result.matchId, {

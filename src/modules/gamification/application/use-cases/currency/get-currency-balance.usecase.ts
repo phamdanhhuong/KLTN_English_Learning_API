@@ -50,7 +50,7 @@ export class GetCurrencyBalanceUseCase {
       lastUpdated: currency?.updatedAt ?? new Date(),
       totalEarned: { gems: 0, coins: 0 },
       totalSpent: { gems: 0, coins: 0 },
-      recentTransactions: recentTx.map(tx => ({
+      recentTransactions: recentTx.map((tx) => ({
         id: tx.id,
         currencyType: tx.currencyType as CurrencyType,
         amount: tx.amount,

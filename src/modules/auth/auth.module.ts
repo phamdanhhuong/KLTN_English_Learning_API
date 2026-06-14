@@ -104,5 +104,4 @@ import { AuthController } from './presentation/controllers/auth.controller';
     JwtModule,
   ],
 })
-export class AuthModule { }
-
+export class AuthModule {}

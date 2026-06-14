@@ -1,5 +1,8 @@
 import { CreateManyExercisesUseCase } from './create-many-exercises.usecase';
-import { Exercise, ExerciseType } from '../../../domain/entities/exercise.entity';
+import {
+  Exercise,
+  ExerciseType,
+} from '../../../domain/entities/exercise.entity';
 import { ExerciseTypeDto } from '../../dto/exercise.dto';
 
 describe('CreateManyExercisesUseCase', () => {
@@ -22,17 +25,37 @@ describe('CreateManyExercisesUseCase', () => {
     exerciseRepository.createMany.mockResolvedValue(exercises);
 
     const result = await useCase.execute([
-      { lessonId: 'l1', exerciseType: ExerciseTypeDto.FILL_BLANK, prompt: 'p1', position: 1 },
-      { lessonId: 'l1', exerciseType: ExerciseTypeDto.TRANSLATE, prompt: 'p2', position: 2 },
+      {
+        lessonId: 'l1',
+        exerciseType: ExerciseTypeDto.FILL_BLANK,
+        prompt: 'p1',
+        position: 1,
+      },
+      {
+        lessonId: 'l1',
+        exerciseType: ExerciseTypeDto.TRANSLATE,
+        prompt: 'p2',
+        position: 2,
+      },
     ]);
     expect(result).toHaveLength(2);
   });
 
   it('should auto-assign positions when not provided', async () => {
     exerciseRepository.getNextAvailablePosition.mockResolvedValue(5);
-    exerciseRepository.createMany.mockImplementation((es: Exercise[]) => Promise.resolve(es));
+    exerciseRepository.createMany.mockImplementation((es: Exercise[]) =>
+      Promise.resolve(es),
+    );
 
-    await useCase.execute([{ lessonId: 'l1', exerciseType: ExerciseTypeDto.FILL_BLANK, prompt: 'p1' }]);
-    expect(exerciseRepository.getNextAvailablePosition).toHaveBeenCalledWith('l1');
+    await useCase.execute([
+      {
+        lessonId: 'l1',
+        exerciseType: ExerciseTypeDto.FILL_BLANK,
+        prompt: 'p1',
+      },
+    ]);
+    expect(exerciseRepository.getNextAvailablePosition).toHaveBeenCalledWith(
+      'l1',
+    );
   });
 });

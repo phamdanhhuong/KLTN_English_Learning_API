@@ -6,7 +6,10 @@ import { GamificationModule } from '../gamification/gamification.module';
 import { PROGRESS_TOKENS } from './domain/di/tokens';
 
 // Application - Use Cases
-import { GetSkillProgressByUserIdUseCase, SubmitLessonResultUseCase } from './application/use-cases';
+import {
+  GetSkillProgressByUserIdUseCase,
+  SubmitLessonResultUseCase,
+} from './application/use-cases';
 
 // Infrastructure - Repositories
 import { PrismaSkillProgressRepository } from './infrastructure/repositories/prisma-skill-progress.repository';

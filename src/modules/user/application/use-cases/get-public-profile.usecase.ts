@@ -6,27 +6,41 @@ export class GetPublicProfileUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(targetUserId: string, requestingUserId?: string) {
-    const [user, streak, followCounts, xpHistory, progress] = await Promise.all([
-      this.prisma.user.findUnique({
-        where: { id: targetUserId },
-        select: {
-          id: true, username: true, fullName: true, profilePictureUrl: true,
-          currentLevel: true, xpPoints: true, isActive: true, createdAt: true,
-        },
-      }),
-      this.prisma.streakData.findUnique({ where: { userId: targetUserId } }),
-      Promise.all([
-        this.prisma.userRelationship.count({ where: { followerId: targetUserId } }),
-        this.prisma.userRelationship.count({ where: { followingId: targetUserId } }),
-      ]),
-      this.prisma.userDailyActivity.findMany({
-        where: { userId: targetUserId },
-        orderBy: { activityDate: 'desc' },
-        take: 7,
-        select: { activityDate: true, xpEarned: true },
-      }),
-      this.prisma.skillProgress.findUnique({ where: { userId: targetUserId } }),
-    ]);
+    const [user, streak, followCounts, xpHistory, progress] = await Promise.all(
+      [
+        this.prisma.user.findUnique({
+          where: { id: targetUserId },
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            profilePictureUrl: true,
+            currentLevel: true,
+            xpPoints: true,
+            isActive: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.streakData.findUnique({ where: { userId: targetUserId } }),
+        Promise.all([
+          this.prisma.userRelationship.count({
+            where: { followerId: targetUserId },
+          }),
+          this.prisma.userRelationship.count({
+            where: { followingId: targetUserId },
+          }),
+        ]),
+        this.prisma.userDailyActivity.findMany({
+          where: { userId: targetUserId },
+          orderBy: { activityDate: 'desc' },
+          take: 7,
+          select: { activityDate: true, xpEarned: true },
+        }),
+        this.prisma.skillProgress.findUnique({
+          where: { userId: targetUserId },
+        }),
+      ],
+    );
 
     if (!user || !user.isActive) throw new NotFoundException('User not found');
 
@@ -65,7 +79,7 @@ export class GetPublicProfileUseCase {
       isInTournament: false,
       top3Count: 0,
       englishScore: 0,
-      xpHistory: xpHistory.map(h => ({
+      xpHistory: xpHistory.map((h) => ({
         date: h.activityDate.toISOString().split('T')[0],
         xp: h.xpEarned,
       })),
@@ -90,13 +104,17 @@ export class SearchUsersUseCase {
         isActive: true,
       },
       select: {
-        id: true, username: true, fullName: true, profilePictureUrl: true,
-        currentLevel: true, xpPoints: true,
+        id: true,
+        username: true,
+        fullName: true,
+        profilePictureUrl: true,
+        currentLevel: true,
+        xpPoints: true,
       },
       take: limit,
     });
 
-    return users.map(u => ({
+    return users.map((u) => ({
       id: u.id,
       username: u.username ?? '',
       displayName: u.fullName ?? u.username ?? 'User',

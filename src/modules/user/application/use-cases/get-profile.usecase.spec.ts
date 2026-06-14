@@ -20,9 +20,17 @@ describe('GetProfileUseCase', () => {
 
   it('should return formatted profile data', async () => {
     prisma.user.findUnique.mockResolvedValue({
-      id: 'u1', email: 'test@example.com', username: 'testuser', fullName: 'Test User',
-      profilePictureUrl: null, currentLevel: 5, xpPoints: 100,
-      totalXpEarned: 500, isEmailVerified: true, isActive: true, createdAt: new Date('2024-01-15'),
+      id: 'u1',
+      email: 'test@example.com',
+      username: 'testuser',
+      fullName: 'Test User',
+      profilePictureUrl: null,
+      currentLevel: 5,
+      xpPoints: 100,
+      totalXpEarned: 500,
+      isEmailVerified: true,
+      isActive: true,
+      createdAt: new Date('2024-01-15'),
     });
     prisma.streakData.findUnique.mockResolvedValue({ currentStreak: 7 });
     prisma.userRelationship.count.mockResolvedValue(0);
@@ -46,9 +54,17 @@ describe('GetProfileUseCase', () => {
 
   it('should return null league tier when user has no tier', async () => {
     prisma.user.findUnique.mockResolvedValue({
-      id: 'u2', email: 'user2@example.com', username: 'user2', fullName: 'User Two',
-      profilePictureUrl: 'https://example.com/avatar.png', currentLevel: 1, xpPoints: 0,
-      totalXpEarned: 0, isEmailVerified: false, isActive: true, createdAt: new Date('2025-06-01'),
+      id: 'u2',
+      email: 'user2@example.com',
+      username: 'user2',
+      fullName: 'User Two',
+      profilePictureUrl: 'https://example.com/avatar.png',
+      currentLevel: 1,
+      xpPoints: 0,
+      totalXpEarned: 0,
+      isEmailVerified: false,
+      isActive: true,
+      createdAt: new Date('2025-06-01'),
     });
     prisma.streakData.findUnique.mockResolvedValue(null);
     prisma.userRelationship.count.mockResolvedValue(0);
@@ -67,9 +83,17 @@ describe('GetProfileUseCase', () => {
 
   it('should detect active tournament participation', async () => {
     prisma.user.findUnique.mockResolvedValue({
-      id: 'u3', email: 'u3@example.com', username: 'u3', fullName: 'User Three',
-      profilePictureUrl: null, currentLevel: 10, xpPoints: 500,
-      totalXpEarned: 2000, isEmailVerified: true, isActive: true, createdAt: new Date('2024-03-10'),
+      id: 'u3',
+      email: 'u3@example.com',
+      username: 'u3',
+      fullName: 'User Three',
+      profilePictureUrl: null,
+      currentLevel: 10,
+      xpPoints: 500,
+      totalXpEarned: 2000,
+      isEmailVerified: true,
+      isActive: true,
+      createdAt: new Date('2024-03-10'),
     });
     prisma.streakData.findUnique.mockResolvedValue({ currentStreak: 30 });
     prisma.userRelationship.count.mockResolvedValue(5);
@@ -77,8 +101,13 @@ describe('GetProfileUseCase', () => {
       { activityDate: new Date('2025-05-01'), xpEarned: 50 },
       { activityDate: new Date('2025-04-30'), xpEarned: 30 },
     ]);
-    prisma.userLeagueTier.findUnique.mockResolvedValue({ currentTier: 'DIAMOND' });
-    prisma.leagueParticipant.findFirst.mockResolvedValue({ id: 'lp1', userId: 'u3' });
+    prisma.userLeagueTier.findUnique.mockResolvedValue({
+      currentTier: 'DIAMOND',
+    });
+    prisma.leagueParticipant.findFirst.mockResolvedValue({
+      id: 'lp1',
+      userId: 'u3',
+    });
     prisma.leagueHistory.count.mockResolvedValue(5);
 
     const result = await useCase.execute('u3');
@@ -98,6 +127,8 @@ describe('GetProfileUseCase', () => {
     prisma.leagueParticipant.findFirst.mockResolvedValue(null);
     prisma.leagueHistory.count.mockResolvedValue(0);
 
-    await expect(useCase.execute('non-existent')).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('non-existent')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

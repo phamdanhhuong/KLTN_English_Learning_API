@@ -9,9 +9,7 @@ import { GetUnlockedChestsUseCase } from '../application/use-cases/claim-quest.u
 @Controller('users/quests')
 @UseGuards(JwtAuthGuard)
 export class UserQuestController {
-  constructor(
-    private readonly getUnlockedChests: GetUnlockedChestsUseCase,
-  ) {}
+  constructor(private readonly getUnlockedChests: GetUnlockedChestsUseCase) {}
 
   @Get('chests')
   async getChests(@Request() req: any) {

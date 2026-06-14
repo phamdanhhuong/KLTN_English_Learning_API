@@ -11,13 +11,29 @@ describe('CreateSkillUseCase', () => {
   });
 
   it('should create a skill with levels and return DTO', async () => {
-    const skill = new Skill('skill-1', 'Grammar', 'Grammar skills', 1, 'part-1');
+    const skill = new Skill(
+      'skill-1',
+      'Grammar',
+      'Grammar skills',
+      1,
+      'part-1',
+    );
     skillDomainService.createSkillWithLevels.mockResolvedValue(skill);
 
-    const result = await useCase.execute({ title: 'Grammar', description: 'Grammar skills', position: 1, partId: 'part-1' });
+    const result = await useCase.execute({
+      title: 'Grammar',
+      description: 'Grammar skills',
+      position: 1,
+      partId: 'part-1',
+    });
 
     expect(result.id).toBe('skill-1');
     expect(result.title).toBe('Grammar');
-    expect(skillDomainService.createSkillWithLevels).toHaveBeenCalledWith('Grammar', 'Grammar skills', 1, 'part-1');
+    expect(skillDomainService.createSkillWithLevels).toHaveBeenCalledWith(
+      'Grammar',
+      'Grammar skills',
+      1,
+      'part-1',
+    );
   });
 });

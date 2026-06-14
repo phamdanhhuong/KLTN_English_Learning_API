@@ -5,7 +5,9 @@ import { PrismaService } from '../../../../infrastructure/database/prisma.servic
 function getVnToday(): Date {
   const now = new Date();
   const vnNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-  return new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate()));
+  return new Date(
+    Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate()),
+  );
 }
 
 @Injectable()
@@ -29,16 +31,21 @@ export class StreakScheduler {
       const expiredStreaks = await this.prisma.streakData.findMany({
         where: {
           currentStreak: { gt: 0 },
-          OR: [
-            { lastStudyDate: { lt: yesterday } },
-            { lastStudyDate: null },
-          ],
+          OR: [{ lastStudyDate: { lt: yesterday } }, { lastStudyDate: null }],
         },
-        select: { id: true, userId: true, currentStreak: true, longestStreak: true,
-          lastStudyDate: true, freezeCount: true },
+        select: {
+          id: true,
+          userId: true,
+          currentStreak: true,
+          longestStreak: true,
+          lastStudyDate: true,
+          freezeCount: true,
+        },
       });
 
-      let broken = 0, frozen = 0, skipped = 0;
+      let broken = 0,
+        frozen = 0,
+        skipped = 0;
       const errors: string[] = [];
 
       for (const streak of expiredStreaks) {
@@ -52,10 +59,19 @@ export class StreakScheduler {
               });
               // Log freeze day trong daily activity
               await tx.userDailyActivity.upsert({
-                where: { userId_activityDate: { userId: streak.userId, activityDate: yesterday } },
+                where: {
+                  userId_activityDate: {
+                    userId: streak.userId,
+                    activityDate: yesterday,
+                  },
+                },
                 update: { freezeUsed: true },
-                create: { userId: streak.userId, activityDate: yesterday, freezeUsed: true,
-                  streakCount: streak.currentStreak },
+                create: {
+                  userId: streak.userId,
+                  activityDate: yesterday,
+                  freezeUsed: true,
+                  streakCount: streak.currentStreak,
+                },
               });
               frozen++;
             } else {
@@ -65,7 +81,10 @@ export class StreakScheduler {
                   data: {
                     streakDataId: streak.id,
                     streakLength: streak.currentStreak,
-                    startDate: new Date(yesterday.getTime() - (streak.currentStreak - 1) * 86400000),
+                    startDate: new Date(
+                      yesterday.getTime() -
+                        (streak.currentStreak - 1) * 86400000,
+                    ),
                     endDate: streak.lastStudyDate ?? yesterday,
                     endReason: 'expired',
                   },
@@ -85,9 +104,10 @@ export class StreakScheduler {
 
       this.logger.log(
         `✅ Streak check done — ${expiredStreaks.length} checked, ` +
-        `${broken} broken, ${frozen} frozen, ${skipped} skipped`,
+          `${broken} broken, ${frozen} frozen, ${skipped} skipped`,
       );
-      if (errors.length) this.logger.warn(`⚠️ ${errors.length} errors: ${errors.join('; ')}`);
+      if (errors.length)
+        this.logger.warn(`⚠️ ${errors.length} errors: ${errors.join('; ')}`);
     } catch (err: any) {
       this.logger.error('❌ Streak scheduler failed', err.stack);
     }

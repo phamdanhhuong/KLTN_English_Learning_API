@@ -30,7 +30,7 @@ describe('GetXpHistoryUseCase', () => {
     const result = await useCase.execute('user-1', 7);
     expect(result).toHaveLength(7);
     // At least one day should have XP
-    const hasActivity = result.some(r => r.xpEarned > 0);
+    const hasActivity = result.some((r) => r.xpEarned > 0);
     expect(hasActivity).toBe(true);
   });
 });

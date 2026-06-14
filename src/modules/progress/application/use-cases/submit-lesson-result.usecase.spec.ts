@@ -12,18 +12,27 @@ describe('SubmitLessonResultUseCase', () => {
     lessonSubmissionService = {
       validateLessonProgress: jest.fn().mockResolvedValue(true),
       getExerciseDataMaps: jest.fn().mockResolvedValue({
-        wordsMap: new Map(), grammarsMap: new Map(),
+        wordsMap: new Map(),
+        grammarsMap: new Map(),
       }),
       calculateLessonPerformance: jest.fn().mockReturnValue({
-        correctExercises: 4, totalExercises: 5, lessonAccuracy: 0.8, isLessonSuccessful: true,
+        correctExercises: 4,
+        totalExercises: 5,
+        lessonAccuracy: 0.8,
+        isLessonSuccessful: true,
       }),
       saveExerciseResults: jest.fn(),
     };
     masteryUpdateService = {
-      updateMasteries: jest.fn().mockResolvedValue({ wordMasteriesUpdated: 2, grammarMasteriesUpdated: 1 }),
+      updateMasteries: jest.fn().mockResolvedValue({
+        wordMasteriesUpdated: 2,
+        grammarMasteriesUpdated: 1,
+      }),
     };
     skillProgressService = {
-      generateProgressMessage: jest.fn().mockReturnValue('Great job! 4/5 correct.'),
+      generateProgressMessage: jest
+        .fn()
+        .mockReturnValue('Great job! 4/5 correct.'),
       updateSkillProgress: jest.fn().mockResolvedValue('Level up!'),
     };
     lessonCompletedUseCase = {
@@ -71,17 +80,27 @@ describe('SubmitLessonResultUseCase', () => {
   });
 
   it('should skip skill progress update for review lessons', async () => {
-    const reviewDto = { ...submitDto, lessonId: 'review-user-1-123', skillId: 'review' };
+    const reviewDto = {
+      ...submitDto,
+      lessonId: 'review-user-1-123',
+      skillId: 'review',
+    };
     const result = await useCase.execute('user-1', reviewDto);
 
     expect(result.isLessonSuccessful).toBe(true);
     expect(skillProgressService.updateSkillProgress).not.toHaveBeenCalled();
-    expect(eventEmitter.emit).toHaveBeenCalledWith('energy.award', expect.objectContaining({ userId: 'user-1' }));
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      'energy.award',
+      expect.objectContaining({ userId: 'user-1' }),
+    );
   });
 
   it('should not trigger gamification for unsuccessful lessons', async () => {
     lessonSubmissionService.calculateLessonPerformance.mockReturnValue({
-      correctExercises: 1, totalExercises: 5, lessonAccuracy: 0.2, isLessonSuccessful: false,
+      correctExercises: 1,
+      totalExercises: 5,
+      lessonAccuracy: 0.2,
+      isLessonSuccessful: false,
     });
 
     const result = await useCase.execute('user-1', submitDto);
@@ -90,7 +109,9 @@ describe('SubmitLessonResultUseCase', () => {
   });
 
   it('should handle gamification failure gracefully', async () => {
-    lessonCompletedUseCase.execute.mockRejectedValue(new Error('Gamification error'));
+    lessonCompletedUseCase.execute.mockRejectedValue(
+      new Error('Gamification error'),
+    );
 
     const result = await useCase.execute('user-1', submitDto);
     expect(result.isLessonSuccessful).toBe(true);
@@ -99,7 +120,10 @@ describe('SubmitLessonResultUseCase', () => {
 
   it('should calculate XP bonuses correctly for perfect score', async () => {
     lessonSubmissionService.calculateLessonPerformance.mockReturnValue({
-      correctExercises: 5, totalExercises: 5, lessonAccuracy: 1.0, isLessonSuccessful: true,
+      correctExercises: 5,
+      totalExercises: 5,
+      lessonAccuracy: 1.0,
+      isLessonSuccessful: true,
     });
 
     const result = await useCase.execute('user-1', submitDto);

@@ -38,7 +38,12 @@ export class MasteryUpdateService implements MasteryUpdateServiceInterface {
       for (const grammarId of exerciseGrammars) {
         await this.prisma.grammarMastery.upsert({
           where: { userId_grammarId: { userId, grammarId } },
-          create: { userId, grammarId, masteryLevel: 1, lastReview: new Date() },
+          create: {
+            userId,
+            grammarId,
+            masteryLevel: 1,
+            lastReview: new Date(),
+          },
           update: { masteryLevel: { increment: 1 }, lastReview: new Date() },
         });
         grammarMasteriesUpdated++;

@@ -19,6 +19,8 @@ describe('DeleteSkillUseCase', () => {
 
   it('should throw NotFoundException when skill not found', async () => {
     skillRepository.findById.mockResolvedValue(null);
-    await expect(useCase.execute('non-existent')).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('non-existent')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

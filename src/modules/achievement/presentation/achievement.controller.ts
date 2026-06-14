@@ -1,8 +1,9 @@
-import {
-  Controller, Get, UseGuards, Request, Query,
-} from '@nestjs/common';
+import { Controller, Get, UseGuards, Request, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { GetUserAchievementsUseCase, GetAchievementsSummaryUseCase } from '../application/use-cases/get-achievements.usecase';
+import {
+  GetUserAchievementsUseCase,
+  GetAchievementsSummaryUseCase,
+} from '../application/use-cases/get-achievements.usecase';
 
 @Controller('achievements')
 @UseGuards(JwtAuthGuard)

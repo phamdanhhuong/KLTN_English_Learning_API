@@ -1,4 +1,12 @@
-import { Controller, Get, Param, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  UseGuards,
+  Request,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { BattleGameService } from '../application/services/battle-game.service';
 import { Inject } from '@nestjs/common';
@@ -23,14 +31,19 @@ export class BattleController {
     const userId = req.user.sub;
     const parsedLimit = limit ? parseInt(limit, 10) : 20;
     const parsedOffset = offset ? parseInt(offset, 10) : 0;
-    const matches = await this.battleRepo.getUserMatches(userId, parsedLimit, parsedOffset);
+    const matches = await this.battleRepo.getUserMatches(
+      userId,
+      parsedLimit,
+      parsedOffset,
+    );
 
     return matches.map((m: any) => ({
       id: m.id,
       opponent: m.player1Id === userId ? m.player2 : m.player1,
       myScore: m.player1Id === userId ? m.player1Score : m.player2Score,
       opponentScore: m.player1Id === userId ? m.player2Score : m.player1Score,
-      result: m.winnerId === userId ? 'WIN' : (m.winnerId === null ? 'DRAW' : 'LOSE'),
+      result:
+        m.winnerId === userId ? 'WIN' : m.winnerId === null ? 'DRAW' : 'LOSE',
       xpEarned: m.player1Id === userId ? m.xpAwarded1 : m.xpAwarded2,
       isBot: m.isBot,
       completedAt: m.completedAt,
@@ -45,14 +58,19 @@ export class BattleController {
   ) {
     const parsedLimit = limit ? parseInt(limit, 10) : 20;
     const parsedOffset = offset ? parseInt(offset, 10) : 0;
-    const matches = await this.battleRepo.getUserPublicMatches(userId, parsedLimit, parsedOffset);
+    const matches = await this.battleRepo.getUserPublicMatches(
+      userId,
+      parsedLimit,
+      parsedOffset,
+    );
 
     return matches.map((m: any) => ({
       id: m.id,
       opponent: m.player1Id === userId ? m.player2 : m.player1,
       myScore: m.player1Id === userId ? m.player1Score : m.player2Score,
       opponentScore: m.player1Id === userId ? m.player2Score : m.player1Score,
-      result: m.winnerId === userId ? 'WIN' : (m.winnerId === null ? 'DRAW' : 'LOSE'),
+      result:
+        m.winnerId === userId ? 'WIN' : m.winnerId === null ? 'DRAW' : 'LOSE',
       xpEarned: m.player1Id === userId ? m.xpAwarded1 : m.xpAwarded2,
       isBot: m.isBot,
       completedAt: m.completedAt,

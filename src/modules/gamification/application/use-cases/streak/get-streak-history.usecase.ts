@@ -56,7 +56,7 @@ export class GetStreakHistoryUseCase {
       }),
     ]);
 
-    const historyItems: StreakHistoryItem[] = histories.map(h => ({
+    const historyItems: StreakHistoryItem[] = histories.map((h) => ({
       id: h.id,
       streakLength: h.streakLength,
       startDate: h.startDate,
@@ -65,14 +65,24 @@ export class GetStreakHistoryUseCase {
       freezesUsed: 0,
       durationDays: 0,
       isActive: true,
-      freezeDay: "",
+      freezeDay: '',
     }));
 
     // Tính toán statistics
     const totalStreaks = historyItems.length;
-    const totalActiveDays = historyItems.reduce((sum, h) => sum + h.streakLength, 0);
-    const averageStreakLength = totalStreaks > 0 ? Math.round(totalActiveDays / totalStreaks) : 0;
-    const distribution = { '1-3': 0, '4-7': 0, '8-14': 0, '15-30': 0, '31+': 0 };
+    const totalActiveDays = historyItems.reduce(
+      (sum, h) => sum + h.streakLength,
+      0,
+    );
+    const averageStreakLength =
+      totalStreaks > 0 ? Math.round(totalActiveDays / totalStreaks) : 0;
+    const distribution = {
+      '1-3': 0,
+      '4-7': 0,
+      '8-14': 0,
+      '15-30': 0,
+      '31+': 0,
+    };
     for (const h of historyItems) {
       if (h.streakLength >= 31) distribution['31+']++;
       else if (h.streakLength >= 15) distribution['15-30']++;
@@ -85,7 +95,9 @@ export class GetStreakHistoryUseCase {
     const currentStreakLength = streakData?.currentStreak ?? 0;
     const lastStudy = streakData?.lastStudyDate;
     const startDate = lastStudy
-      ? new Date(new Date(lastStudy).getTime() - (currentStreakLength - 1) * 86400000).toISOString()
+      ? new Date(
+          new Date(lastStudy).getTime() - (currentStreakLength - 1) * 86400000,
+        ).toISOString()
       : new Date().toISOString();
 
     return {

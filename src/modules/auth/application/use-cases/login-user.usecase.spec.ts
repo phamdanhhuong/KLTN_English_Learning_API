@@ -14,7 +14,13 @@ describe('LoginUserUseCase', () => {
     email: 'test@example.com',
     password: 'hashed-password',
     isActive: true,
-    role: { id: '1', name: 'USER', description: null, createdAt: new Date(), updatedAt: new Date() } as any,
+    role: {
+      id: '1',
+      name: 'USER',
+      description: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any,
   });
 
   beforeEach(() => {
@@ -46,12 +52,18 @@ describe('LoginUserUseCase', () => {
     hashService.compare.mockResolvedValue(true);
     authUserRepo.update.mockResolvedValue(mockUser);
 
-    const result = await useCase.execute({ email: 'test@example.com', password: 'password123' });
+    const result = await useCase.execute({
+      email: 'test@example.com',
+      password: 'password123',
+    });
 
     expect(result.tokens.accessToken).toBe('access-token');
     expect(result.tokens.refreshToken).toBe('refresh-token');
     expect(result.user.email).toBe('test@example.com');
-    expect(authUserRepo.update).toHaveBeenCalledWith('user-1', expect.objectContaining({ lastLoginAt: expect.any(Date) }));
+    expect(authUserRepo.update).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ lastLoginAt: expect.any(Date) }),
+    );
     expect(refreshTokenRepo.create).toHaveBeenCalled();
   });
 
@@ -64,7 +76,9 @@ describe('LoginUserUseCase', () => {
   });
 
   it('should throw UnauthorizedException when account is deactivated', async () => {
-    authUserRepo.findByEmail.mockResolvedValue(new AuthUser({ ...mockUser, isActive: false }));
+    authUserRepo.findByEmail.mockResolvedValue(
+      new AuthUser({ ...mockUser, isActive: false }),
+    );
 
     await expect(
       useCase.execute({ email: 'test@example.com', password: 'password123' }),
@@ -72,7 +86,9 @@ describe('LoginUserUseCase', () => {
   });
 
   it('should throw UnauthorizedException for social login account without password', async () => {
-    authUserRepo.findByEmail.mockResolvedValue(new AuthUser({ ...mockUser, password: null }));
+    authUserRepo.findByEmail.mockResolvedValue(
+      new AuthUser({ ...mockUser, password: null }),
+    );
 
     await expect(
       useCase.execute({ email: 'test@example.com', password: 'password123' }),
@@ -84,7 +100,10 @@ describe('LoginUserUseCase', () => {
     hashService.compare.mockResolvedValue(false);
 
     await expect(
-      useCase.execute({ email: 'test@example.com', password: 'wrong-password' }),
+      useCase.execute({
+        email: 'test@example.com',
+        password: 'wrong-password',
+      }),
     ).rejects.toThrow(UnauthorizedException);
   });
 });

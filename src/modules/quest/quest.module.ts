@@ -11,8 +11,15 @@ import { QUEST_TOKENS } from './domain/di/tokens';
 
 // Application
 import { QuestService } from './application/services/quest.service';
-import { GetUserQuestsUseCase, GetCompletedQuestsUseCase } from './application/use-cases/get-quests.usecase';
-import { ClaimQuestUseCase, GetUnlockedChestsUseCase, OpenChestUseCase } from './application/use-cases/claim-quest.usecase';
+import {
+  GetUserQuestsUseCase,
+  GetCompletedQuestsUseCase,
+} from './application/use-cases/get-quests.usecase';
+import {
+  ClaimQuestUseCase,
+  GetUnlockedChestsUseCase,
+  OpenChestUseCase,
+} from './application/use-cases/claim-quest.usecase';
 import {
   GetFriendsQuestParticipantsUseCase,
   JoinFriendsQuestUseCase,
@@ -42,7 +49,9 @@ import { UserQuestController } from './presentation/user-quest.controller';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any },
+        signOptions: {
+          expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any,
+        },
       }),
     }),
   ],

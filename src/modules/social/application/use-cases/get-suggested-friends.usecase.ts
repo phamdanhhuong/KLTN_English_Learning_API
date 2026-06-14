@@ -28,13 +28,18 @@ export class GetSuggestedFriendsUseCase {
 
     const followingIds = await this.socialRepo.getFollowingIds(currentUserId);
     const blockedIds = await this.socialRepo.getBlockedIds(currentUserId);
-    const excludeIds = [...new Set([...followingIds, ...blockedIds, currentUserId])];
+    const excludeIds = [
+      ...new Set([...followingIds, ...blockedIds, currentUserId]),
+    ];
 
     let suggestions: SuggestedUser[] = [];
 
     // Strategy 1: Friends of friends
     if (followingIds.length > 0) {
-      const fofUsers = await (this.socialRepo as any).getFriendsOfFriends(followingIds, excludeIds);
+      const fofUsers = await (this.socialRepo as any).getFriendsOfFriends(
+        followingIds,
+        excludeIds,
+      );
       suggestions = fofUsers.map((user: any) => ({
         id: user.id,
         username: user.username || '',
@@ -49,7 +54,10 @@ export class GetSuggestedFriendsUseCase {
     if (suggestions.length < 10) {
       const allExclude = [...excludeIds, ...suggestions.map((s) => s.id)];
       const remaining = 10 - suggestions.length;
-      const recentUsers = await this.socialRepo.getSuggestedUsers(allExclude, remaining);
+      const recentUsers = await this.socialRepo.getSuggestedUsers(
+        allExclude,
+        remaining,
+      );
 
       suggestions.push(
         ...recentUsers.map((user: any) => ({

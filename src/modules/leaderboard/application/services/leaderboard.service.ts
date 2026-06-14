@@ -29,16 +29,26 @@ export class LeaderboardService {
     const weekEnd = this.getCurrentWeekEnd();
 
     // Check if already in a league this week
-    const existing = await this.participantRepo.findUserActiveParticipation(userId, weekStart);
+    const existing = await this.participantRepo.findUserActiveParticipation(
+      userId,
+      weekStart,
+    );
     if (existing) return existing;
 
     // Get or create user tier
     const userTier = await this.userTierRepo.getOrCreate(userId);
 
     // Get or create league for this tier & week
-    let league = await this.leagueRepo.findByTierAndWeek(userTier.currentTier, weekStart);
+    let league = await this.leagueRepo.findByTierAndWeek(
+      userTier.currentTier,
+      weekStart,
+    );
     if (!league) {
-      league = await this.leagueRepo.create(userTier.currentTier, weekStart, weekEnd);
+      league = await this.leagueRepo.create(
+        userTier.currentTier,
+        weekStart,
+        weekEnd,
+      );
     }
 
     // Find available group or create new one
@@ -52,7 +62,11 @@ export class LeaderboardService {
     const participant = await this.participantRepo.create(group.id, userId);
 
     // Update group count
-    await this.leagueRepo.incrementGroupParticipant(group.id, group.participantCount, group.maxParticipants);
+    await this.leagueRepo.incrementGroupParticipant(
+      group.id,
+      group.participantCount,
+      group.maxParticipants,
+    );
 
     // Update user tier with current group
     await this.userTierRepo.updateCurrentGroup(userId, group.id);
@@ -75,11 +89,17 @@ export class LeaderboardService {
 
   async updateUserXp(userId: string, xpToAdd: number) {
     const weekStart = this.getCurrentWeekStart();
-    let participation = await this.participantRepo.findUserActiveParticipation(userId, weekStart);
+    let participation = await this.participantRepo.findUserActiveParticipation(
+      userId,
+      weekStart,
+    );
 
     if (!participation) {
       const joinResult = await this.joinLeague(userId);
-      participation = await this.participantRepo.findUserActiveParticipation(userId, weekStart);
+      participation = await this.participantRepo.findUserActiveParticipation(
+        userId,
+        weekStart,
+      );
       if (!participation) return;
     }
 
@@ -87,27 +107,40 @@ export class LeaderboardService {
     await this.participantRepo.updateXp(participation.id, xpToAdd);
 
     // Update Redis sorted set — O(log N)
-    await this.participantRepo.incrXpRedis(participation.groupId, xpToAdd, userId);
+    await this.participantRepo.incrXpRedis(
+      participation.groupId,
+      xpToAdd,
+      userId,
+    );
   }
 
   // ─── Core: Get Standings ───
 
   async getLeaderboard(userId: string) {
     const weekStart = this.getCurrentWeekStart();
-    const participation = await this.participantRepo.findUserActiveParticipation(userId, weekStart);
+    const participation =
+      await this.participantRepo.findUserActiveParticipation(userId, weekStart);
 
     if (!participation) {
-      throw new NotFoundException('Not in any league this week. Call POST /leaderboard/join first.');
+      throw new NotFoundException(
+        'Not in any league this week. Call POST /leaderboard/join first.',
+      );
     }
 
     const groupId = participation.groupId;
 
     // Try Redis first
-    let standings = await this.participantRepo.getStandingsFromRedis(groupId, userId);
+    let standings = await this.participantRepo.getStandingsFromRedis(
+      groupId,
+      userId,
+    );
 
     if (standings.length === 0) {
       // Fallback to DB
-      standings = await this.participantRepo.getStandingsFromDB(groupId, userId);
+      standings = await this.participantRepo.getStandingsFromDB(
+        groupId,
+        userId,
+      );
       // Backfill Redis
       await this.participantRepo.backfillRedis(groupId);
     }
@@ -144,7 +177,8 @@ export class LeaderboardService {
     const previousWeekStart = new Date(this.getCurrentWeekStart());
     previousWeekStart.setDate(previousWeekStart.getDate() - 7);
 
-    const leagues = await this.leagueRepo.findActiveLeaguesByWeek(previousWeekStart);
+    const leagues =
+      await this.leagueRepo.findActiveLeaguesByWeek(previousWeekStart);
 
     for (const league of leagues) {
       for (const group of league.groups) {
@@ -166,7 +200,8 @@ export class LeaderboardService {
     const INACTIVE_DAYS = 7;
     const DECAY_AMOUNT = 50;
 
-    const inactiveParticipants = await this.participantRepo.findInactiveParticipants(INACTIVE_DAYS);
+    const inactiveParticipants =
+      await this.participantRepo.findInactiveParticipants(INACTIVE_DAYS);
 
     let decayed = 0;
     const errors: string[] = [];
@@ -180,7 +215,11 @@ export class LeaderboardService {
         await this.participantRepo.decayXp(participant.id, actualDecay);
 
         // Decay in Redis
-        await this.participantRepo.decrXpRedis(participant.groupId, actualDecay, participant.userId);
+        await this.participantRepo.decrXpRedis(
+          participant.groupId,
+          actualDecay,
+          participant.userId,
+        );
 
         decayed++;
         this.logger.debug(
@@ -205,14 +244,19 @@ export class LeaderboardService {
   async processPeriodicTierDecay() {
     const INACTIVE_DAYS_FOR_DEMOTION = 14;
 
-    const inactiveUsers = await this.userTierRepo.findInactiveHighTierUsers(INACTIVE_DAYS_FOR_DEMOTION);
+    const inactiveUsers = await this.userTierRepo.findInactiveHighTierUsers(
+      INACTIVE_DAYS_FOR_DEMOTION,
+    );
 
     let demoted = 0;
     const errors: string[] = [];
 
     for (const userTier of inactiveUsers) {
       try {
-        const result = await this.userTierRepo.changeTier(userTier.userId, 'down');
+        const result = await this.userTierRepo.changeTier(
+          userTier.userId,
+          'down',
+        );
         demoted++;
         this.logger.log(
           `⬇️ Tier decay: ${userTier.user?.username || userTier.userId} ${result.oldTier} → ${result.newTier}`,
@@ -233,7 +277,10 @@ export class LeaderboardService {
   // ─── Private helpers ───
 
   private async processGroupRotation(group: any, tier: string) {
-    let standings = await this.participantRepo.getStandingsFromRedis(group.id, '');
+    let standings = await this.participantRepo.getStandingsFromRedis(
+      group.id,
+      '',
+    );
     if (standings.length === 0) {
       standings = await this.participantRepo.getStandingsFromDB(group.id, '');
     }
@@ -251,10 +298,12 @@ export class LeaderboardService {
         const tierResult = await this.userTierRepo.changeTier(userId, 'up');
 
         // Feed auto-create: LEAGUE_PROMOTION
-        this.feedService.autoCreatePost(userId, 'LEAGUE_PROMOTION', {
-          oldTier: tierResult.oldTier,
-          newTier: tierResult.newTier,
-        }).catch(() => {});
+        this.feedService
+          .autoCreatePost(userId, 'LEAGUE_PROMOTION', {
+            oldTier: tierResult.oldTier,
+            newTier: tierResult.newTier,
+          })
+          .catch(() => {});
       } else if (this.shouldDemote(rank, totalParticipants)) {
         outcome = 'DEMOTED';
         await this.userTierRepo.changeTier(userId, 'down');
@@ -262,10 +311,12 @@ export class LeaderboardService {
 
       // Feed auto-create: LEAGUE_TOP_3
       if (rank <= 3) {
-        this.feedService.autoCreatePost(userId, 'LEAGUE_TOP_3', {
-          tier,
-          rank,
-        }).catch(() => {});
+        this.feedService
+          .autoCreatePost(userId, 'LEAGUE_TOP_3', {
+            tier,
+            rank,
+          })
+          .catch(() => {});
       }
 
       await this.historyRepo.create({

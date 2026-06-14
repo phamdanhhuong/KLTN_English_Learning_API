@@ -14,7 +14,11 @@ describe('CreateSkillPartUseCase', () => {
     const created = new SkillPart('sp1', 'Part 1', 'Desc', 1);
     skillPartRepository.create.mockResolvedValue(created);
 
-    const result = await useCase.execute({ name: 'Part 1', description: 'Desc', position: 1 });
+    const result = await useCase.execute({
+      name: 'Part 1',
+      description: 'Desc',
+      position: 1,
+    });
     expect(result.name).toBe('Part 1');
     expect(skillPartRepository.create).toHaveBeenCalled();
   });

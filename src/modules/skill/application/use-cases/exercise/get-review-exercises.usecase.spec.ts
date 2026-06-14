@@ -1,5 +1,8 @@
 import { GetReviewExercisesUseCase } from './get-review-exercises.usecase';
-import { Exercise, ExerciseType } from '../../../domain/entities/exercise.entity';
+import {
+  Exercise,
+  ExerciseType,
+} from '../../../domain/entities/exercise.entity';
 
 describe('GetReviewExercisesUseCase', () => {
   let useCase: GetReviewExercisesUseCase;
@@ -27,7 +30,10 @@ describe('GetReviewExercisesUseCase', () => {
     ]);
     reviewExerciseRepository.findByIds.mockResolvedValue([mockExercise('e1')]);
     reviewExerciseRepository.findRandomExercises.mockResolvedValue([
-      mockExercise('e2'), mockExercise('e3'), mockExercise('e4'), mockExercise('e5'),
+      mockExercise('e2'),
+      mockExercise('e3'),
+      mockExercise('e4'),
+      mockExercise('e5'),
     ]);
 
     const result = await useCase.execute('user-1');
@@ -39,8 +45,11 @@ describe('GetReviewExercisesUseCase', () => {
 
   it('should fill with random exercises when not enough review items', async () => {
     reviewExerciseRepository.findRandomExercises.mockResolvedValue([
-      mockExercise('r1'), mockExercise('r2'), mockExercise('r3'),
-      mockExercise('r4'), mockExercise('r5'),
+      mockExercise('r1'),
+      mockExercise('r2'),
+      mockExercise('r3'),
+      mockExercise('r4'),
+      mockExercise('r5'),
     ]);
 
     const result = await useCase.execute('user-1');
@@ -57,7 +66,7 @@ describe('GetReviewExercisesUseCase', () => {
     reviewExerciseRepository.findByWordIds.mockResolvedValue([same]); // duplicate
 
     const result = await useCase.execute('user-1');
-    const ids = result.exercises.map(e => e.id);
+    const ids = result.exercises.map((e) => e.id);
     const uniqueIds = [...new Set(ids)];
     expect(ids.length).toBe(uniqueIds.length);
   });

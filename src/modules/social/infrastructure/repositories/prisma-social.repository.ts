@@ -58,7 +58,12 @@ export class PrismaSocialRepository implements SocialRepository {
 
     const users = await this.prisma.user.findMany({
       where: { id: { in: ids } },
-      select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        profilePictureUrl: true,
+      },
     });
 
     const userMap = new Map(users.map((u) => [u.id, u]));
@@ -86,7 +91,12 @@ export class PrismaSocialRepository implements SocialRepository {
 
     const users = await this.prisma.user.findMany({
       where: { id: { in: ids } },
-      select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        profilePictureUrl: true,
+      },
     });
 
     const userMap = new Map(users.map((u) => [u.id, u]));
@@ -128,7 +138,12 @@ export class PrismaSocialRepository implements SocialRepository {
           { email: { contains: searchTerm, mode: 'insensitive' } },
         ],
       },
-      select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        profilePictureUrl: true,
+      },
       take: 20,
     });
   }
@@ -136,7 +151,12 @@ export class PrismaSocialRepository implements SocialRepository {
   async getSuggestedUsers(excludeIds: string[], limit = 10): Promise<any[]> {
     return this.prisma.user.findMany({
       where: { id: { notIn: excludeIds } },
-      select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        profilePictureUrl: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
@@ -145,10 +165,7 @@ export class PrismaSocialRepository implements SocialRepository {
   async getBlockedIds(userId: string): Promise<string[]> {
     const blocks = await this.prisma.userBlock.findMany({
       where: {
-        OR: [
-          { blockerId: userId },
-          { blockedUserId: userId },
-        ],
+        OR: [{ blockerId: userId }, { blockedUserId: userId }],
       },
       select: { blockerId: true, blockedUserId: true },
     });
@@ -170,7 +187,10 @@ export class PrismaSocialRepository implements SocialRepository {
     });
   }
 
-  async getFollowingIdsFromList(currentUserId: string, userIds: string[]): Promise<Set<string>> {
+  async getFollowingIdsFromList(
+    currentUserId: string,
+    userIds: string[],
+  ): Promise<Set<string>> {
     const relations = await this.prisma.userRelationship.findMany({
       where: {
         followerId: currentUserId,
@@ -183,7 +203,10 @@ export class PrismaSocialRepository implements SocialRepository {
 
   // ─── Friends of friends (for suggestions) ───
 
-  async getFriendsOfFriends(followingIds: string[], excludeIds: string[]): Promise<any[]> {
+  async getFriendsOfFriends(
+    followingIds: string[],
+    excludeIds: string[],
+  ): Promise<any[]> {
     const fof = await this.prisma.userRelationship.findMany({
       where: {
         followerId: { in: followingIds },
@@ -198,7 +221,12 @@ export class PrismaSocialRepository implements SocialRepository {
 
     return this.prisma.user.findMany({
       where: { id: { in: fofIds } },
-      select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        profilePictureUrl: true,
+      },
       take: 10,
     });
   }

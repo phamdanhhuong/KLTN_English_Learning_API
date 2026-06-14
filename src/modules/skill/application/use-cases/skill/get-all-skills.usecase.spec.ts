@@ -11,7 +11,10 @@ describe('GetAllSkillsUseCase', () => {
   });
 
   it('should return all skills sorted by position', async () => {
-    const skills = [new Skill('s1', 'Grammar', undefined, 1), new Skill('s2', 'Vocabulary', undefined, 2)];
+    const skills = [
+      new Skill('s1', 'Grammar', undefined, 1),
+      new Skill('s2', 'Vocabulary', undefined, 2),
+    ];
     skillRepository.findByPosition.mockResolvedValue(skills);
     const result = await useCase.execute();
     expect(result).toHaveLength(2);

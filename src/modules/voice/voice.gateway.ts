@@ -25,8 +25,8 @@ interface VoiceCallSession {
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/voice',
-  pingTimeout: 60000,    // 60s — allow slow STT on ARM CPU
-  pingInterval: 30000,   // 30s keepalive
+  pingTimeout: 60000, // 60s — allow slow STT on ARM CPU
+  pingInterval: 30000, // 30s keepalive
 })
 export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -123,9 +123,7 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.logger.warn(`Greeting generation failed: ${greetingError}`);
       }
 
-      this.logger.log(
-        `Voice call started: conversationId=${conversationId}`,
-      );
+      this.logger.log(`Voice call started: conversationId=${conversationId}`);
     } catch (error) {
       this.logger.error(`Failed to start voice call: ${error}`);
       client.emit('voice:error', {
@@ -210,10 +208,7 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /**
    * Process accumulated audio buffer: STT → Chat → TTS pipeline
    */
-  private async processAudioBuffer(
-    client: Socket,
-    session: VoiceCallSession,
-  ) {
+  private async processAudioBuffer(client: Socket, session: VoiceCallSession) {
     if (session.isProcessing || session.audioBuffer.length === 0) return;
 
     session.isProcessing = true;
@@ -244,7 +239,7 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       wavHeader.writeUInt16LE(16, 34); // BitsPerSample
       wavHeader.write('data', 36);
       wavHeader.writeUInt32LE(pcmBuffer.length, 40); // Subchunk2Size
-      
+
       const fullAudio = Buffer.concat([wavHeader, pcmBuffer]);
 
       // Skip if too small (likely noise)
@@ -308,7 +303,9 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Step 3: TTS — Synthesize AI response audio
       try {
-        this.logger.debug(`Synthesizing: "${chatResult.content.substring(0, 50)}..."`);
+        this.logger.debug(
+          `Synthesizing: "${chatResult.content.substring(0, 50)}..."`,
+        );
         const ttsResult = await this.voiceService.synthesize(
           chatResult.content,
         );

@@ -13,9 +13,10 @@ import {
 } from '../interfaces/standard-response.interface';
 
 @Injectable()
-export class ResponseTransformInterceptor<T>
-  implements NestInterceptor<T, StandardApiResponse<T>>
-{
+export class ResponseTransformInterceptor<T> implements NestInterceptor<
+  T,
+  StandardApiResponse<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,

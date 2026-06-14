@@ -57,13 +57,11 @@ export class ExerciseController {
 
   @Get('training')
   @UseGuards(JwtAuthGuard)
-  async getTrainingExercises(
-    @Req() req: any,
-    @Query('type') type?: string,
-  ) {
-    const trainingType = type && Object.values(TrainingType).includes(type as TrainingType)
-      ? (type as TrainingType)
-      : undefined;
+  async getTrainingExercises(@Req() req: any, @Query('type') type?: string) {
+    const trainingType =
+      type && Object.values(TrainingType).includes(type as TrainingType)
+        ? (type as TrainingType)
+        : undefined;
     return this.getTrainingExercisesUseCase.execute(req.user.sub, trainingType);
   }
 
@@ -125,4 +123,3 @@ export class ExerciseController {
     return this.deleteExercisesByLessonIdUseCase.execute(lessonId);
   }
 }
-

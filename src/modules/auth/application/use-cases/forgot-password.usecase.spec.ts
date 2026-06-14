@@ -28,7 +28,11 @@ describe('ForgotPasswordUseCase', () => {
       verifyPasswordResetOtp: jest.fn(),
     };
 
-    useCase = new ForgotPasswordUseCase(authUserRepo, hashService, userProfileService);
+    useCase = new ForgotPasswordUseCase(
+      authUserRepo,
+      hashService,
+      userProfileService,
+    );
   });
 
   describe('sendResetOtp', () => {
@@ -38,13 +42,17 @@ describe('ForgotPasswordUseCase', () => {
       const result = await useCase.sendResetOtp({ email: 'test@example.com' });
 
       expect(result.message).toContain('OTP has been sent');
-      expect(userProfileService.sendPasswordResetOtp).toHaveBeenCalledWith('test@example.com');
+      expect(userProfileService.sendPasswordResetOtp).toHaveBeenCalledWith(
+        'test@example.com',
+      );
     });
 
     it('should return same message when user does not exist (security)', async () => {
       authUserRepo.findByEmail.mockResolvedValue(null);
 
-      const result = await useCase.sendResetOtp({ email: 'unknown@example.com' });
+      const result = await useCase.sendResetOtp({
+        email: 'unknown@example.com',
+      });
 
       expect(result.message).toContain('OTP has been sent');
       expect(userProfileService.sendPasswordResetOtp).not.toHaveBeenCalled();
@@ -64,14 +72,20 @@ describe('ForgotPasswordUseCase', () => {
 
       expect(result.message).toBe('Password reset successfully');
       expect(hashService.hash).toHaveBeenCalledWith('new-password');
-      expect(authUserRepo.update).toHaveBeenCalledWith('user-1', { password: 'hashed-new-password' });
+      expect(authUserRepo.update).toHaveBeenCalledWith('user-1', {
+        password: 'hashed-new-password',
+      });
     });
 
     it('should throw BadRequestException for invalid OTP', async () => {
       userProfileService.verifyPasswordResetOtp.mockResolvedValue(false);
 
       await expect(
-        useCase.resetPassword({ email: 'test@example.com', otpCode: 'wrong', newPassword: 'new' }),
+        useCase.resetPassword({
+          email: 'test@example.com',
+          otpCode: 'wrong',
+          newPassword: 'new',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -80,7 +94,11 @@ describe('ForgotPasswordUseCase', () => {
       authUserRepo.findByEmail.mockResolvedValue(null);
 
       await expect(
-        useCase.resetPassword({ email: 'test@example.com', otpCode: '123456', newPassword: 'new' }),
+        useCase.resetPassword({
+          email: 'test@example.com',
+          otpCode: '123456',
+          newPassword: 'new',
+        }),
       ).rejects.toThrow(NotFoundException);
     });
   });

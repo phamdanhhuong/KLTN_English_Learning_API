@@ -195,4 +195,3 @@ const exerciseUseCases = [
   ],
 })
 export class SkillModule {}
-

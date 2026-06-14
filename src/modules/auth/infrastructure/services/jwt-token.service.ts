@@ -14,7 +14,8 @@ export class JwtTokenService implements TokenService {
   private readonly refreshTokenExpiresIn: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.accessTokenSecret = this.configService.getOrThrow<string>('JWT_SECRET');
+    this.accessTokenSecret =
+      this.configService.getOrThrow<string>('JWT_SECRET');
     this.refreshTokenSecret =
       this.configService.get<string>('JWT_REFRESH_SECRET') ||
       this.accessTokenSecret + '_refresh';

@@ -18,12 +18,25 @@ describe('GetUserStatsUseCase', () => {
 
   it('should return user stats', async () => {
     prisma.user.findUnique.mockResolvedValue({
-      id: 'u1', username: 'test', fullName: 'Test', profilePictureUrl: null,
-      xpPoints: 200, currentLevel: 3, totalXpEarned: 500,
+      id: 'u1',
+      username: 'test',
+      fullName: 'Test',
+      profilePictureUrl: null,
+      xpPoints: 200,
+      currentLevel: 3,
+      totalXpEarned: 500,
     });
-    prisma.streakData.findUnique.mockResolvedValue({ currentStreak: 7, longestStreak: 14, lastStudyDate: new Date(), freezeCount: 0 });
+    prisma.streakData.findUnique.mockResolvedValue({
+      currentStreak: 7,
+      longestStreak: 14,
+      lastStudyDate: new Date(),
+      freezeCount: 0,
+    });
     prisma.userCurrency.findUnique.mockResolvedValue({ gems: 50, coins: 100 });
-    prisma.userEnergy.findUnique.mockResolvedValue({ currentEnergy: 3, maxEnergy: 5 });
+    prisma.userEnergy.findUnique.mockResolvedValue({
+      currentEnergy: 3,
+      maxEnergy: 5,
+    });
     prisma.userDailyActivity.findMany.mockResolvedValue([]);
 
     const result = await useCase.execute('u1');
@@ -40,6 +53,8 @@ describe('GetUserStatsUseCase', () => {
     prisma.userEnergy.findUnique.mockResolvedValue(null);
     prisma.userDailyActivity.findMany.mockResolvedValue([]);
 
-    await expect(useCase.execute('non-existent')).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('non-existent')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

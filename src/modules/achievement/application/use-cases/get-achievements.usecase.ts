@@ -11,7 +11,8 @@ export class GetUserAchievementsUseCase {
 
   async execute(userId: string, onlyUnlocked = false) {
     const allDefinitions = await this.achievementRepo.findAllDefinitions();
-    const userAchievements = await this.achievementRepo.findUserAchievements(userId);
+    const userAchievements =
+      await this.achievementRepo.findUserAchievements(userId);
 
     const userMap = new Map(
       userAchievements.map((ua) => [ua.achievementId, ua]),
@@ -47,7 +48,8 @@ export class GetAchievementsSummaryUseCase {
 
   async execute(userId: string) {
     const allDefinitions = await this.achievementRepo.findAllDefinitions();
-    const userAchievements = await this.achievementRepo.findUserAchievements(userId);
+    const userAchievements =
+      await this.achievementRepo.findUserAchievements(userId);
 
     const userMap = new Map(
       userAchievements.map((ua) => [ua.achievementId, ua]),
@@ -81,7 +83,8 @@ export class GetAchievementsSummaryUseCase {
     for (const tiers of grouped.values()) {
       tiers.sort((a: any, b: any) => a.achievement.tier - b.achievement.tier);
       // Tìm mốc thấp nhất mà user CHƯA đạt được
-      const activeTier = tiers.find((t: any) => !t.isUnlocked) || tiers[tiers.length - 1]; // nếu hoàn thành hết, lấy mốc max
+      const activeTier =
+        tiers.find((t: any) => !t.isUnlocked) || tiers[tiers.length - 1]; // nếu hoàn thành hết, lấy mốc max
       filteredMerged.push(activeTier);
     }
 
@@ -95,7 +98,9 @@ export class GetAchievementsSummaryUseCase {
         const aScore = a.isUnlocked ? 0 : a.progress > 0 ? 1 : 2;
         const bScore = b.isUnlocked ? 0 : b.progress > 0 ? 1 : 2;
         if (aScore !== bScore) return aScore - bScore;
-        const catCmp = a.achievement.category.localeCompare(b.achievement.category);
+        const catCmp = a.achievement.category.localeCompare(
+          b.achievement.category,
+        );
         if (catCmp !== 0) return catCmp;
         return a.achievement.tier - b.achievement.tier;
       });
@@ -110,9 +115,10 @@ export class GetAchievementsSummaryUseCase {
       stats: {
         total: totalAchievements,
         unlocked: unlockedCount,
-        progress: totalAchievements > 0
-          ? Math.round((unlockedCount / totalAchievements) * 100)
-          : 0,
+        progress:
+          totalAchievements > 0
+            ? Math.round((unlockedCount / totalAchievements) * 100)
+            : 0,
       },
     };
   }

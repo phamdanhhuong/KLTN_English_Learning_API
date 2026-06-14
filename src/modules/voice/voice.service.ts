@@ -18,8 +18,9 @@ export class VoiceService {
     private readonly configService: ConfigService,
   ) {
     const localSpeechUrl =
-      this.configService.get<string>('LOCAL_SPEECH_URL') || 'http://localhost:8090';
-    
+      this.configService.get<string>('LOCAL_SPEECH_URL') ||
+      'http://localhost:8090';
+
     this.sttUrl = localSpeechUrl;
     this.ttsUrl = localSpeechUrl;
     this.chatbotUrl =
@@ -51,7 +52,10 @@ export class VoiceService {
       );
       return { ...result, source: 'local' };
     } catch (error: any) {
-      this.logger.error(`❌ STT failed: ${error.message}`, error.response?.data || error.stack);
+      this.logger.error(
+        `❌ STT failed: ${error.message}`,
+        error.response?.data || error.stack,
+      );
       throw new Error(`STT service unavailable: ${error.message}`);
     }
   }
@@ -106,7 +110,10 @@ export class VoiceService {
           response.data?.message_id || response.data?.data?.message_id || '',
       };
     } catch (error: any) {
-      this.logger.error(`Chatbot request failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Chatbot request failed: ${error.message}`,
+        error.stack,
+      );
       throw new Error(`Chatbot service unavailable: ${error.message}`);
     }
   }
@@ -251,6 +258,4 @@ export class VoiceService {
 
     return Buffer.from(response.data);
   }
-
-
 }

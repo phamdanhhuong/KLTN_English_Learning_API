@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { CreateExerciseUseCase } from './create-exercise.usecase';
-import { Exercise, ExerciseType } from '../../../domain/entities/exercise.entity';
+import {
+  Exercise,
+  ExerciseType,
+} from '../../../domain/entities/exercise.entity';
 import { ExerciseTypeDto } from '../../dto/exercise.dto';
 
 describe('CreateExerciseUseCase', () => {
@@ -20,10 +23,14 @@ describe('CreateExerciseUseCase', () => {
 
   it('should create exercise with auto-assigned position', async () => {
     exerciseRepository.getNextAvailablePosition.mockResolvedValue(1);
-    exerciseRepository.create.mockImplementation((e: Exercise) => Promise.resolve(e));
+    exerciseRepository.create.mockImplementation((e: Exercise) =>
+      Promise.resolve(e),
+    );
 
     const result = await useCase.execute({
-      lessonId: 'l1', exerciseType: ExerciseTypeDto.MULTIPLE_CHOICE, prompt: 'What is...?',
+      lessonId: 'l1',
+      exerciseType: ExerciseTypeDto.MULTIPLE_CHOICE,
+      prompt: 'What is...?',
     });
     expect(result.lessonId).toBe('l1');
     expect(result.position).toBe(1);
@@ -35,7 +42,12 @@ describe('CreateExerciseUseCase', () => {
     );
 
     await expect(
-      useCase.execute({ lessonId: 'l1', exerciseType: ExerciseTypeDto.FILL_BLANK, prompt: 'x', position: 1 }),
+      useCase.execute({
+        lessonId: 'l1',
+        exerciseType: ExerciseTypeDto.FILL_BLANK,
+        prompt: 'x',
+        position: 1,
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -43,8 +55,11 @@ describe('CreateExerciseUseCase', () => {
     metaValidator.getMetaValidationErrors.mockReturnValue(['Missing options']);
 
     await expect(
-      useCase.execute({ lessonId: 'l1', exerciseType: ExerciseTypeDto.MULTIPLE_CHOICE, meta: {} as any }),
+      useCase.execute({
+        lessonId: 'l1',
+        exerciseType: ExerciseTypeDto.MULTIPLE_CHOICE,
+        meta: {} as any,
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 });
-

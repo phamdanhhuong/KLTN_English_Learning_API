@@ -38,11 +38,14 @@ export class GetTrainingExercisesUseCase {
 
     // Priority 2: Exercises with low mastery words/grammars (30% = 3 exercises)
     const lowMastery =
-      await this.trainingExerciseRepository.findExercisesWithLowMastery(userId, {
-        maxMasteryLevel: 1,
-        limit: Math.ceil(this.TRAINING_LIMIT * 0.3),
-        exerciseTypes,
-      });
+      await this.trainingExerciseRepository.findExercisesWithLowMastery(
+        userId,
+        {
+          maxMasteryLevel: 1,
+          limit: Math.ceil(this.TRAINING_LIMIT * 0.3),
+          exerciseTypes,
+        },
+      );
 
     // Priority 3: Exercises with no mastery (30% = 3 exercises)
     const noMastery =

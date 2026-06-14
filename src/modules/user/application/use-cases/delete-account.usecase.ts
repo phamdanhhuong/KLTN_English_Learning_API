@@ -7,7 +7,9 @@ export class DeleteAccountUseCase {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(userId: string): Promise<{ success: boolean; message: string }> {
+  async execute(
+    userId: string,
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },

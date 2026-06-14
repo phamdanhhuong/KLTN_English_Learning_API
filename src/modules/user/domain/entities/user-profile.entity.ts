@@ -1,32 +1,32 @@
 export class UserProfile {
-    id: string;
-    email: string;
-    username: string | null;
-    fullName: string | null;
-    profilePictureUrl: string | null;
-    dateOfBirth: Date | null;
-    gender: string | null;
+  id: string;
+  email: string;
+  username: string | null;
+  fullName: string | null;
+  profilePictureUrl: string | null;
+  dateOfBirth: Date | null;
+  gender: string | null;
 
-    // Learning preferences
-    nativeLanguage: string;
-    targetLanguage: string;
-    proficiencyLevel: string | null;
-    learningGoals: string[];
-    dailyGoalMinutes: number;
-    timezone: string;
-    hideBattleHistory: boolean;
+  // Learning preferences
+  nativeLanguage: string;
+  targetLanguage: string;
+  proficiencyLevel: string | null;
+  learningGoals: string[];
+  dailyGoalMinutes: number;
+  timezone: string;
+  hideBattleHistory: boolean;
 
-    // Gamification
-    xpPoints: number;
-    currentLevel: number;
-    totalXpEarned: number;
+  // Gamification
+  xpPoints: number;
+  currentLevel: number;
+  totalXpEarned: number;
 
-    isEmailVerified: boolean;
-    isActive: boolean;
-    createdAt: Date;
-    updatedAt: Date;
+  isEmailVerified: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 
-    constructor(data: Partial<UserProfile>) {
-        Object.assign(this, data);
-    }
+  constructor(data: Partial<UserProfile>) {
+    Object.assign(this, data);
+  }
 }

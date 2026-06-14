@@ -21,7 +21,9 @@ export class RegisterUserUseCase {
     private readonly userProfileService: UserProfileService,
   ) {}
 
-  async execute(dto: RegisterDto): Promise<{ message: string; userId: string }> {
+  async execute(
+    dto: RegisterDto,
+  ): Promise<{ message: string; userId: string }> {
     // Check if email already exists
     const existingUser = await this.authUserRepo.findByEmail(dto.email);
     if (existingUser) {

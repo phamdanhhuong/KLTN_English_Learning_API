@@ -21,7 +21,11 @@ export class CacheServiceImpl implements CacheService {
 
   async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
     try {
-      await this.cacheManager.set(key, value, ttlSeconds ? ttlSeconds * 1000 : undefined);
+      await this.cacheManager.set(
+        key,
+        value,
+        ttlSeconds ? ttlSeconds * 1000 : undefined,
+      );
     } catch (error) {
       this.logger.warn(`Cache SET failed for key "${key}": ${error.message}`);
     }

@@ -7,8 +7,11 @@ const QUEUE_PREFIX = 'battle:queue:';
 const ACTIVE_PREFIX = 'battle:active:';
 
 const USER_SELECT = {
-  id: true, username: true, fullName: true,
-  profilePictureUrl: true, currentLevel: true,
+  id: true,
+  username: true,
+  fullName: true,
+  profilePictureUrl: true,
+  currentLevel: true,
 };
 
 // Tier difficulty mapping — only quick exercise types for battle
@@ -25,7 +28,18 @@ const TIER_DIFFICULTY: Record<string, string[]> = {
   DIAMOND: ['multiple_choice', 'fill_blank'],
 };
 
-const TIER_ORDER = ['BRONZE', 'SILVER', 'GOLD', 'SAPPHIRE', 'RUBY', 'EMERALD', 'AMETHYST', 'PEARL', 'OBSIDIAN', 'DIAMOND'];
+const TIER_ORDER = [
+  'BRONZE',
+  'SILVER',
+  'GOLD',
+  'SAPPHIRE',
+  'RUBY',
+  'EMERALD',
+  'AMETHYST',
+  'PEARL',
+  'OBSIDIAN',
+  'DIAMOND',
+];
 
 @Injectable()
 export class PrismaBattleRepository implements BattleRepository {
@@ -76,11 +90,14 @@ export class PrismaBattleRepository implements BattleRepository {
 
   // ─── Rounds ───
 
-  async createRounds(matchId: string, rounds: Array<{
-    roundNumber: number;
-    questionType: string;
-    questionData: Record<string, any>;
-  }>) {
+  async createRounds(
+    matchId: string,
+    rounds: Array<{
+      roundNumber: number;
+      questionType: string;
+      questionData: Record<string, any>;
+    }>,
+  ) {
     await this.prisma.battleRound.createMany({
       data: rounds.map((r) => ({
         matchId,
@@ -104,9 +121,18 @@ export class PrismaBattleRepository implements BattleRepository {
     timeMs: number,
     points: number,
   ) {
-    const data = playerNum === 1
-      ? { player1Answer: answer, player1TimeMs: timeMs, player1Points: points }
-      : { player2Answer: answer, player2TimeMs: timeMs, player2Points: points };
+    const data =
+      playerNum === 1
+        ? {
+            player1Answer: answer,
+            player1TimeMs: timeMs,
+            player1Points: points,
+          }
+        : {
+            player2Answer: answer,
+            player2TimeMs: timeMs,
+            player2Points: points,
+          };
 
     return this.prisma.battleRound.update({
       where: { id: roundId },
@@ -154,11 +180,20 @@ export class PrismaBattleRepository implements BattleRepository {
         status: 'COMPLETED',
         OR: [{ player1Id: userId }, { player2Id: userId }],
       },
-      select: { winnerId: true, player1Id: true, player2Id: true, completedAt: true },
+      select: {
+        winnerId: true,
+        player1Id: true,
+        player2Id: true,
+        completedAt: true,
+      },
       orderBy: { completedAt: 'desc' },
     });
 
-    let wins = 0, losses = 0, draws = 0, currentStreak = 0, bestStreak = 0;
+    let wins = 0,
+      losses = 0,
+      draws = 0,
+      currentStreak = 0,
+      bestStreak = 0;
     let streakActive = true;
 
     for (const m of matches) {
@@ -208,7 +243,11 @@ export class PrismaBattleRepository implements BattleRepository {
   // ─── Queue (Redis) ───
 
   async addToQueue(userId: string, tier: string) {
-    await this.redis.set(`${QUEUE_PREFIX}${tier}:${userId}`, Date.now().toString(), 120);
+    await this.redis.set(
+      `${QUEUE_PREFIX}${tier}:${userId}`,
+      Date.now().toString(),
+      120,
+    );
   }
 
   async removeFromQueue(userId: string) {
@@ -228,14 +267,19 @@ export class PrismaBattleRepository implements BattleRepository {
     return null;
   }
 
-  async findOpponentByMaxTierDiff(tier: string, excludeUserId: string, maxDiff: number) {
+  async findOpponentByMaxTierDiff(
+    tier: string,
+    excludeUserId: string,
+    maxDiff: number,
+  ) {
     const idx = TIER_ORDER.indexOf(tier);
 
     // Search progressively: diff=1 first, then diff=2, then diff=3, etc.
     for (let diff = 1; diff <= maxDiff; diff++) {
       const tiersAtDiff: string[] = [];
       if (idx - diff >= 0) tiersAtDiff.push(TIER_ORDER[idx - diff]);
-      if (idx + diff < TIER_ORDER.length) tiersAtDiff.push(TIER_ORDER[idx + diff]);
+      if (idx + diff < TIER_ORDER.length)
+        tiersAtDiff.push(TIER_ORDER[idx + diff]);
 
       for (const t of tiersAtDiff) {
         const opponent = await this.findOpponentInQueue(t, excludeUserId);
@@ -284,7 +328,7 @@ export class PrismaBattleRepository implements BattleRepository {
 
     // Filter: only battle-safe exercises
     const safe = exercises.filter((ex: any) => {
-      const meta = (ex.meta as any) || {};
+      const meta = ex.meta || {};
       if (ex.exerciseType === 'multiple_choice') {
         // Only single-answer MC (no complex ordering)
         const correctOrder = meta.correctOrder || [];
@@ -300,7 +344,10 @@ export class PrismaBattleRepository implements BattleRepository {
 
     // Shuffle and pick
     const shuffled = safe.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count).map((ex) => this.mapExerciseToBattleQuestion(ex)).filter(Boolean);
+    return shuffled
+      .slice(0, count)
+      .map((ex) => this.mapExerciseToBattleQuestion(ex))
+      .filter(Boolean);
   }
 
   private mapExerciseToBattleQuestion(ex: {
@@ -309,16 +356,23 @@ export class PrismaBattleRepository implements BattleRepository {
     prompt: string | null;
     meta: any;
   }) {
-    const meta = (ex.meta as any) || {};
+    const meta = ex.meta || {};
     const type = ex.exerciseType;
 
     switch (type) {
       case 'multiple_choice': {
         // meta: { question, options: [{text, order}], correctOrder: number[] }
-        const opts = (meta.options || []) as Array<{ text: string; order: number }>;
-        const optionTexts = opts.sort((a: any, b: any) => a.order - b.order).map((o: any) => o.text);
+        const opts = (meta.options || []) as Array<{
+          text: string;
+          order: number;
+        }>;
+        const optionTexts = opts
+          .sort((a: any, b: any) => a.order - b.order)
+          .map((o: any) => o.text);
         const correctOrders = meta.correctOrder || [];
-        const correctOpt = opts.find((o: any) => correctOrders.includes(o.order));
+        const correctOpt = opts.find((o: any) =>
+          correctOrders.includes(o.order),
+        );
         return {
           id: ex.id,
           type,
@@ -337,7 +391,10 @@ export class PrismaBattleRepository implements BattleRepository {
         const sentence = sentences[0] || {};
         const baseOptions = sentence.options || [];
         let options = [...baseOptions];
-        if (sentence.correctAnswer && !options.includes(sentence.correctAnswer)) {
+        if (
+          sentence.correctAnswer &&
+          !options.includes(sentence.correctAnswer)
+        ) {
           options.push(sentence.correctAnswer);
         }
         if (options.length < 2) {

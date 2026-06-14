@@ -19,16 +19,39 @@ export class GetProfileUseCase {
     weekStart.setDate(now.getDate() - diff);
     weekStart.setHours(0, 0, 0, 0);
 
-    const [user, streak, followCounts, xpHistory, userTier, leagueParticipation, top3Count, progress] = await Promise.all([
+    const [
+      user,
+      streak,
+      followCounts,
+      xpHistory,
+      userTier,
+      leagueParticipation,
+      top3Count,
+      progress,
+    ] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
-          id: true, email: true, username: true, fullName: true,
-          profilePictureUrl: true, currentLevel: true, xpPoints: true,
-          totalXpEarned: true, isEmailVerified: true, isActive: true, createdAt: true,
-          dateOfBirth: true, gender: true,
-          nativeLanguage: true, targetLanguage: true, proficiencyLevel: true,
-          learningGoals: true, dailyGoalMinutes: true, timezone: true, hideBattleHistory: true,
+          id: true,
+          email: true,
+          username: true,
+          fullName: true,
+          profilePictureUrl: true,
+          currentLevel: true,
+          xpPoints: true,
+          totalXpEarned: true,
+          isEmailVerified: true,
+          isActive: true,
+          createdAt: true,
+          dateOfBirth: true,
+          gender: true,
+          nativeLanguage: true,
+          targetLanguage: true,
+          proficiencyLevel: true,
+          learningGoals: true,
+          dailyGoalMinutes: true,
+          timezone: true,
+          hideBattleHistory: true,
         },
       }),
       this.prisma.streakData.findUnique({ where: { userId } }),
@@ -48,20 +71,20 @@ export class GetProfileUseCase {
           userId,
           group: {
             league: {
-              weekStartDate: weekStart
-            }
-          }
-        }
+              weekStartDate: weekStart,
+            },
+          },
+        },
       }),
       this.prisma.leagueHistory.count({
         where: {
           userId,
           rank: {
-            lte: 3
-          }
-        }
+            lte: 3,
+          },
+        },
       }),
-      this.prisma.skillProgress.findUnique({ where: { userId } })
+      this.prisma.skillProgress.findUnique({ where: { userId } }),
     ]);
 
     if (!user) throw new NotFoundException('User profile not found');
@@ -80,7 +103,7 @@ export class GetProfileUseCase {
       followerCount,
       streakDays: streak?.currentStreak ?? 0,
       totalExp: user.xpPoints ?? 0,
-      totalXp: user.xpPoints ?? 0,         // alias for consistency
+      totalXp: user.xpPoints ?? 0, // alias for consistency
       currentLevel: user.currentLevel ?? 1,
       isInTournament: !!leagueParticipation,
       top3Count: top3Count,
@@ -96,7 +119,7 @@ export class GetProfileUseCase {
       dailyGoalMinutes: user.dailyGoalMinutes,
       timezone: user.timezone,
       hideBattleHistory: user.hideBattleHistory,
-      xpHistory: xpHistory.map(h => ({
+      xpHistory: xpHistory.map((h) => ({
         date: h.activityDate.toISOString().split('T')[0],
         xp: h.xpEarned,
       })),

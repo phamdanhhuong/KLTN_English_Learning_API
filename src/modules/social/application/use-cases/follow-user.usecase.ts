@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { SOCIAL_TOKENS } from '../../domain/di/tokens';
 import type { SocialRepository } from '../../domain/repositories/social.repository.interface';
 import { FeedService } from '../../../feed/application/services/feed.service';
@@ -25,13 +30,19 @@ export class FollowUserUseCase {
     }
 
     // Check if blocked
-    const blocked = await this.socialRepo.isBlocked(currentUserId, targetUserId);
+    const blocked = await this.socialRepo.isBlocked(
+      currentUserId,
+      targetUserId,
+    );
     if (blocked) {
       throw new BadRequestException('Cannot follow this user');
     }
 
     // Check if already following
-    const alreadyFollowing = await this.socialRepo.isFollowing(currentUserId, targetUserId);
+    const alreadyFollowing = await this.socialRepo.isFollowing(
+      currentUserId,
+      targetUserId,
+    );
     if (alreadyFollowing) {
       throw new ConflictException('Already following this user');
     }
@@ -40,15 +51,23 @@ export class FollowUserUseCase {
 
     // Feed auto-create: NEW_FOLLOWER post
     const currentUser = await this.socialRepo.getUserBasicInfo(currentUserId);
-    this.feedService.autoCreatePost(targetUserId, 'NEW_FOLLOWER', {
-      followerName: currentUser?.fullName || currentUser?.username || 'Someone',
-      followerId: currentUserId,
-    }).catch(() => {}); // fire-and-forget
+    this.feedService
+      .autoCreatePost(targetUserId, 'NEW_FOLLOWER', {
+        followerName:
+          currentUser?.fullName || currentUser?.username || 'Someone',
+        followerId: currentUserId,
+      })
+      .catch(() => {}); // fire-and-forget
 
     // Update achievement for following count
-    this.socialRepo.getFollowing(currentUserId).then((res) => {
-      this.achievementChecker.check(currentUserId, 'following_count', res.length).catch(() => {});
-    }).catch(() => {});
+    this.socialRepo
+      .getFollowing(currentUserId)
+      .then((res) => {
+        this.achievementChecker
+          .check(currentUserId, 'following_count', res.length)
+          .catch(() => {});
+      })
+      .catch(() => {});
 
     return { followed: true, targetUserId };
   }

@@ -1,6 +1,18 @@
-import { Controller, Get, Post, Body, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Req,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
-import { GetSkillProgressByUserIdUseCase, SubmitLessonResultUseCase } from '../../application/use-cases';
+import {
+  GetSkillProgressByUserIdUseCase,
+  SubmitLessonResultUseCase,
+} from '../../application/use-cases';
 import { SubmitLessonResultDto } from '../../application/dto/submit-lesson-result.dto';
 
 @Controller('progress')
@@ -25,4 +37,3 @@ export class ProgressController {
     return this.submitLessonResultUseCase.execute(req.user.sub, submitDto);
   }
 }
-

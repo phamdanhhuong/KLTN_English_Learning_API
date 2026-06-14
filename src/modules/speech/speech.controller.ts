@@ -23,7 +23,8 @@ export class SpeechController {
     private readonly configService: ConfigService,
   ) {
     this.speechEndpoint =
-      this.configService.get<string>('LOCAL_SPEECH_URL') || 'http://localhost:8090';
+      this.configService.get<string>('LOCAL_SPEECH_URL') ||
+      'http://localhost:8090';
   }
 
   @Post('transcribe')
@@ -69,7 +70,8 @@ export class SpeechController {
       return response.data;
     } catch (error: any) {
       const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const message = error.response?.data?.message || 'Speech service unavailable';
+      const message =
+        error.response?.data?.message || 'Speech service unavailable';
       throw new HttpException(message, status);
     }
   }

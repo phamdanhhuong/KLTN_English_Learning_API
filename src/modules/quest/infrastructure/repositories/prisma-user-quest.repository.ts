@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { RedisService } from '../../../../infrastructure/cache/redis.service';
-import type { UserQuestRepository, UserQuestWithQuest } from '../../domain/repositories/user-quest.repository.interface';
+import type {
+  UserQuestRepository,
+  UserQuestWithQuest,
+} from '../../domain/repositories/user-quest.repository.interface';
 import { QuestStatus } from '@prisma/client';
 
 @Injectable()
@@ -13,7 +16,11 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
     private readonly redis: RedisService,
   ) {}
 
-  async findExisting(userId: string, questId: string, minEndDate: Date): Promise<any | null> {
+  async findExisting(
+    userId: string,
+    questId: string,
+    minEndDate: Date,
+  ): Promise<any | null> {
     return this.prisma.userQuest.findFirst({
       where: {
         userId,
@@ -34,7 +41,11 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
     return this.prisma.userQuest.create({ data });
   }
 
-  async createChest(userQuestId: string, chestType: string, rewards: Record<string, number>): Promise<void> {
+  async createChest(
+    userQuestId: string,
+    chestType: string,
+    rewards: Record<string, number>,
+  ): Promise<void> {
     await this.prisma.questChest.create({
       data: {
         userQuestId,
@@ -52,7 +63,11 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
     return quests as unknown as UserQuestWithQuest[];
   }
 
-  async updateProgress(id: string, progress: number, isCompleted: boolean): Promise<void> {
+  async updateProgress(
+    id: string,
+    progress: number,
+    isCompleted: boolean,
+  ): Promise<void> {
     await this.prisma.userQuest.update({
       where: { id },
       data: {
@@ -82,7 +97,11 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
     });
   }
 
-  async updateFriendsContribution(userId: string, weekStart: Date, amount: number): Promise<void> {
+  async updateFriendsContribution(
+    userId: string,
+    weekStart: Date,
+    amount: number,
+  ): Promise<void> {
     try {
       // 1. Increment this user's contribution in all quest groups they belong to
       await this.prisma.friendsQuestParticipant.updateMany({
@@ -91,19 +110,22 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
       });
 
       // 2. Find all quest groups this user is in this week
-      const userParticipations = await this.prisma.friendsQuestParticipant.findMany({
-        where: { userId, weekStartDate: weekStart },
-        select: { groupId: true, questKey: true },
-      });
+      const userParticipations =
+        await this.prisma.friendsQuestParticipant.findMany({
+          where: { userId, weekStartDate: weekStart },
+          select: { groupId: true, questKey: true },
+        });
 
       // 3. For each quest group, compute total contribution and update UserQuest.progress
       for (const { groupId, questKey } of userParticipations) {
         // Find all participant userIds in this group
-        const participants = await this.prisma.friendsQuestParticipant.findMany({
-          where: { groupId },
-          select: { userId: true },
-        });
-        
+        const participants = await this.prisma.friendsQuestParticipant.findMany(
+          {
+            where: { groupId },
+            select: { userId: true },
+          },
+        );
+
         // Enforce requirement: At least 2 people to accumulate progress
         if (participants.length < 2) {
           continue;
@@ -115,7 +137,7 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
         });
         const totalContribution = aggregate._sum.contribution ?? 0;
 
-        const participantUserIds = participants.map(p => p.userId);
+        const participantUserIds = participants.map((p) => p.userId);
 
         // Find the Quest definition matching this questKey
         const questDef = await this.prisma.quest.findUnique({
@@ -134,7 +156,10 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
             },
           });
           if (userQuest) {
-            const newProgress = Math.min(totalContribution, userQuest.requirement);
+            const newProgress = Math.min(
+              totalContribution,
+              userQuest.requirement,
+            );
             const isCompleted = newProgress >= userQuest.requirement;
             await this.prisma.userQuest.update({
               where: { id: userQuest.id },

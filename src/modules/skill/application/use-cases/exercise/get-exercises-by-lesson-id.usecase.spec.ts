@@ -1,5 +1,8 @@
 import { GetExercisesByLessonIdUseCase } from './get-exercises-by-lesson-id.usecase';
-import { Exercise, ExerciseType } from '../../../domain/entities/exercise.entity';
+import {
+  Exercise,
+  ExerciseType,
+} from '../../../domain/entities/exercise.entity';
 
 describe('GetExercisesByLessonIdUseCase', () => {
   let useCase: GetExercisesByLessonIdUseCase;

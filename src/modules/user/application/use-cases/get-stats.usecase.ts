@@ -36,7 +36,9 @@ export interface UserStats {
 function getVnToday(): Date {
   const now = new Date();
   const vnNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-  return new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate()));
+  return new Date(
+    Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate()),
+  );
 }
 
 @Injectable()
@@ -50,8 +52,15 @@ export class GetUserStatsUseCase {
     const [user, streak, currency, energy, activities] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, username: true, fullName: true, profilePictureUrl: true,
-          xpPoints: true, currentLevel: true, totalXpEarned: true },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          profilePictureUrl: true,
+          xpPoints: true,
+          currentLevel: true,
+          totalXpEarned: true,
+        },
       }),
       this.prisma.streakData.findUnique({ where: { userId } }),
       this.prisma.userCurrency.findUnique({ where: { userId } }),
@@ -65,23 +74,35 @@ export class GetUserStatsUseCase {
     if (!user) throw new NotFoundException('User not found');
 
     const todayKey = today.toISOString().split('T')[0];
-    const todayXp = activities.find(
-      a => a.activityDate.toISOString().split('T')[0] === todayKey,
-    )?.xpEarned ?? 0;
+    const todayXp =
+      activities.find(
+        (a) => a.activityDate.toISOString().split('T')[0] === todayKey,
+      )?.xpEarned ?? 0;
     const weekXp = activities.reduce((sum, a) => sum + a.xpEarned, 0);
 
     return {
       profile: {
-        userId: user.id, username: user.username, fullName: user.fullName,
+        userId: user.id,
+        username: user.username,
+        fullName: user.fullName,
         profilePictureUrl: user.profilePictureUrl,
       },
-      xp: { xpPoints: user.xpPoints, currentLevel: user.currentLevel, totalXpEarned: user.totalXpEarned },
+      xp: {
+        xpPoints: user.xpPoints,
+        currentLevel: user.currentLevel,
+        totalXpEarned: user.totalXpEarned,
+      },
       streak: {
-        currentStreak: streak?.currentStreak ?? 0, longestStreak: streak?.longestStreak ?? 0,
-        lastStudyDate: streak?.lastStudyDate ?? null, freezeCount: streak?.freezeCount ?? 0,
+        currentStreak: streak?.currentStreak ?? 0,
+        longestStreak: streak?.longestStreak ?? 0,
+        lastStudyDate: streak?.lastStudyDate ?? null,
+        freezeCount: streak?.freezeCount ?? 0,
       },
       currency: { gems: currency?.gems ?? 0, coins: currency?.coins ?? 0 },
-      energy: { currentEnergy: energy?.currentEnergy ?? 0, maxEnergy: energy?.maxEnergy ?? 5 },
+      energy: {
+        currentEnergy: energy?.currentEnergy ?? 0,
+        maxEnergy: energy?.maxEnergy ?? 5,
+      },
       activity: { todayXp, weekXp },
     };
   }

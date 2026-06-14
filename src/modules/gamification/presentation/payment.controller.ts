@@ -1,15 +1,15 @@
 import {
-    Controller,
-    Post,
-    Get,
-    Body,
-    UseGuards,
-    Request,
-    HttpCode,
-    HttpStatus,
-    Query,
-    Res,
-    Ip,
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+  Query,
+  Res,
+  Ip,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -20,66 +20,65 @@ import { GetAllOrdersUseCase } from '../application/use-cases/currency/get-all-o
 
 @Controller('gamification/payment')
 export class PaymentController {
-    constructor(
-        private readonly createPaymentUseCase: CreatePaymentUseCase,
-        private readonly vnpayIpnUseCase: VnpayIpnUseCase,
-        private readonly vnpayReturnUseCase: VnpayReturnUseCase,
-        private readonly getAllOrdersUseCase: GetAllOrdersUseCase,
-    ) {}
+  constructor(
+    private readonly createPaymentUseCase: CreatePaymentUseCase,
+    private readonly vnpayIpnUseCase: VnpayIpnUseCase,
+    private readonly vnpayReturnUseCase: VnpayReturnUseCase,
+    private readonly getAllOrdersUseCase: GetAllOrdersUseCase,
+  ) {}
 
-    // ─── PAYMENT PACKAGES ─────────────────────────────────────
-    @Get('packages')
-    @UseGuards(JwtAuthGuard)
-    async getPackages() {
-        return this.createPaymentUseCase.getPackages();
-    }
+  // ─── PAYMENT PACKAGES ─────────────────────────────────────
+  @Get('packages')
+  @UseGuards(JwtAuthGuard)
+  async getPackages() {
+    return this.createPaymentUseCase.getPackages();
+  }
 
-    // ─── CREATE PAYMENT URL ───────────────────────────────────
-    @Post('create')
-    @UseGuards(JwtAuthGuard)
-    @HttpCode(HttpStatus.OK)
-    async createPayment(
-        @Request() req: any,
-        @Ip() ip: string,
-        @Body() body: { packageId: string; bankCode?: string },
-    ) {
-        const ipAddr =
-            req.headers['x-forwarded-for'] || ip || '127.0.0.1';
-        return this.createPaymentUseCase.execute(
-            req.user.sub,
-            body.packageId,
-            typeof ipAddr === 'string' ? ipAddr : ipAddr[0],
-        );
-    }
+  // ─── CREATE PAYMENT URL ───────────────────────────────────
+  @Post('create')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async createPayment(
+    @Request() req: any,
+    @Ip() ip: string,
+    @Body() body: { packageId: string; bankCode?: string },
+  ) {
+    const ipAddr = req.headers['x-forwarded-for'] || ip || '127.0.0.1';
+    return this.createPaymentUseCase.execute(
+      req.user.sub,
+      body.packageId,
+      typeof ipAddr === 'string' ? ipAddr : ipAddr[0],
+    );
+  }
 
-    // ─── VNPAY IPN (server-to-server, NO AUTH) ────────────────
-    @Get('vnpay-ipn')
-    async vnpayIpn(@Query() query: Record<string, string>, @Res() res: Response) {
-        const result = await this.vnpayIpnUseCase.execute(query);
-        // VNPay yêu cầu trả JSON với RspCode và Message
-        res.status(HttpStatus.OK).json(result);
-    }
+  // ─── VNPAY IPN (server-to-server, NO AUTH) ────────────────
+  @Get('vnpay-ipn')
+  async vnpayIpn(@Query() query: Record<string, string>, @Res() res: Response) {
+    const result = await this.vnpayIpnUseCase.execute(query);
+    // VNPay yêu cầu trả JSON với RspCode và Message
+    res.status(HttpStatus.OK).json(result);
+  }
 
-    // ─── VNPAY RETURN URL (redirect trình duyệt, NO AUTH) ────
-    @Get('vnpay-return')
-    async vnpayReturn(@Query() query: Record<string, string>) {
-        return this.vnpayReturnUseCase.execute(query);
-    }
+  // ─── VNPAY RETURN URL (redirect trình duyệt, NO AUTH) ────
+  @Get('vnpay-return')
+  async vnpayReturn(@Query() query: Record<string, string>) {
+    return this.vnpayReturnUseCase.execute(query);
+  }
 
-    // ─── ADMIN: GET ALL ORDERS ─────────────────────────────────
-    @Get('admin/orders')
-    @UseGuards(JwtAuthGuard)
-    async getAllOrders(
-        @Query('status') status?: string,
-        @Query('userId') userId?: string,
-        @Query('page') page?: string,
-        @Query('limit') limit?: string,
-    ) {
-        return this.getAllOrdersUseCase.execute({
-            status,
-            userId,
-            page: page ? parseInt(page, 10) : 1,
-            limit: limit ? parseInt(limit, 10) : 20,
-        });
-    }
+  // ─── ADMIN: GET ALL ORDERS ─────────────────────────────────
+  @Get('admin/orders')
+  @UseGuards(JwtAuthGuard)
+  async getAllOrders(
+    @Query('status') status?: string,
+    @Query('userId') userId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.getAllOrdersUseCase.execute({
+      status,
+      userId,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+    });
+  }
 }

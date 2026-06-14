@@ -1,5 +1,8 @@
 import { GetTrainingExercisesUseCase } from './get-training-exercises.usecase';
-import { Exercise, ExerciseType } from '../../../domain/entities/exercise.entity';
+import {
+  Exercise,
+  ExerciseType,
+} from '../../../domain/entities/exercise.entity';
 
 describe('GetTrainingExercisesUseCase', () => {
   let useCase: GetTrainingExercisesUseCase;
@@ -20,7 +23,8 @@ describe('GetTrainingExercisesUseCase', () => {
 
   it('should return a training lesson with exercises', async () => {
     trainingExerciseRepository.findFrequentlyIncorrect.mockResolvedValue([
-      mockExercise('e1'), mockExercise('e2'),
+      mockExercise('e1'),
+      mockExercise('e2'),
     ]);
     trainingExerciseRepository.findExercisesWithLowMastery.mockResolvedValue([
       mockExercise('e3'),
@@ -29,8 +33,12 @@ describe('GetTrainingExercisesUseCase', () => {
       mockExercise('e4'),
     ]);
     trainingExerciseRepository.findRandomExercises.mockResolvedValue([
-      mockExercise('e5'), mockExercise('e6'), mockExercise('e7'),
-      mockExercise('e8'), mockExercise('e9'), mockExercise('e10'),
+      mockExercise('e5'),
+      mockExercise('e6'),
+      mockExercise('e7'),
+      mockExercise('e8'),
+      mockExercise('e9'),
+      mockExercise('e10'),
     ]);
 
     const result = await useCase.execute('user-1');
@@ -53,9 +61,15 @@ describe('GetTrainingExercisesUseCase', () => {
 
   it('should deduplicate exercises across sources', async () => {
     const same = mockExercise('e1');
-    trainingExerciseRepository.findFrequentlyIncorrect.mockResolvedValue([same]);
-    trainingExerciseRepository.findExercisesWithLowMastery.mockResolvedValue([same]);
-    trainingExerciseRepository.findExercisesWithNoMastery.mockResolvedValue([same]);
+    trainingExerciseRepository.findFrequentlyIncorrect.mockResolvedValue([
+      same,
+    ]);
+    trainingExerciseRepository.findExercisesWithLowMastery.mockResolvedValue([
+      same,
+    ]);
+    trainingExerciseRepository.findExercisesWithNoMastery.mockResolvedValue([
+      same,
+    ]);
 
     const result = await useCase.execute('user-1');
     const ids = result.exercises.map((e: any) => e.id);
@@ -66,18 +80,20 @@ describe('GetTrainingExercisesUseCase', () => {
   it('should call repository with correct parameters', async () => {
     await useCase.execute('user-1');
 
-    expect(trainingExerciseRepository.findFrequentlyIncorrect).toHaveBeenCalledWith(
+    expect(
+      trainingExerciseRepository.findFrequentlyIncorrect,
+    ).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({ minIncorrectCount: 2, maxSuccessRate: 0.5 }),
     );
-    expect(trainingExerciseRepository.findExercisesWithLowMastery).toHaveBeenCalledWith(
+    expect(
+      trainingExerciseRepository.findExercisesWithLowMastery,
+    ).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({ maxMasteryLevel: 1 }),
     );
-    expect(trainingExerciseRepository.findExercisesWithNoMastery).toHaveBeenCalledWith(
-      'user-1',
-      expect.any(Number),
-      undefined,
-    );
+    expect(
+      trainingExerciseRepository.findExercisesWithNoMastery,
+    ).toHaveBeenCalledWith('user-1', expect.any(Number), undefined);
   });
 });

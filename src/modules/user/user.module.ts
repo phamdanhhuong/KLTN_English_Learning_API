@@ -11,8 +11,15 @@ import { UpdateProfileUseCase } from './application/use-cases/update-profile.use
 import { UpdatePreferencesUseCase } from './application/use-cases/update-preferences.usecase';
 import { GetUserStatsUseCase } from './application/use-cases/get-stats.usecase';
 import { GetXpHistoryUseCase } from './application/use-cases/get-xp-history.usecase';
-import { GetPublicProfileUseCase, SearchUsersUseCase } from './application/use-cases/get-public-profile.usecase';
-import { ReportUserUseCase, BlockUserUseCase, UnblockUserUseCase } from './application/use-cases/report-block.usecase';
+import {
+  GetPublicProfileUseCase,
+  SearchUsersUseCase,
+} from './application/use-cases/get-public-profile.usecase';
+import {
+  ReportUserUseCase,
+  BlockUserUseCase,
+  UnblockUserUseCase,
+} from './application/use-cases/report-block.usecase';
 import { DeleteAccountUseCase } from './application/use-cases/delete-account.usecase';
 
 // Infrastructure
@@ -33,13 +40,18 @@ import { UserController } from './presentation/user.controller';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any },
+        signOptions: {
+          expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any,
+        },
       }),
     }),
   ],
   controllers: [UserController],
   providers: [
-    { provide: USER_TOKENS.USER_PROFILE_REPOSITORY, useClass: PrismaUserProfileRepository },
+    {
+      provide: USER_TOKENS.USER_PROFILE_REPOSITORY,
+      useClass: PrismaUserProfileRepository,
+    },
     PrismaUserProfileRepository,
     CacheServiceImpl,
     UserProfileServiceImpl,
@@ -57,9 +69,6 @@ import { UserController } from './presentation/user.controller';
     UnblockUserUseCase,
     DeleteAccountUseCase,
   ],
-  exports: [
-    UserProfileServiceImpl,
-    USER_TOKENS.USER_PROFILE_REPOSITORY,
-  ],
+  exports: [UserProfileServiceImpl, USER_TOKENS.USER_PROFILE_REPOSITORY],
 })
 export class UserModule {}

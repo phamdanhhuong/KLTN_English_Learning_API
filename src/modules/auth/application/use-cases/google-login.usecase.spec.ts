@@ -31,7 +31,13 @@ describe('GoogleLoginUseCase', () => {
     email: 'google@example.com',
     googleId: 'google-123',
     isActive: true,
-    role: { id: '1', name: 'USER', description: null, createdAt: new Date(), updatedAt: new Date() } as any,
+    role: {
+      id: '1',
+      name: 'USER',
+      description: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any,
   });
 
   beforeEach(() => {
@@ -68,7 +74,10 @@ describe('GoogleLoginUseCase', () => {
 
     expect(result.isNewUser).toBe(false);
     expect(result.tokens.accessToken).toBe('access-token');
-    expect(authUserRepo.update).toHaveBeenCalledWith('user-1', expect.objectContaining({ lastLoginAt: expect.any(Date) }));
+    expect(authUserRepo.update).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ lastLoginAt: expect.any(Date) }),
+    );
   });
 
   it('should link Google account to existing email user', async () => {
@@ -84,7 +93,10 @@ describe('GoogleLoginUseCase', () => {
     expect(result.isNewUser).toBe(false);
     expect(authUserRepo.update).toHaveBeenCalledWith(
       'user-1',
-      expect.objectContaining({ googleId: 'google-123', isEmailVerified: true }),
+      expect.objectContaining({
+        googleId: 'google-123',
+        isEmailVerified: true,
+      }),
     );
   });
 
@@ -98,7 +110,10 @@ describe('GoogleLoginUseCase', () => {
 
     expect(result.isNewUser).toBe(true);
     expect(authUserRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ email: 'google@example.com', googleId: 'google-123' }),
+      expect.objectContaining({
+        email: 'google@example.com',
+        googleId: 'google-123',
+      }),
     );
     expect(userProfileService.createUserProfileWithDetails).toHaveBeenCalled();
   });
@@ -120,6 +135,8 @@ describe('GoogleLoginUseCase', () => {
       configService,
     );
 
-    await expect(freshUseCase.execute('bad-token')).rejects.toThrow(UnauthorizedException);
+    await expect(freshUseCase.execute('bad-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 });

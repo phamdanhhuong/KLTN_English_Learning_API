@@ -38,7 +38,9 @@ describe('ChangePasswordUseCase', () => {
 
     expect(result.message).toBe('Password changed successfully');
     expect(hashService.hash).toHaveBeenCalledWith('new-password');
-    expect(authUserRepo.update).toHaveBeenCalledWith('user-1', { password: 'hashed-new-password' });
+    expect(authUserRepo.update).toHaveBeenCalledWith('user-1', {
+      password: 'hashed-new-password',
+    });
   });
 
   it('should throw UnauthorizedException when user not found', async () => {
@@ -50,7 +52,9 @@ describe('ChangePasswordUseCase', () => {
   });
 
   it('should throw BadRequestException for social login account', async () => {
-    authUserRepo.findById.mockResolvedValue(new AuthUser({ ...mockUser, password: null }));
+    authUserRepo.findById.mockResolvedValue(
+      new AuthUser({ ...mockUser, password: null }),
+    );
 
     await expect(
       useCase.execute('user-1', { currentPassword: 'old', newPassword: 'new' }),
@@ -62,7 +66,10 @@ describe('ChangePasswordUseCase', () => {
     hashService.compare.mockResolvedValue(false);
 
     await expect(
-      useCase.execute('user-1', { currentPassword: 'wrong', newPassword: 'new' }),
+      useCase.execute('user-1', {
+        currentPassword: 'wrong',
+        newPassword: 'new',
+      }),
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -71,7 +78,10 @@ describe('ChangePasswordUseCase', () => {
     hashService.compare.mockResolvedValue(true);
 
     await expect(
-      useCase.execute('user-1', { currentPassword: 'same', newPassword: 'same' }),
+      useCase.execute('user-1', {
+        currentPassword: 'same',
+        newPassword: 'same',
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 });

@@ -1,7 +1,18 @@
 import {
-  Controller, Get, Post, Put, Delete,
-  UseGuards, Request, Param, Query, Body,
-  HttpCode, HttpStatus, ForbiddenException, NotFoundException,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  UseGuards,
+  Request,
+  Param,
+  Query,
+  Body,
+  HttpCode,
+  HttpStatus,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { FeedService } from '../application/services/feed.service';
@@ -64,7 +75,8 @@ export class FeedController {
     try {
       await this.feedService.deletePost(postId, req.user.sub);
     } catch (e: any) {
-      if (e.message?.includes('Not authorized')) throw new ForbiddenException(e.message);
+      if (e.message?.includes('Not authorized'))
+        throw new ForbiddenException(e.message);
       throw new NotFoundException('Post not found');
     }
   }
@@ -76,7 +88,11 @@ export class FeedController {
     @Param('postId') postId: string,
     @Body() dto: ToggleReactionDto,
   ) {
-    const action = await this.feedService.toggleReaction(postId, req.user.sub, dto.reactionType);
+    const action = await this.feedService.toggleReaction(
+      postId,
+      req.user.sub,
+      dto.reactionType,
+    );
     return { action };
   }
 
@@ -117,20 +133,29 @@ export class FeedController {
     @Body() dto: CommentBodyDto,
   ) {
     try {
-      return this.feedService.updateComment(commentId, req.user.sub, dto.content);
+      return this.feedService.updateComment(
+        commentId,
+        req.user.sub,
+        dto.content,
+      );
     } catch (e: any) {
-      if (e.message?.includes('Not authorized')) throw new ForbiddenException(e.message);
+      if (e.message?.includes('Not authorized'))
+        throw new ForbiddenException(e.message);
       throw new NotFoundException('Comment not found');
     }
   }
 
   @Delete('comments/:commentId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteComment(@Request() req: any, @Param('commentId') commentId: string) {
+  async deleteComment(
+    @Request() req: any,
+    @Param('commentId') commentId: string,
+  ) {
     try {
       await this.feedService.deleteComment(commentId, req.user.sub);
     } catch (e: any) {
-      if (e.message?.includes('Not authorized')) throw new ForbiddenException(e.message);
+      if (e.message?.includes('Not authorized'))
+        throw new ForbiddenException(e.message);
       throw new NotFoundException('Comment not found');
     }
   }

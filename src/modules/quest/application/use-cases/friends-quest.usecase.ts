@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 
 @Injectable()
@@ -9,16 +13,17 @@ export class GetFriendsQuestParticipantsUseCase {
     const now = new Date();
     const weekStart = this.getWeekStart(now);
 
-    const userParticipant = await this.prisma.friendsQuestParticipant.findUnique({
-      where: {
-        questKey_userId_weekStartDate: {
-          questKey,
-          userId,
-          weekStartDate: weekStart,
+    const userParticipant =
+      await this.prisma.friendsQuestParticipant.findUnique({
+        where: {
+          questKey_userId_weekStartDate: {
+            questKey,
+            userId,
+            weekStartDate: weekStart,
+          },
         },
-      },
-      select: { groupId: true },
-    });
+        select: { groupId: true },
+      });
 
     if (!userParticipant) return [];
 
@@ -91,7 +96,12 @@ export class JoinFriendsQuestUseCase {
       },
       include: {
         user: {
-          select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            profilePictureUrl: true,
+          },
         },
       },
     });
@@ -109,7 +119,6 @@ export class JoinFriendsQuestUseCase {
   }
 }
 
-
 @Injectable()
 export class InviteFriendToQuestUseCase {
   constructor(private readonly prisma: PrismaService) {}
@@ -123,18 +132,21 @@ export class InviteFriendToQuestUseCase {
     const weekStart = this.getWeekStart(now);
 
     // Check inviter is participant
-    const inviterParticipation = await this.prisma.friendsQuestParticipant.findUnique({
-      where: {
-        questKey_userId_weekStartDate: {
-          questKey,
-          userId,
-          weekStartDate: weekStart,
+    const inviterParticipation =
+      await this.prisma.friendsQuestParticipant.findUnique({
+        where: {
+          questKey_userId_weekStartDate: {
+            questKey,
+            userId,
+            weekStartDate: weekStart,
+          },
         },
-      },
-    });
+      });
 
     if (!inviterParticipation) {
-      throw new BadRequestException('You must join the quest first before inviting');
+      throw new BadRequestException(
+        'You must join the quest first before inviting',
+      );
     }
 
     // Check target not already joined
@@ -162,7 +174,12 @@ export class InviteFriendToQuestUseCase {
       },
       include: {
         user: {
-          select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            profilePictureUrl: true,
+          },
         },
       },
     });
@@ -208,7 +225,14 @@ export class AcceptFriendsQuestInviteUseCase {
       where: { id: existing.id },
       data: { status: 'ACCEPTED' as any, joinedAt: now },
       include: {
-        user: { select: { id: true, username: true, fullName: true, profilePictureUrl: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            profilePictureUrl: true,
+          },
+        },
       },
     });
   }

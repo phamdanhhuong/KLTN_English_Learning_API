@@ -1,6 +1,12 @@
 import {
-  Controller, Post, Get, UseGuards, Request, Body,
-  HttpCode, HttpStatus,
+  Controller,
+  Post,
+  Get,
+  UseGuards,
+  Request,
+  Body,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { LeaderboardService } from '../application/services/leaderboard.service';
@@ -33,10 +39,7 @@ export class LeaderboardController {
 
   @Post('xp')
   @HttpCode(HttpStatus.OK)
-  async updateXp(
-    @Request() req: any,
-    @Body('amount') amount: number,
-  ) {
+  async updateXp(@Request() req: any, @Body('amount') amount: number) {
     await this.leaderboardService.updateUserXp(req.user.sub, amount);
     return { updated: true, amount };
   }

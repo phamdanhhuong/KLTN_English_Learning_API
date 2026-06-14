@@ -5,8 +5,14 @@ import { FeedService } from '../../../feed/application/services/feed.service';
 import { LeaderboardService } from '../../../leaderboard/application/services/leaderboard.service';
 
 const BOT_NAMES = [
-  'EnglishMaster', 'QuizKing', 'WordNinja', 'VocabHero',
-  'GrammarPro', 'SpellWizard', 'LexiconLord', 'PhraseMaster',
+  'EnglishMaster',
+  'QuizKing',
+  'WordNinja',
+  'VocabHero',
+  'GrammarPro',
+  'SpellWizard',
+  'LexiconLord',
+  'PhraseMaster',
 ];
 
 // ─── Combat Constants ───
@@ -15,7 +21,7 @@ const ROUND_TIME_LIMIT = 15000; // 15 seconds
 const MAX_HP = 1000;
 const BASE_DAMAGE = 150;
 const MAX_SPEED_BONUS = 100; // extra damage for speed
-const SELF_DAMAGE = 50;      // penalty for wrong answer / timeout
+const SELF_DAMAGE = 50; // penalty for wrong answer / timeout
 
 @Injectable()
 export class BattleGameService {
@@ -49,7 +55,10 @@ export class BattleGameService {
     });
 
     // Generate questions from exercise pool
-    const exercises = await this.battleRepo.getRandomExercises(tier, TOTAL_ROUNDS);
+    const exercises = await this.battleRepo.getRandomExercises(
+      tier,
+      TOTAL_ROUNDS,
+    );
 
     const rounds = exercises.map((ex: any, i: number) => ({
       roundNumber: i + 1,
@@ -113,11 +122,13 @@ export class BattleGameService {
     const playerNum: 1 | 2 = isPlayer1 ? 1 : 2;
 
     // Check if already answered
-    if (playerNum === 1 && round.player1Answer !== null) return { alreadyAnswered: true };
-    if (playerNum === 2 && round.player2Answer !== null) return { alreadyAnswered: true };
+    if (playerNum === 1 && round.player1Answer !== null)
+      return { alreadyAnswered: true };
+    if (playerNum === 2 && round.player2Answer !== null)
+      return { alreadyAnswered: true };
 
     // ─── HP Combat Logic ───
-    const correctAnswer = (round.questionData as any).correctAnswer;
+    const correctAnswer = round.questionData.correctAnswer;
     const isCorrect = answer === correctAnswer;
 
     let damage = 0;
@@ -127,7 +138,10 @@ export class BattleGameService {
 
     if (isCorrect) {
       // Speed bonus: faster = more damage (0-100 bonus)
-      const speedRatio = Math.max(0, (ROUND_TIME_LIMIT - timeMs) / ROUND_TIME_LIMIT);
+      const speedRatio = Math.max(
+        0,
+        (ROUND_TIME_LIMIT - timeMs) / ROUND_TIME_LIMIT,
+      );
       damage = BASE_DAMAGE + Math.floor(speedRatio * MAX_SPEED_BONUS);
     } else {
       // Wrong answer or timeout → self-damage
@@ -159,17 +173,26 @@ export class BattleGameService {
 
     // Store answer for round record
     const points = isCorrect ? damage : -selfDamage;
-    await this.battleRepo.updateRoundAnswer(round.id, playerNum, answer, timeMs, points);
+    await this.battleRepo.updateRoundAnswer(
+      round.id,
+      playerNum,
+      answer,
+      timeMs,
+      points,
+    );
 
     // Check if both players answered this round
     const updatedRound = await this.battleRepo.findRound(matchId, roundNumber);
-    const bothAnswered = updatedRound!.player1Answer !== null && updatedRound!.player2Answer !== null;
+    const bothAnswered =
+      updatedRound!.player1Answer !== null &&
+      updatedRound!.player2Answer !== null;
 
     // Reload match for latest HP
     const updatedMatch = await this.battleRepo.findMatchById(matchId);
 
     // Check KO
-    const isKO = updatedMatch!.player1Score <= 0 || updatedMatch!.player2Score <= 0;
+    const isKO =
+      updatedMatch!.player1Score <= 0 || updatedMatch!.player2Score <= 0;
 
     return {
       isCorrect,
@@ -195,14 +218,14 @@ export class BattleGameService {
     if (!round) return null;
     if (round.player2Answer !== null) return null; // already answered
 
-    const correctAnswer = (round.questionData as any).correctAnswer;
-    const options = (round.questionData as any).options || [];
+    const correctAnswer = round.questionData.correctAnswer;
+    const options = round.questionData.options || [];
 
     // 70% accuracy
     const isCorrect = Math.random() < 0.7;
     const answer = isCorrect
       ? correctAnswer
-      : (options.find((o: string) => o !== correctAnswer) || correctAnswer);
+      : options.find((o: string) => o !== correctAnswer) || correctAnswer;
     const timeMs = 3000 + Math.floor(Math.random() * 7000); // 3-10 seconds
 
     const match = await this.battleRepo.findMatchById(matchId);
@@ -212,7 +235,10 @@ export class BattleGameService {
     let selfDamage = 0;
 
     if (isCorrect) {
-      const speedRatio = Math.max(0, (ROUND_TIME_LIMIT - timeMs) / ROUND_TIME_LIMIT);
+      const speedRatio = Math.max(
+        0,
+        (ROUND_TIME_LIMIT - timeMs) / ROUND_TIME_LIMIT,
+      );
       damage = BASE_DAMAGE + Math.floor(speedRatio * MAX_SPEED_BONUS);
     } else {
       selfDamage = SELF_DAMAGE;
@@ -227,7 +253,13 @@ export class BattleGameService {
     });
 
     const points = isCorrect ? damage : -selfDamage;
-    await this.battleRepo.updateRoundAnswer(round.id, 2, answer, timeMs, points);
+    await this.battleRepo.updateRoundAnswer(
+      round.id,
+      2,
+      answer,
+      timeMs,
+      points,
+    );
 
     const isKO = newP1Hp <= 0 || newP2Hp <= 0;
 
@@ -265,14 +297,16 @@ export class BattleGameService {
 
     // XP rewards
     const isBot = match.isBot;
-    let xp1 = 10, xp2 = 10;
+    let xp1 = 10,
+      xp2 = 10;
 
     if (winnerId === match.player1Id) {
       xp1 = isBot ? 15 : 30;
     } else if (winnerId === match.player2Id) {
       xp2 = isBot ? 15 : 30;
     } else {
-      xp1 = 20; xp2 = 20;
+      xp1 = 20;
+      xp2 = 20;
     }
 
     // Check if KO (someone reached 0)
@@ -295,7 +329,9 @@ export class BattleGameService {
     // Fire-and-forget: XP + feed
     this.leaderboardService.updateUserXp(match.player1Id, xp1).catch(() => {});
     if (match.player2Id && !isBot) {
-      this.leaderboardService.updateUserXp(match.player2Id, xp2).catch(() => {});
+      this.leaderboardService
+        .updateUserXp(match.player2Id, xp2)
+        .catch(() => {});
     }
     if (winnerId) {
       this.checkAndCreateFeedPost(winnerId).catch(() => {});
@@ -324,7 +360,7 @@ export class BattleGameService {
   // ─── Get round question (sanitized, no answer) ───
 
   getRoundQuestion(round: any) {
-    const data = round.questionData as any;
+    const data = round.questionData;
     return {
       roundNumber: round.roundNumber,
       questionType: round.questionType,
@@ -352,5 +388,7 @@ export class BattleGameService {
     };
   }
 
-  getMaxHp() { return MAX_HP; }
+  getMaxHp() {
+    return MAX_HP;
+  }
 }

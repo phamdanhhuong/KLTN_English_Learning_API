@@ -1,5 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
-import { GetPublicProfileUseCase, SearchUsersUseCase } from './get-public-profile.usecase';
+import {
+  GetPublicProfileUseCase,
+  SearchUsersUseCase,
+} from './get-public-profile.usecase';
 
 describe('GetPublicProfileUseCase', () => {
   let useCase: GetPublicProfileUseCase;
@@ -17,8 +20,14 @@ describe('GetPublicProfileUseCase', () => {
 
   it('should return public profile', async () => {
     prisma.user.findUnique.mockResolvedValue({
-      id: 'u1', username: 'test', fullName: 'Test', profilePictureUrl: null,
-      currentLevel: 5, xpPoints: 200, isActive: true, createdAt: new Date('2024-01-15'),
+      id: 'u1',
+      username: 'test',
+      fullName: 'Test',
+      profilePictureUrl: null,
+      currentLevel: 5,
+      xpPoints: 200,
+      isActive: true,
+      createdAt: new Date('2024-01-15'),
     });
     prisma.streakData.findUnique.mockResolvedValue({ currentStreak: 3 });
     prisma.userRelationship.count.mockResolvedValue(0);
@@ -31,8 +40,14 @@ describe('GetPublicProfileUseCase', () => {
 
   it('should check follow relationship when requesting user provided', async () => {
     prisma.user.findUnique.mockResolvedValue({
-      id: 'u1', username: 'test', fullName: 'Test', profilePictureUrl: null,
-      currentLevel: 1, xpPoints: 0, isActive: true, createdAt: new Date(),
+      id: 'u1',
+      username: 'test',
+      fullName: 'Test',
+      profilePictureUrl: null,
+      currentLevel: 1,
+      xpPoints: 0,
+      isActive: true,
+      createdAt: new Date(),
     });
     prisma.streakData.findUnique.mockResolvedValue(null);
     prisma.userRelationship.count.mockResolvedValue(0);
@@ -50,7 +65,9 @@ describe('GetPublicProfileUseCase', () => {
     prisma.userRelationship.count.mockResolvedValue(0);
     prisma.userDailyActivity.findMany.mockResolvedValue([]);
 
-    await expect(useCase.execute('non-existent')).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('non-existent')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });
 
@@ -65,7 +82,14 @@ describe('SearchUsersUseCase', () => {
 
   it('should return matching users', async () => {
     prisma.user.findMany.mockResolvedValue([
-      { id: 'u1', username: 'test', fullName: 'Test', profilePictureUrl: null, currentLevel: 1, xpPoints: 0 },
+      {
+        id: 'u1',
+        username: 'test',
+        fullName: 'Test',
+        profilePictureUrl: null,
+        currentLevel: 1,
+        xpPoints: 0,
+      },
     ]);
     const result = await useCase.execute('test');
     expect(result).toHaveLength(1);

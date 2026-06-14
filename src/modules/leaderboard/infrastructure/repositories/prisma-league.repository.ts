@@ -35,7 +35,11 @@ export class PrismaLeagueRepository implements LeagueRepository {
     return this.prisma.leagueGroup.count({ where: { leagueId } });
   }
 
-  async incrementGroupParticipant(groupId: string, currentCount: number, maxParticipants: number) {
+  async incrementGroupParticipant(
+    groupId: string,
+    currentCount: number,
+    maxParticipants: number,
+  ) {
     await this.prisma.leagueGroup.update({
       where: { id: groupId },
       data: {

@@ -1,8 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AUTH_TOKENS } from '../../domain/di/tokens';
 import { RefreshTokenRepository } from '../../domain/repositories/refresh-token.repository';
 import { TokenService, TokenPair } from '../../domain/services/token.service';
@@ -19,7 +15,10 @@ export class RefreshTokenUseCase {
     private readonly authUserRepo: AuthUserRepository,
   ) {}
 
-  async execute(refreshToken: string): Promise<{ tokens: TokenPair; user: { id: string; email: string; role: { id: number; name: string } } }> {
+  async execute(refreshToken: string): Promise<{
+    tokens: TokenPair;
+    user: { id: string; email: string; role: { id: number; name: string } };
+  }> {
     // Verify refresh token signature
     let payload;
     try {

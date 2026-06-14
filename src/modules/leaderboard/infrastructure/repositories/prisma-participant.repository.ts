@@ -46,7 +46,12 @@ export class PrismaParticipantRepository implements ParticipantRepository {
       where: { groupId },
       include: {
         user: {
-          select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            profilePictureUrl: true,
+          },
         },
       },
       orderBy: { weeklyXp: 'desc' },
@@ -91,7 +96,12 @@ export class PrismaParticipantRepository implements ParticipantRepository {
     const userIds = entries.map((e) => e.value);
     const users = await this.prisma.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, username: true, fullName: true, profilePictureUrl: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        profilePictureUrl: true,
+      },
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
 

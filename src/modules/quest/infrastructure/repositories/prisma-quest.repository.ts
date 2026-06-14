@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { RedisService } from '../../../../infrastructure/cache/redis.service';
-import type { QuestRepository, QuestDefinition } from '../../domain/repositories/quest.repository.interface';
+import type {
+  QuestRepository,
+  QuestDefinition,
+} from '../../domain/repositories/quest.repository.interface';
 
 @Injectable()
 export class PrismaQuestRepository implements QuestRepository {
@@ -22,7 +25,11 @@ export class PrismaQuestRepository implements QuestRepository {
       orderBy: [{ type: 'asc' }, { order: 'asc' }],
     });
 
-    await this.redis.set(this.DEFS_CACHE_KEY, JSON.stringify(quests), this.DEFS_CACHE_TTL);
+    await this.redis.set(
+      this.DEFS_CACHE_KEY,
+      JSON.stringify(quests),
+      this.DEFS_CACHE_TTL,
+    );
     return quests as unknown as QuestDefinition[];
   }
 }

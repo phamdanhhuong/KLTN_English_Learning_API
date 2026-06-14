@@ -36,8 +36,12 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth?.token || client.handshake.query?.token;
-      if (!token) { client.disconnect(); return; }
+      const token =
+        client.handshake.auth?.token || client.handshake.query?.token;
+      if (!token) {
+        client.disconnect();
+        return;
+      }
       const payload = this.jwtService.verify(token as string);
       const userId = payload.sub;
       this.socketUserMap.set(client.id, userId);
@@ -61,10 +65,13 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (activeMatchId) {
         const match = await this.battleRepo.findMatchById(activeMatchId);
         if (match && match.status === 'IN_PROGRESS') {
-          await this.battleRepo.updateMatch(activeMatchId, { status: 'ABANDONED' });
+          await this.battleRepo.updateMatch(activeMatchId, {
+            status: 'ABANDONED',
+          });
           await this.battleRepo.removeActiveMatch(userId);
 
-          const opponentId = match.player1Id === userId ? match.player2Id : match.player1Id;
+          const opponentId =
+            match.player1Id === userId ? match.player2Id : match.player1Id;
           if (opponentId && !match.isBot) {
             await this.battleRepo.removeActiveMatch(opponentId);
             this.emitToUser(opponentId, 'battle:opponentLeft', {
@@ -73,7 +80,9 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
               player1Hp: match.player1Hp ?? 0,
               player2Hp: match.player2Hp ?? 0,
             });
-            this.logger.log(`Match ${activeMatchId} abandoned — notified opponent ${opponentId}`);
+            this.logger.log(
+              `Match ${activeMatchId} abandoned — notified opponent ${opponentId}`,
+            );
           }
         }
       }
@@ -103,7 +112,9 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
           });
         }
       },
-      (data) => { client.emit('battle:searching', data); },
+      (data) => {
+        client.emit('battle:searching', data);
+      },
     );
   }
 
@@ -119,14 +130,24 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('battle:submitAnswer')
   async handleSubmitAnswer(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { matchId: string; roundNumber: number; answer: string; timeMs: number },
+    @MessageBody()
+    data: {
+      matchId: string;
+      roundNumber: number;
+      answer: string;
+      timeMs: number;
+    },
   ) {
     const userId = this.socketUserMap.get(client.id);
     if (!userId) return;
 
     try {
       const result = await this.gameService.submitAnswer(
-        data.matchId, userId, data.roundNumber, data.answer, data.timeMs,
+        data.matchId,
+        userId,
+        data.roundNumber,
+        data.answer,
+        data.timeMs,
       );
 
       if (result.alreadyAnswered) {
@@ -166,7 +187,10 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (match.isBot) {
         const botDelay = 2000 + Math.floor(Math.random() * 5000);
         setTimeout(async () => {
-          const botResult = await this.gameService.botAnswer(data.matchId, data.roundNumber);
+          const botResult = await this.gameService.botAnswer(
+            data.matchId,
+            data.roundNumber,
+          );
           if (!botResult) return;
 
           // Emit bot damage
@@ -214,7 +238,9 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const nextRound = match.rounds.find((r: any) => r.roundNumber === currentRound + 1);
+    const nextRound = match.rounds.find(
+      (r: any) => r.roundNumber === currentRound + 1,
+    );
     if (!nextRound) return;
 
     // 2s delay then next question
@@ -233,7 +259,9 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const match = await this.battleRepo.findMatchById(matchId);
 
     const p1Info = match?.player1;
-    const p2Info = match?.isBot ? this.gameService.generateBotInfo() : match?.player2;
+    const p2Info = match?.isBot
+      ? this.gameService.generateBotInfo()
+      : match?.player2;
 
     // Player 1's perspective (player1 = me)
     const p1Payload = {

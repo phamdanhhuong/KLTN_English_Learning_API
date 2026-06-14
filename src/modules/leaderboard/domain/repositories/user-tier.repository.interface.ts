@@ -3,7 +3,10 @@ export interface UserTierRepository {
   create(userId: string): Promise<any>;
   getOrCreate(userId: string): Promise<any>;
   updateCurrentGroup(userId: string, groupId: string): Promise<void>;
-  changeTier(userId: string, direction: 'up' | 'down'): Promise<{ oldTier: string; newTier: string }>;
+  changeTier(
+    userId: string,
+    direction: 'up' | 'down',
+  ): Promise<{ oldTier: string; newTier: string }>;
   invalidateCache(userId: string): Promise<void>;
   findInactiveHighTierUsers(inactiveSinceDays: number): Promise<any[]>;
 }

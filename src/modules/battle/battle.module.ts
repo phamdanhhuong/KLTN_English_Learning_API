@@ -32,7 +32,9 @@ import { BattleController } from './presentation/battle.controller';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any },
+        signOptions: {
+          expiresIn: config.get<string>('JWT_EXPIRATION', '1h') as any,
+        },
       }),
     }),
   ],

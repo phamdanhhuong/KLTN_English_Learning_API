@@ -38,9 +38,7 @@ export class GoogleLoginUseCase {
     private readonly configService: ConfigService,
   ) {}
 
-  async execute(
-    idToken: string,
-  ): Promise<{
+  async execute(idToken: string): Promise<{
     tokens: TokenPair;
     user: { id: string; email: string; role: { id: number; name: string } };
     isNewUser: boolean;

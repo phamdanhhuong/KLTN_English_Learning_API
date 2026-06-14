@@ -6,11 +6,14 @@ export interface BattleRepository {
   setMatchPlayer2(matchId: string, player2Id: string): Promise<any>;
 
   // Rounds
-  createRounds(matchId: string, rounds: Array<{
-    roundNumber: number;
-    questionType: string;
-    questionData: Record<string, any>;
-  }>): Promise<void>;
+  createRounds(
+    matchId: string,
+    rounds: Array<{
+      roundNumber: number;
+      questionType: string;
+      questionData: Record<string, any>;
+    }>,
+  ): Promise<void>;
   findRound(matchId: string, roundNumber: number): Promise<any | null>;
   updateRoundAnswer(
     roundId: string,
@@ -23,7 +26,11 @@ export interface BattleRepository {
 
   // Match history & stats
   getUserMatches(userId: string, limit: number, offset: number): Promise<any[]>;
-  getUserPublicMatches(userId: string, limit: number, offset: number): Promise<any[]>;
+  getUserPublicMatches(
+    userId: string,
+    limit: number,
+    offset: number,
+  ): Promise<any[]>;
   getUserStats(userId: string): Promise<{
     totalMatches: number;
     wins: number;
@@ -37,8 +44,15 @@ export interface BattleRepository {
   // Queue (Redis)
   addToQueue(userId: string, tier: string): Promise<void>;
   removeFromQueue(userId: string): Promise<void>;
-  findOpponentInQueue(tier: string, excludeUserId: string): Promise<string | null>;
-  findOpponentByMaxTierDiff(tier: string, excludeUserId: string, maxDiff: number): Promise<string | null>;
+  findOpponentInQueue(
+    tier: string,
+    excludeUserId: string,
+  ): Promise<string | null>;
+  findOpponentByMaxTierDiff(
+    tier: string,
+    excludeUserId: string,
+    maxDiff: number,
+  ): Promise<string | null>;
   getQueueSize(tier: string): Promise<number>;
 
   // Active match tracking (Redis)

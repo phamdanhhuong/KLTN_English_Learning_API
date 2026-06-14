@@ -38,9 +38,7 @@ export class FacebookLoginUseCase {
     private readonly configService: ConfigService,
   ) {}
 
-  async execute(
-    accessToken: string,
-  ): Promise<{
+  async execute(accessToken: string): Promise<{
     tokens: TokenPair;
     user: { id: string; email: string; role: { id: number; name: string } };
     isNewUser: boolean;

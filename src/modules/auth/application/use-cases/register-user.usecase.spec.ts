@@ -53,12 +53,18 @@ describe('RegisterUserUseCase', () => {
       expect.any(String),
       600,
     );
-    expect(userProfileService.sendRegistrationOtp).toHaveBeenCalledWith('new@example.com');
+    expect(userProfileService.sendRegistrationOtp).toHaveBeenCalledWith(
+      'new@example.com',
+    );
   });
 
   it('should throw ConflictException when email already exists', async () => {
-    authUserRepo.findByEmail.mockResolvedValue(new AuthUser({ id: 'existing', email: 'new@example.com' }));
+    authUserRepo.findByEmail.mockResolvedValue(
+      new AuthUser({ id: 'existing', email: 'new@example.com' }),
+    );
 
-    await expect(useCase.execute(registerDto)).rejects.toThrow(ConflictException);
+    await expect(useCase.execute(registerDto)).rejects.toThrow(
+      ConflictException,
+    );
   });
 });

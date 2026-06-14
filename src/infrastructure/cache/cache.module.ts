@@ -12,7 +12,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
         if (useRedis) {
           // Dynamic import to avoid requiring redis in dev
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
+
           const { redisStore } = await import('cache-manager-redis-yet' as any);
           const redisUrl = configService.get('REDIS_URL');
 

@@ -27,7 +27,10 @@ export class FeedService {
 
   // ─── Content generator ───
 
-  generatePostContent(postType: FeedPostType, metadata: Record<string, any>): string {
+  generatePostContent(
+    postType: FeedPostType,
+    metadata: Record<string, any>,
+  ): string {
     switch (postType) {
       case 'STREAK_MILESTONE':
         return `Đã duy trì streak ${metadata.streakDays} ngày! 🔥`;
@@ -61,7 +64,10 @@ export class FeedService {
     }
   }
 
-  shouldCreatePost(postType: FeedPostType, metadata: Record<string, any>): boolean {
+  shouldCreatePost(
+    postType: FeedPostType,
+    metadata: Record<string, any>,
+  ): boolean {
     switch (postType) {
       case 'STREAK_MILESTONE':
         return [7, 14, 30, 50, 100, 365].includes(metadata.streakDays);
@@ -81,7 +87,9 @@ export class FeedService {
       case 'PERFECT_SCORE':
         return false;
       case 'XP_MILESTONE':
-        return [1000, 5000, 10000, 25000, 50000, 100000].includes(metadata.totalXp);
+        return [1000, 5000, 10000, 25000, 50000, 100000].includes(
+          metadata.totalXp,
+        );
       case 'BATTLE_WIN_STREAK':
         return metadata.winStreak >= 3;
       case 'FRIEND_QUEST_NUDGE':
@@ -103,7 +111,11 @@ export class FeedService {
     // Deduplicate: check within 5 mins
     const threshold = new Date();
     threshold.setMinutes(threshold.getMinutes() - 5);
-    const recent = await this.feedRepo.findRecentPost(userId, postType, threshold);
+    const recent = await this.feedRepo.findRecentPost(
+      userId,
+      postType,
+      threshold,
+    );
     if (recent) return;
 
     const content = this.generatePostContent(postType, metadata);
@@ -127,7 +139,12 @@ export class FeedService {
     const followingIds = await this.feedRepo.getFollowingIds(userId);
     const userIds = [userId, ...followingIds];
 
-    const result = await this.feedRepo.getFeedPosts(userIds, userId, limit, offset);
+    const result = await this.feedRepo.getFeedPosts(
+      userIds,
+      userId,
+      limit,
+      offset,
+    );
     await this.feedRepo.setCache(cacheKey, JSON.stringify(result), 120);
     return result;
   }
@@ -139,12 +156,17 @@ export class FeedService {
   async deletePost(postId: string, userId: string): Promise<void> {
     const post = await this.feedRepo.findPostById(postId);
     if (!post) throw new Error('Post not found');
-    if (post.userId !== userId) throw new Error('Not authorized to delete this post');
+    if (post.userId !== userId)
+      throw new Error('Not authorized to delete this post');
     await this.feedRepo.deletePost(postId);
     await this.feedRepo.invalidateFeedCachesForFollowers(userId);
   }
 
-  async toggleReaction(postId: string, userId: string, reactionType: string): Promise<'added' | 'removed' | 'changed'> {
+  async toggleReaction(
+    postId: string,
+    userId: string,
+    reactionType: string,
+  ): Promise<'added' | 'removed' | 'changed'> {
     const existing = await this.feedRepo.findReaction(postId, userId);
 
     if (!existing) {
@@ -196,14 +218,16 @@ export class FeedService {
   async updateComment(commentId: string, userId: string, content: string) {
     const comment = await this.feedRepo.findCommentById(commentId);
     if (!comment) throw new Error('Comment not found');
-    if (comment.userId !== userId) throw new Error('Not authorized to update this comment');
+    if (comment.userId !== userId)
+      throw new Error('Not authorized to update this comment');
     return this.feedRepo.updateComment(commentId, content);
   }
 
   async deleteComment(commentId: string, userId: string): Promise<void> {
     const comment = await this.feedRepo.findCommentById(commentId);
     if (!comment) throw new Error('Comment not found');
-    if (comment.userId !== userId) throw new Error('Not authorized to delete this comment');
+    if (comment.userId !== userId)
+      throw new Error('Not authorized to delete this comment');
     await this.feedRepo.deleteComment(commentId);
   }
 }

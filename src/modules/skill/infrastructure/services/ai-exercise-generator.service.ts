@@ -8,9 +8,7 @@ import type {
 } from '../../domain/services/ai-exercise-generator.service.interface';
 
 @Injectable()
-export class AiExerciseGeneratorServiceImpl
-  implements AiExerciseGeneratorService
-{
+export class AiExerciseGeneratorServiceImpl implements AiExerciseGeneratorService {
   private readonly logger = new Logger(AiExerciseGeneratorServiceImpl.name);
   private readonly aiEndpoint: string;
 
@@ -52,9 +50,7 @@ export class AiExerciseGeneratorServiceImpl
 
       const exercises: GeneratedExerciseData[] = response.data.exercises;
 
-      this.logger.log(
-        `Successfully generated ${exercises.length} exercises`,
-      );
+      this.logger.log(`Successfully generated ${exercises.length} exercises`);
 
       return exercises;
     } catch (error: any) {

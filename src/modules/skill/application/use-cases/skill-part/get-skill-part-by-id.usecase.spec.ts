@@ -11,7 +11,9 @@ describe('GetSkillPartByIdUseCase', () => {
   });
 
   it('should return skill part when found', async () => {
-    skillPartRepository.findById.mockResolvedValue(new SkillPart('sp1', 'Part 1'));
+    skillPartRepository.findById.mockResolvedValue(
+      new SkillPart('sp1', 'Part 1'),
+    );
     const result = await useCase.execute('sp1');
     expect(result?.name).toBe('Part 1');
   });

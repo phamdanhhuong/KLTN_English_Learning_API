@@ -11,7 +11,13 @@ describe('GetSkillProgressByUserIdUseCase', () => {
   });
 
   it('should return progress DTO when found', async () => {
-    const entity = new SkillProgressEntity('user-1', 'skill-1', 3, 2, new Date());
+    const entity = new SkillProgressEntity(
+      'user-1',
+      'skill-1',
+      3,
+      2,
+      new Date(),
+    );
     skillProgressRepository.findByUserId.mockResolvedValue(entity);
 
     const result = await useCase.execute('user-1');

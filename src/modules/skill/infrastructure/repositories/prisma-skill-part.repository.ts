@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import type { SkillPartRepository, SkillPartWithProgress } from '../../domain/repositories/skill-part.repository.interface';
+import type {
+  SkillPartRepository,
+  SkillPartWithProgress,
+} from '../../domain/repositories/skill-part.repository.interface';
 import { SkillPart } from '../../domain/entities/skill-part.entity';
 
 @Injectable()

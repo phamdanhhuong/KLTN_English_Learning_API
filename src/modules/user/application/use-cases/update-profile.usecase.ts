@@ -1,66 +1,70 @@
 import {
-    Injectable,
-    Inject,
-    NotFoundException,
-    ConflictException,
+  Injectable,
+  Inject,
+  NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { IsOptional, IsString, IsDate } from 'class-validator';
 import { Type } from 'class-transformer';
 import { USER_TOKENS } from '../../domain/di/tokens';
-import { UserProfileRepository, UpdateUserProfileData } from '../../domain/repositories/user-profile.repository';
+import {
+  UserProfileRepository,
+  UpdateUserProfileData,
+} from '../../domain/repositories/user-profile.repository';
 import { UserProfile } from '../../domain/entities/user-profile.entity';
 
 export class UpdateProfileDto {
-    @IsOptional()
-    @IsString()
-    username?: string;
+  @IsOptional()
+  @IsString()
+  username?: string;
 
-    @IsOptional()
-    @IsString()
-    fullName?: string;
+  @IsOptional()
+  @IsString()
+  fullName?: string;
 
-    @IsOptional()
-    @IsString()
-    profilePictureUrl?: string;
+  @IsOptional()
+  @IsString()
+  profilePictureUrl?: string;
 
-    @IsOptional()
-    @IsDate()
-    @Type(() => Date)
-    dateOfBirth?: Date;
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  dateOfBirth?: Date;
 
-    @IsOptional()
-    @IsString()
-    gender?: string;
+  @IsOptional()
+  @IsString()
+  gender?: string;
 }
 
 @Injectable()
 export class UpdateProfileUseCase {
-    constructor(
-        @Inject(USER_TOKENS.USER_PROFILE_REPOSITORY)
-        private readonly userProfileRepo: UserProfileRepository,
-    ) { }
+  constructor(
+    @Inject(USER_TOKENS.USER_PROFILE_REPOSITORY)
+    private readonly userProfileRepo: UserProfileRepository,
+  ) {}
 
-    async execute(userId: string, dto: UpdateProfileDto): Promise<UserProfile> {
-        const existing = await this.userProfileRepo.findById(userId);
-        if (!existing) {
-            throw new NotFoundException('User profile not found');
-        }
-
-        // Check username uniqueness if changing
-        if (dto.username && dto.username !== existing.username) {
-            const taken = await this.userProfileRepo.findByUsername(dto.username);
-            if (taken) {
-                throw new ConflictException('Username already taken');
-            }
-        }
-
-        const data: UpdateUserProfileData = {};
-        if (dto.username !== undefined) data.username = dto.username;
-        if (dto.fullName !== undefined) data.fullName = dto.fullName;
-        if (dto.profilePictureUrl !== undefined) data.profilePictureUrl = dto.profilePictureUrl;
-        if (dto.dateOfBirth !== undefined) data.dateOfBirth = dto.dateOfBirth;
-        if (dto.gender !== undefined) data.gender = dto.gender;
-
-        return this.userProfileRepo.update(userId, data);
+  async execute(userId: string, dto: UpdateProfileDto): Promise<UserProfile> {
+    const existing = await this.userProfileRepo.findById(userId);
+    if (!existing) {
+      throw new NotFoundException('User profile not found');
     }
+
+    // Check username uniqueness if changing
+    if (dto.username && dto.username !== existing.username) {
+      const taken = await this.userProfileRepo.findByUsername(dto.username);
+      if (taken) {
+        throw new ConflictException('Username already taken');
+      }
+    }
+
+    const data: UpdateUserProfileData = {};
+    if (dto.username !== undefined) data.username = dto.username;
+    if (dto.fullName !== undefined) data.fullName = dto.fullName;
+    if (dto.profilePictureUrl !== undefined)
+      data.profilePictureUrl = dto.profilePictureUrl;
+    if (dto.dateOfBirth !== undefined) data.dateOfBirth = dto.dateOfBirth;
+    if (dto.gender !== undefined) data.gender = dto.gender;
+
+    return this.userProfileRepo.update(userId, data);
+  }
 }

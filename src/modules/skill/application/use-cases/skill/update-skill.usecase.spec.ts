@@ -5,7 +5,13 @@ import { Skill } from '../../../domain/entities/skill.entity';
 describe('UpdateSkillUseCase', () => {
   let useCase: UpdateSkillUseCase;
   let skillRepository: any;
-  const existingSkill = new Skill('skill-1', 'Grammar', 'Old desc', 1, 'part-1');
+  const existingSkill = new Skill(
+    'skill-1',
+    'Grammar',
+    'Old desc',
+    1,
+    'part-1',
+  );
 
   beforeEach(() => {
     skillRepository = { findById: jest.fn(), update: jest.fn() };
@@ -30,6 +36,8 @@ describe('UpdateSkillUseCase', () => {
 
   it('should throw NotFoundException when skill not found', async () => {
     skillRepository.findById.mockResolvedValue(null);
-    await expect(useCase.execute('non-existent', { title: 'X' })).rejects.toThrow(NotFoundException);
+    await expect(
+      useCase.execute('non-existent', { title: 'X' }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

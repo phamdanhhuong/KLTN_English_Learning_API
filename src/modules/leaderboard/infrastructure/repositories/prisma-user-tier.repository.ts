@@ -4,8 +4,16 @@ import { RedisService } from '../../../../infrastructure/cache/redis.service';
 import type { UserTierRepository } from '../../domain/repositories/user-tier.repository.interface';
 
 const TIER_ORDER = [
-  'BRONZE', 'SILVER', 'GOLD', 'SAPPHIRE', 'RUBY',
-  'EMERALD', 'AMETHYST', 'PEARL', 'OBSIDIAN', 'DIAMOND',
+  'BRONZE',
+  'SILVER',
+  'GOLD',
+  'SAPPHIRE',
+  'RUBY',
+  'EMERALD',
+  'AMETHYST',
+  'PEARL',
+  'OBSIDIAN',
+  'DIAMOND',
 ];
 
 @Injectable()
@@ -19,7 +27,9 @@ export class PrismaUserTierRepository implements UserTierRepository {
     const cached = await this.redis.get(`lb:tier:${userId}`);
     if (cached) return JSON.parse(cached);
 
-    const tier = await this.prisma.userLeagueTier.findUnique({ where: { userId } });
+    const tier = await this.prisma.userLeagueTier.findUnique({
+      where: { userId },
+    });
     if (tier) {
       await this.redis.set(`lb:tier:${userId}`, JSON.stringify(tier), 86400);
     }
@@ -48,8 +58,13 @@ export class PrismaUserTierRepository implements UserTierRepository {
     });
   }
 
-  async changeTier(userId: string, direction: 'up' | 'down'): Promise<{ oldTier: string; newTier: string }> {
-    const userTier = await this.prisma.userLeagueTier.findUnique({ where: { userId } });
+  async changeTier(
+    userId: string,
+    direction: 'up' | 'down',
+  ): Promise<{ oldTier: string; newTier: string }> {
+    const userTier = await this.prisma.userLeagueTier.findUnique({
+      where: { userId },
+    });
     if (!userTier) return { oldTier: 'BRONZE', newTier: 'BRONZE' };
 
     const oldTier = userTier.currentTier;

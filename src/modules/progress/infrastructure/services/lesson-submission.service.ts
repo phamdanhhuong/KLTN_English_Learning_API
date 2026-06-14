@@ -50,10 +50,16 @@ export class LessonSubmissionService implements LessonSubmissionServiceInterface
     const correctExercises = exercises.filter(
       (e) => e.isCorrect && e.incorrectCount === 0,
     ).length;
-    const lessonAccuracy = totalExercises > 0 ? correctExercises / totalExercises : 0;
+    const lessonAccuracy =
+      totalExercises > 0 ? correctExercises / totalExercises : 0;
     const isLessonSuccessful = exercises.every((e) => e.isCorrect);
 
-    return { correctExercises, totalExercises, lessonAccuracy, isLessonSuccessful };
+    return {
+      correctExercises,
+      totalExercises,
+      lessonAccuracy,
+      isLessonSuccessful,
+    };
   }
 
   async saveExerciseResults(userId: string, exercises: any[]): Promise<void> {

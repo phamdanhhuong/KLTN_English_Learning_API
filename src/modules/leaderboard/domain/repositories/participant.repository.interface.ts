@@ -1,5 +1,8 @@
 export interface ParticipantRepository {
-  findUserActiveParticipation(userId: string, weekStart: Date): Promise<any | null>;
+  findUserActiveParticipation(
+    userId: string,
+    weekStart: Date,
+  ): Promise<any | null>;
   create(groupId: string, userId: string): Promise<any>;
   updateXp(participantId: string, xpToAdd: number): Promise<void>;
   getStandingsFromDB(groupId: string, currentUserId: string): Promise<any[]>;
@@ -14,5 +17,9 @@ export interface ParticipantRepository {
   // Inactivity decay
   findInactiveParticipants(inactiveSinceDays: number): Promise<any[]>;
   decayXp(participantId: string, decayAmount: number): Promise<void>;
-  decrXpRedis(groupId: string, decayAmount: number, userId: string): Promise<void>;
+  decrXpRedis(
+    groupId: string,
+    decayAmount: number,
+    userId: string,
+  ): Promise<void>;
 }

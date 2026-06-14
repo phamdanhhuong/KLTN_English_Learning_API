@@ -4,8 +4,11 @@ import { RedisService } from '../../../../infrastructure/cache/redis.service';
 import type { FeedRepository } from '../../domain/repositories/feed.repository.interface';
 
 const USER_SELECT = {
-  id: true, username: true, fullName: true,
-  profilePictureUrl: true, currentLevel: true,
+  id: true,
+  username: true,
+  fullName: true,
+  profilePictureUrl: true,
+  currentLevel: true,
 };
 
 @Injectable()
@@ -21,7 +24,11 @@ export class PrismaFeedRepository implements FeedRepository {
 
   async findRecentPost(userId: string, postType: string, thresholdDate: Date) {
     return this.prisma.feedPost.findFirst({
-      where: { userId, postType: postType as any, createdAt: { gte: thresholdDate } },
+      where: {
+        userId,
+        postType: postType as any,
+        createdAt: { gte: thresholdDate },
+      },
     });
   }
 
@@ -54,7 +61,12 @@ export class PrismaFeedRepository implements FeedRepository {
 
   // ─── Feed queries ───
 
-  async getFeedPosts(userIds: string[], currentUserId: string, limit: number, offset: number) {
+  async getFeedPosts(
+    userIds: string[],
+    currentUserId: string,
+    limit: number,
+    offset: number,
+  ) {
     const posts = await this.prisma.feedPost.findMany({
       where: { userId: { in: userIds }, isVisible: true },
       include: {
@@ -78,7 +90,9 @@ export class PrismaFeedRepository implements FeedRepository {
       where: { postId: { in: postIds }, userId: currentUserId },
       select: { postId: true, reactionType: true },
     });
-    const userReactionMap = new Map(userReactions.map((r) => [r.postId, r.reactionType]));
+    const userReactionMap = new Map(
+      userReactions.map((r) => [r.postId, r.reactionType]),
+    );
 
     return posts.map((post) => ({
       id: post.id,
@@ -94,7 +108,9 @@ export class PrismaFeedRepository implements FeedRepository {
       reactions: this.aggregateReactions(post.reactions),
       commentCount: (post as any)._count.comments,
       userReaction: userReactionMap.get(post.id) ?? null,
-      latestComment: post.comments[0] ? this.mapComment(post.comments[0]) : null,
+      latestComment: post.comments[0]
+        ? this.mapComment(post.comments[0])
+        : null,
     }));
   }
 
@@ -254,7 +270,10 @@ export class PrismaFeedRepository implements FeedRepository {
     for (const r of reactions) {
       map.set(r.reactionType, (map.get(r.reactionType) ?? 0) + 1);
     }
-    return Array.from(map.entries()).map(([reactionType, count]) => ({ reactionType, count }));
+    return Array.from(map.entries()).map(([reactionType, count]) => ({
+      reactionType,
+      count,
+    }));
   }
 
   private mapComment(comment: any) {

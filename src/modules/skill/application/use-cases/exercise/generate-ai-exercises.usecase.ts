@@ -5,7 +5,10 @@ import type { UserCustomSkillRepository } from '../../../domain/repositories/use
 import type { SkillPartRepository } from '../../../domain/repositories/skill-part.repository.interface';
 import type { SkillDomainService } from '../../../domain/services/skill-domain.service.interface';
 import type { AiExerciseGeneratorService } from '../../../domain/services/ai-exercise-generator.service.interface';
-import { Exercise, ExerciseType } from '../../../domain/entities/exercise.entity';
+import {
+  Exercise,
+  ExerciseType,
+} from '../../../domain/entities/exercise.entity';
 import { Lesson } from '../../../domain/entities/lesson.entity';
 import { UserCustomSkill } from '../../../domain/entities/user-custom-skill.entity';
 import { SkillPart } from '../../../domain/entities/skill-part.entity';
@@ -98,7 +101,11 @@ export class GenerateAiExercisesUseCase {
       await this.exerciseRepository.createMany(exerciseEntities);
 
     // 6. Invalidate lesson cache so GET /lessons/:id returns fresh data with exercises
-    await this.lessonRepository.invalidateCacheForLesson(savedLesson.id, customSkill.skillId, 1);
+    await this.lessonRepository.invalidateCacheForLesson(
+      savedLesson.id,
+      customSkill.skillId,
+      1,
+    );
 
     // 7. Build response
     return {

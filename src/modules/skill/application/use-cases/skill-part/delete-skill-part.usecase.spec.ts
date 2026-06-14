@@ -12,13 +12,17 @@ describe('DeleteSkillPartUseCase', () => {
   });
 
   it('should delete an existing skill part', async () => {
-    skillPartRepository.findById.mockResolvedValue(new SkillPart('sp1', 'Part 1'));
+    skillPartRepository.findById.mockResolvedValue(
+      new SkillPart('sp1', 'Part 1'),
+    );
     await useCase.execute('sp1');
     expect(skillPartRepository.delete).toHaveBeenCalledWith('sp1');
   });
 
   it('should throw NotFoundException when not found', async () => {
     skillPartRepository.findById.mockResolvedValue(null);
-    await expect(useCase.execute('non-existent')).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('non-existent')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

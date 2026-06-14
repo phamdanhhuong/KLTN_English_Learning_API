@@ -6,8 +6,12 @@ describe('UpdateProfileUseCase', () => {
   let useCase: UpdateProfileUseCase;
   let userProfileRepo: any;
   const existing = new UserProfile({
-    id: 'user-1', email: 'test@example.com', username: 'olduser',
-    fullName: 'Old Name', nativeLanguage: 'vi', targetLanguage: 'en',
+    id: 'user-1',
+    email: 'test@example.com',
+    username: 'olduser',
+    fullName: 'Old Name',
+    nativeLanguage: 'vi',
+    targetLanguage: 'en',
   });
 
   beforeEach(() => {
@@ -21,7 +25,9 @@ describe('UpdateProfileUseCase', () => {
 
   it('should update profile successfully', async () => {
     userProfileRepo.findById.mockResolvedValue(existing);
-    userProfileRepo.update.mockResolvedValue(new UserProfile({ ...existing, fullName: 'New Name' }));
+    userProfileRepo.update.mockResolvedValue(
+      new UserProfile({ ...existing, fullName: 'New Name' }),
+    );
 
     const result = await useCase.execute('user-1', { fullName: 'New Name' });
     expect(result.fullName).toBe('New Name');
@@ -30,7 +36,9 @@ describe('UpdateProfileUseCase', () => {
   it('should update username when not taken', async () => {
     userProfileRepo.findById.mockResolvedValue(existing);
     userProfileRepo.findByUsername.mockResolvedValue(null);
-    userProfileRepo.update.mockResolvedValue(new UserProfile({ ...existing, username: 'newuser' }));
+    userProfileRepo.update.mockResolvedValue(
+      new UserProfile({ ...existing, username: 'newuser' }),
+    );
 
     const result = await useCase.execute('user-1', { username: 'newuser' });
     expect(result.username).toBe('newuser');
@@ -38,13 +46,19 @@ describe('UpdateProfileUseCase', () => {
 
   it('should throw ConflictException when username is taken', async () => {
     userProfileRepo.findById.mockResolvedValue(existing);
-    userProfileRepo.findByUsername.mockResolvedValue(new UserProfile({ id: 'other', username: 'taken' }));
+    userProfileRepo.findByUsername.mockResolvedValue(
+      new UserProfile({ id: 'other', username: 'taken' }),
+    );
 
-    await expect(useCase.execute('user-1', { username: 'taken' })).rejects.toThrow(ConflictException);
+    await expect(
+      useCase.execute('user-1', { username: 'taken' }),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('should throw NotFoundException when user not found', async () => {
     userProfileRepo.findById.mockResolvedValue(null);
-    await expect(useCase.execute('non-existent', { fullName: 'X' })).rejects.toThrow(NotFoundException);
+    await expect(
+      useCase.execute('non-existent', { fullName: 'X' }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

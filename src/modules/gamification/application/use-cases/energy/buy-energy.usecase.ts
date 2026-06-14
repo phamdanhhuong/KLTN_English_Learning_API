@@ -22,7 +22,8 @@ export class BuyEnergyUseCase {
     energyAmount: number = 1,
     paymentMethod: 'GEMS' | 'COINS' = 'GEMS',
   ): Promise<BuyEnergyResult> {
-    if (energyAmount <= 0) throw new BadRequestException('Energy amount must be positive');
+    if (energyAmount <= 0)
+      throw new BadRequestException('Energy amount must be positive');
 
     return this.prisma.$transaction(async (tx) => {
       const [energy, currency] = await Promise.all([
@@ -37,9 +38,10 @@ export class BuyEnergyUseCase {
       }
 
       const actualAmount = Math.min(energyAmount, canAdd);
-      const cost = paymentMethod === 'GEMS'
-        ? actualAmount * ENERGY_GEM_COST
-        : actualAmount * ENERGY_COIN_COST;
+      const cost =
+        paymentMethod === 'GEMS'
+          ? actualAmount * ENERGY_GEM_COST
+          : actualAmount * ENERGY_COIN_COST;
 
       // Kiểm tra đủ tiền
       if (paymentMethod === 'GEMS' && currency.gems < cost) {
@@ -57,9 +59,10 @@ export class BuyEnergyUseCase {
       const [updatedCurrency, updatedEnergy] = await Promise.all([
         tx.userCurrency.update({
           where: { userId },
-          data: paymentMethod === 'GEMS'
-            ? { gems: { decrement: cost } }
-            : { coins: { decrement: cost } },
+          data:
+            paymentMethod === 'GEMS'
+              ? { gems: { decrement: cost } }
+              : { coins: { decrement: cost } },
         }),
         tx.userEnergy.update({
           where: { userId },
@@ -81,7 +84,10 @@ export class BuyEnergyUseCase {
         energyAfter: updatedEnergy.currentEnergy,
         energyPurchased: actualAmount,
         costPaid: { currencyType: paymentMethod, amount: cost },
-        remainingCurrency: { gems: updatedCurrency.gems, coins: updatedCurrency.coins },
+        remainingCurrency: {
+          gems: updatedCurrency.gems,
+          coins: updatedCurrency.coins,
+        },
       };
     });
   }

@@ -1,5 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { SkillPartRepository, SkillPartWithProgress } from '../../../domain/repositories/skill-part.repository.interface';
+import type {
+  SkillPartRepository,
+  SkillPartWithProgress,
+} from '../../../domain/repositories/skill-part.repository.interface';
 import { SKILL_TOKENS } from '../../../domain/di/tokens';
 
 @Injectable()

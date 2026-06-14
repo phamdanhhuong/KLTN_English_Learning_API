@@ -26,7 +26,11 @@ export class PrismaAchievementRepository implements AchievementRepository {
       orderBy: [{ category: 'asc' }, { tier: 'asc' }],
     });
 
-    await this.redis.set(this.DEFS_CACHE_KEY, JSON.stringify(achievements), this.DEFS_CACHE_TTL);
+    await this.redis.set(
+      this.DEFS_CACHE_KEY,
+      JSON.stringify(achievements),
+      this.DEFS_CACHE_TTL,
+    );
     return achievements as AchievementDefinition[];
   }
 
@@ -120,7 +124,9 @@ export class PrismaAchievementRepository implements AchievementRepository {
         await this.prisma.$transaction(ops);
       }
     } catch (error: any) {
-      this.logger.error(`Failed to grant achievement rewards: ${error.message}`);
+      this.logger.error(
+        `Failed to grant achievement rewards: ${error.message}`,
+      );
     }
   }
 

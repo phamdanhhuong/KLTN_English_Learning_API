@@ -6,8 +6,12 @@ describe('UpdatePreferencesUseCase', () => {
   let useCase: UpdatePreferencesUseCase;
   let userProfileRepo: any;
   const existing = new UserProfile({
-    id: 'user-1', email: 'test@example.com',
-    nativeLanguage: 'vi', targetLanguage: 'en', dailyGoalMinutes: 15, timezone: 'UTC',
+    id: 'user-1',
+    email: 'test@example.com',
+    nativeLanguage: 'vi',
+    targetLanguage: 'en',
+    dailyGoalMinutes: 15,
+    timezone: 'UTC',
   });
 
   beforeEach(() => {

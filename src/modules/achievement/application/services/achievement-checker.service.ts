@@ -22,7 +22,11 @@ export class AchievementCheckerService {
    * Gọi từ: AddXpUseCase (category='xp'), UpdateStreakUseCase (category='streak'),
    * LessonCompletedUseCase (category='lessons'), FollowUserUseCase (category='social')
    */
-  async check(userId: string, category: string, currentValue: number): Promise<void> {
+  async check(
+    userId: string,
+    category: string,
+    currentValue: number,
+  ): Promise<void> {
     try {
       const achievements = await this.achievementRepo.findAllDefinitions();
       const relevant = achievements.filter((a) => a.category === category);
@@ -42,29 +46,48 @@ export class AchievementCheckerService {
    * Cập nhật Kỷ Lục Cá Nhân (Personal Records).
    * So sánh giá trị hiện tại trong DB, nếu newValue "tốt hơn" (cao hơn hoặc thấp hơn tuỳ isMin) thì lưu đè.
    */
-  async updatePersonalRecord(userId: string, recordKey: string, newValue: number, isMin = false): Promise<void> {
+  async updatePersonalRecord(
+    userId: string,
+    recordKey: string,
+    newValue: number,
+    isMin = false,
+  ): Promise<void> {
     try {
       const achievements = await this.achievementRepo.findAllDefinitions();
-      const recordDef = achievements.find((a) => a.key === recordKey && a.category === 'personal');
+      const recordDef = achievements.find(
+        (a) => a.key === recordKey && a.category === 'personal',
+      );
       if (!recordDef) return;
 
-      const userAchievements = await this.achievementRepo.findUserAchievements(userId);
-      const currentRecord = userAchievements.find((ua) => ua.achievementId === recordDef.id);
+      const userAchievements =
+        await this.achievementRepo.findUserAchievements(userId);
+      const currentRecord = userAchievements.find(
+        (ua) => ua.achievementId === recordDef.id,
+      );
 
       const currentVal = currentRecord?.progress ?? (isMin ? Infinity : 0);
-      
-      const isNewRecord = isMin ? (newValue < currentVal) : (newValue > currentVal);
+
+      const isNewRecord = isMin ? newValue < currentVal : newValue > currentVal;
 
       if (isNewRecord) {
-        await this.achievementRepo.upsertProgress(userId, recordDef.id, newValue, true);
+        await this.achievementRepo.upsertProgress(
+          userId,
+          recordDef.id,
+          newValue,
+          true,
+        );
         await this.achievementRepo.invalidateUserCache(userId);
-        this.logger.log(`🌟 User ${userId} broke personal record [${recordKey}] with ${newValue}`);
-        
+        this.logger.log(
+          `🌟 User ${userId} broke personal record [${recordKey}] with ${newValue}`,
+        );
+
         // Feed auto-create: PERSONAL_RECORD_BROKEN
-        this.feedService.autoCreatePost(userId, 'PERSONAL_RECORD_BROKEN', {
-          recordName: recordDef.name,
-          value: newValue,
-        }).catch(() => {});
+        this.feedService
+          .autoCreatePost(userId, 'PERSONAL_RECORD_BROKEN', {
+            recordName: recordDef.name,
+            value: newValue,
+          })
+          .catch(() => {});
       }
     } catch (error: any) {
       this.logger.error(`Personal record update failed: ${error.message}`);
@@ -73,7 +96,13 @@ export class AchievementCheckerService {
 
   private async tryUnlock(
     userId: string,
-    achievement: { id: string; requirement: number; rewardXp: number; rewardGems: number; name: string },
+    achievement: {
+      id: string;
+      requirement: number;
+      rewardXp: number;
+      rewardGems: number;
+      name: string;
+    },
     currentValue: number,
     isUnlocked: boolean,
   ): Promise<void> {
@@ -96,10 +125,12 @@ export class AchievementCheckerService {
       this.logger.log(`🏆 User ${userId} unlocked: ${achievement.name}`);
 
       // Feed auto-create: ACHIEVEMENT_UNLOCKED
-      this.feedService.autoCreatePost(userId, 'ACHIEVEMENT_UNLOCKED', {
-        achievementName: achievement.name,
-        tier: (achievement as any).tier ?? 0,
-      }).catch(() => {});
+      this.feedService
+        .autoCreatePost(userId, 'ACHIEVEMENT_UNLOCKED', {
+          achievementName: achievement.name,
+          tier: (achievement as any).tier ?? 0,
+        })
+        .catch(() => {});
     }
   }
 }

@@ -5,11 +5,7 @@ import { PrismaService } from '../../../../../infrastructure/database/prisma.ser
 export class GetStreakCalendarUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(
-    userId: string,
-    startDate?: Date,
-    endDate?: Date,
-  ) {
+  async execute(userId: string, startDate?: Date, endDate?: Date) {
     // Default: current month
     const now = new Date();
     const start = startDate ?? new Date(now.getFullYear(), now.getMonth(), 1);
@@ -25,13 +21,12 @@ export class GetStreakCalendarUseCase {
 
     // Build a set of studied dates for fast lookup
     const studiedMap = new Map(
-      activities.map(a => [
-        a.activityDate.toISOString().split('T')[0],
-        a,
-      ]),
+      activities.map((a) => [a.activityDate.toISOString().split('T')[0], a]),
     );
 
-    const streak = await this.prisma.streakData.findUnique({ where: { userId } });
+    const streak = await this.prisma.streakData.findUnique({
+      where: { userId },
+    });
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -56,7 +51,10 @@ export class GetStreakCalendarUseCase {
         status = 'future';
       } else if (activity?.freezeUsed) {
         status = 'frozen';
-      } else if (activity && (activity.streakCount > 0 || activity.xpEarned > 0)) {
+      } else if (
+        activity &&
+        (activity.streakCount > 0 || activity.xpEarned > 0)
+      ) {
         status = 'active';
       } else if (cursor < today) {
         status = 'missed';
@@ -79,7 +77,8 @@ export class GetStreakCalendarUseCase {
     for (let i = 0; i < days.length; i++) {
       if (days[i].status === 'active') {
         const prevActive = i > 0 && days[i - 1].status === 'active';
-        const nextActive = i < days.length - 1 && days[i + 1].status === 'active';
+        const nextActive =
+          i < days.length - 1 && days[i + 1].status === 'active';
         days[i].isStreakStart = !prevActive;
         days[i].isStreakEnd = !nextActive;
       }
@@ -87,9 +86,9 @@ export class GetStreakCalendarUseCase {
 
     // Calculate summary matching mobile CalendarSummaryModel
     const totalDays = days.length;
-    const activeDays = days.filter(d => d.status === 'active').length;
-    const frozenDays = days.filter(d => d.status === 'frozen').length;
-    const missedDays = days.filter(d => d.status === 'missed').length;
+    const activeDays = days.filter((d) => d.status === 'active').length;
+    const frozenDays = days.filter((d) => d.status === 'frozen').length;
+    const missedDays = days.filter((d) => d.status === 'missed').length;
 
     // Longest streak in the displayed range
     let longestStreakInRange = 0;

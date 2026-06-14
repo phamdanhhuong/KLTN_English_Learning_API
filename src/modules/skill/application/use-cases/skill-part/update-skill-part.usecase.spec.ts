@@ -14,7 +14,9 @@ describe('UpdateSkillPartUseCase', () => {
 
   it('should update skill part name', async () => {
     skillPartRepository.findById.mockResolvedValue(existing);
-    skillPartRepository.update.mockImplementation((sp: SkillPart) => Promise.resolve(sp));
+    skillPartRepository.update.mockImplementation((sp: SkillPart) =>
+      Promise.resolve(sp),
+    );
 
     const result = await useCase.execute('sp1', { name: 'New Name' });
     expect(result.name).toBe('New Name');
@@ -22,6 +24,8 @@ describe('UpdateSkillPartUseCase', () => {
 
   it('should throw NotFoundException when not found', async () => {
     skillPartRepository.findById.mockResolvedValue(null);
-    await expect(useCase.execute('non-existent', { name: 'X' })).rejects.toThrow(NotFoundException);
+    await expect(
+      useCase.execute('non-existent', { name: 'X' }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

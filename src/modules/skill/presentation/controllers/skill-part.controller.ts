@@ -72,4 +72,3 @@ export class SkillPartController {
     return this.deleteSkillPartUseCase.execute(id);
   }
 }
-

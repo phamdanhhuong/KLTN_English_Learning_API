@@ -1,11 +1,22 @@
 import {
-  Controller, Post, Delete, Get, UseGuards, Request, Param, Query,
-  HttpCode, HttpStatus,
+  Controller,
+  Post,
+  Delete,
+  Get,
+  UseGuards,
+  Request,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { FollowUserUseCase } from '../application/use-cases/follow-user.usecase';
 import { UnfollowUserUseCase } from '../application/use-cases/unfollow-user.usecase';
-import { GetFollowingUseCase, GetFollowersUseCase } from '../application/use-cases/get-follow-lists.usecase';
+import {
+  GetFollowingUseCase,
+  GetFollowersUseCase,
+} from '../application/use-cases/get-follow-lists.usecase';
 import { GetSuggestedFriendsUseCase } from '../application/use-cases/get-suggested-friends.usecase';
 import { SearchUsersUseCase } from '../application/use-cases/search-users.usecase';
 
@@ -28,7 +39,10 @@ export class SocialController {
   }
 
   @Delete('follow/:userId')
-  async unfollowUser(@Request() req: any, @Param('userId') targetUserId: string) {
+  async unfollowUser(
+    @Request() req: any,
+    @Param('userId') targetUserId: string,
+  ) {
     return this.unfollowUserUseCase.execute(req.user.sub, targetUserId);
   }
 
@@ -40,7 +54,11 @@ export class SocialController {
     @Query('offset') offset?: number,
   ) {
     const targetUserId = userId || req.user.sub;
-    return this.getFollowingUseCase.execute(targetUserId, limit ?? 50, offset ?? 0);
+    return this.getFollowingUseCase.execute(
+      targetUserId,
+      limit ?? 50,
+      offset ?? 0,
+    );
   }
 
   @Get('followers')
@@ -51,7 +69,11 @@ export class SocialController {
     @Query('offset') offset?: number,
   ) {
     const targetUserId = userId || req.user.sub;
-    return this.getFollowersUseCase.execute(targetUserId, limit ?? 50, offset ?? 0);
+    return this.getFollowersUseCase.execute(
+      targetUserId,
+      limit ?? 50,
+      offset ?? 0,
+    );
   }
 
   @Get('suggestions')
