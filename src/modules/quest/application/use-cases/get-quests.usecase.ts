@@ -25,8 +25,15 @@ export class GetUserQuestsUseCase {
       return data;
     }
 
+    const now = new Date();
     const quests = await this.prisma.userQuest.findMany({
-      where: { userId, status: { in: ['ACTIVE', 'COMPLETED'] } },
+      where: {
+        userId,
+        OR: [
+          { status: { in: ['ACTIVE', 'COMPLETED'] } },
+          { status: 'CLAIMED', endDate: { gte: now } },
+        ],
+      },
       include: {
         quest: true,
         chest: true,

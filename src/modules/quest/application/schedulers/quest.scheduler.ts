@@ -31,14 +31,10 @@ export class QuestScheduler {
 
       this.logger.log(`✅ Expired ${result.count} quests`);
 
-      // Clean up old expired quests (> 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
+      // Clean up ALL expired quests immediately
       await this.prisma.userQuest.deleteMany({
         where: {
           status: 'EXPIRED',
-          endDate: { lt: thirtyDaysAgo },
         },
       });
 

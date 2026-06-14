@@ -25,7 +25,7 @@ export class PrismaUserQuestRepository implements UserQuestRepository {
       where: {
         userId,
         questId,
-        status: { in: ['ACTIVE', 'COMPLETED'] },
+        status: { in: ['ACTIVE', 'COMPLETED', 'CLAIMED'] },
         endDate: { gte: minEndDate },
       },
     });
