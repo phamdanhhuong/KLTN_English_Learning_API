@@ -52,21 +52,35 @@ else
     echo "   ✅ Piper binary already exists"
 fi
 
-# ─── 4. Download Piper voice model ──────────────────
+# ─── 4. Download Piper voice models ──────────────────
 echo ""
-echo "🎤 Downloading Piper voice model (en_US-amy-medium)..."
+echo "🎤 Downloading Piper voice models..."
 mkdir -p "$MODELS_DIR/piper"
 
-MODEL_BASE="en_US-amy-medium"
-MODEL_URL_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/amy/medium"
+# English model
+MODEL_EN="en_US-amy-medium"
+MODEL_EN_URL="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/amy/medium"
 
-if [ ! -f "$MODELS_DIR/piper/${MODEL_BASE}.onnx" ]; then
-    echo "   📥 Downloading model..."
-    wget -q "${MODEL_URL_BASE}/${MODEL_BASE}.onnx" -O "$MODELS_DIR/piper/${MODEL_BASE}.onnx"
-    wget -q "${MODEL_URL_BASE}/${MODEL_BASE}.onnx.json" -O "$MODELS_DIR/piper/${MODEL_BASE}.onnx.json"
-    echo "   ✅ Voice model downloaded"
+if [ ! -f "$MODELS_DIR/piper/${MODEL_EN}.onnx" ]; then
+    echo "   📥 Downloading English model (Amy)..."
+    wget -q "${MODEL_EN_URL}/${MODEL_EN}.onnx" -O "$MODELS_DIR/piper/${MODEL_EN}.onnx"
+    wget -q "${MODEL_EN_URL}/${MODEL_EN}.onnx.json" -O "$MODELS_DIR/piper/${MODEL_EN}.onnx.json"
+    echo "   ✅ English model downloaded"
 else
-    echo "   ✅ Voice model already exists"
+    echo "   ✅ English model already exists"
+fi
+
+# Vietnamese model
+MODEL_VI="vi_VN-vivos-medium"
+MODEL_VI_URL="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/vi/vi_VN/vivos/medium"
+
+if [ ! -f "$MODELS_DIR/piper/${MODEL_VI}.onnx" ]; then
+    echo "   📥 Downloading Vietnamese model (Vivos)..."
+    wget -q "${MODEL_VI_URL}/${MODEL_VI}.onnx" -O "$MODELS_DIR/piper/${MODEL_VI}.onnx"
+    wget -q "${MODEL_VI_URL}/${MODEL_VI}.onnx.json" -O "$MODELS_DIR/piper/${MODEL_VI}.onnx.json"
+    echo "   ✅ Vietnamese model downloaded"
+else
+    echo "   ✅ Vietnamese model already exists"
 fi
 
 # ─── 5. Pre-download Faster-Whisper model ───────────
@@ -87,8 +101,9 @@ cat > "$SCRIPT_DIR/.env" << EOF
 WHISPER_MODEL=base
 WHISPER_DEVICE=cpu
 WHISPER_COMPUTE_TYPE=int8
-PIPER_MODEL_PATH=$MODELS_DIR/piper/${MODEL_BASE}.onnx
-PIPER_CONFIG_PATH=$MODELS_DIR/piper/${MODEL_BASE}.onnx.json
+PIPER_MODEL_PATH=$MODELS_DIR/piper/${MODEL_EN}.onnx
+PIPER_VI_MODEL_PATH=$MODELS_DIR/piper/${MODEL_VI}.onnx
+PIPER_CONFIG_PATH=$MODELS_DIR/piper/${MODEL_EN}.onnx.json
 PIPER_BINARY=$PIPER_DIR/piper
 PORT=8090
 EOF

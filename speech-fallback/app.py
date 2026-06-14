@@ -10,6 +10,7 @@ import wave
 import logging
 import tempfile
 import subprocess
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
@@ -27,6 +28,7 @@ WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 PIPER_MODEL_PATH = os.getenv("PIPER_MODEL_PATH", "./models/piper/en_US-amy-medium.onnx")
+PIPER_VI_MODEL_PATH = os.getenv("PIPER_VI_MODEL_PATH", "./models/piper/vi_VN-vivos-medium.onnx")
 PIPER_CONFIG_PATH = os.getenv("PIPER_CONFIG_PATH", "./models/piper/en_US-amy-medium.onnx.json")
 PIPER_BINARY = os.getenv("PIPER_BINARY", "piper")
 PORT = int(os.getenv("PORT", "8090"))
@@ -89,9 +91,13 @@ async def startup():
     # ── Check Piper model ──
     if piper_available:
         if not Path(PIPER_MODEL_PATH).exists():
-            logger.warning(f"⚠️  Piper model not found at {PIPER_MODEL_PATH}")
+            logger.warning(f"⚠️  Piper English model not found at {PIPER_MODEL_PATH}")
             logger.info("📥 Download with: piper --download-dir ./models/piper --model en_US-amy-medium")
             piper_available = False
+            
+        if not Path(PIPER_VI_MODEL_PATH).exists():
+            logger.warning(f"⚠️  Piper Vietnamese model not found at {PIPER_VI_MODEL_PATH}")
+            logger.info("📥 Download with: piper --download-dir ./models/piper --model vi_VN-vivos-medium")
 
 
 # ─── STT Endpoint ──────────────────────────────────
@@ -99,7 +105,7 @@ async def startup():
 @app.post("/stt/transcribe")
 async def transcribe(
     audio_file: UploadFile = File(...),
-    language: Optional[str] = Form(default="en"),
+    language: Optional[str] = Form(default="auto"),
 ):
     """Transcribe audio using Faster-Whisper."""
     if whisper_model is None:
@@ -170,18 +176,31 @@ class TTSRequest(BaseModel):
     voice_style: Optional[str] = "friendly"
 
 
+def is_vietnamese(text: str) -> bool:
+    """Simple heuristic to check if text contains Vietnamese characters."""
+    vn_chars = re.compile(r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', re.IGNORECASE)
+    return bool(vn_chars.search(text))
+
+
 @app.post("/tts/synthesize")
 async def synthesize(request: TTSRequest):
     """Synthesize speech using Piper TTS. Returns WAV audio."""
     if not piper_available:
         raise HTTPException(503, "Piper TTS not available")
+        
+    model_path = PIPER_VI_MODEL_PATH if is_vietnamese(request.text) else PIPER_MODEL_PATH
+    
+    # Fallback to English model if Vietnamese model doesn't exist
+    if not Path(model_path).exists():
+        logger.warning(f"Model {model_path} not found, falling back to {PIPER_MODEL_PATH}")
+        model_path = PIPER_MODEL_PATH
 
     try:
         # Piper reads from stdin, writes WAV to stdout
         proc = subprocess.run(
             [
                 PIPER_BINARY,
-                "--model", PIPER_MODEL_PATH,
+                "--model", model_path,
                 "--output-raw",
                 "--length-scale", "1.0",
                 "--sentence-silence", "0.3",
