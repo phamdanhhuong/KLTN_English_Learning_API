@@ -20,6 +20,8 @@ interface VoiceCallSession {
   transcripts: Array<{ role: string; text: string; timestamp: number }>;
   isProcessing: boolean;
   wordsSpoken: number;
+  lastVoiceActivity: number;
+  hasVoiceData: boolean;
 }
 
 @WebSocketGateway({
@@ -78,6 +80,8 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         transcripts: [],
         isProcessing: false,
         wordsSpoken: 0,
+        lastVoiceActivity: Date.now(),
+        hasVoiceData: false,
       };
 
       this.sessions.set(client.id, session);
@@ -153,6 +157,24 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       // Decode base64 audio and add to buffer
       const audioChunk = Buffer.from(data.audio, 'base64');
+      
+      // Calculate RMS to detect silence
+      let sumSquares = 0;
+      for (let i = 0; i < audioChunk.length - 1; i += 2) {
+        const sample = audioChunk.readInt16LE(i);
+        sumSquares += sample * sample;
+      }
+      const rms = Math.sqrt(sumSquares / (audioChunk.length / 2));
+      
+      // Threshold: ~500 for normal microphone background noise, you can adjust this
+      const SILENCE_THRESHOLD = 500;
+      const now = Date.now();
+      
+      if (rms > SILENCE_THRESHOLD) {
+        session.lastVoiceActivity = now;
+        session.hasVoiceData = true;
+      }
+
       session.audioBuffer.push(audioChunk);
 
       // Reset buffer flush timer
@@ -160,10 +182,20 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         clearTimeout(session.bufferTimer);
       }
 
-      // Set timer to flush buffer after silence
-      session.bufferTimer = setTimeout(() => {
+      // If we have voice data and it's been silent for BUFFER_FLUSH_MS, process it!
+      if (session.hasVoiceData && (now - session.lastVoiceActivity > this.BUFFER_FLUSH_MS)) {
         this.processAudioBuffer(client, session);
-      }, this.BUFFER_FLUSH_MS);
+      } else if (!session.hasVoiceData && session.audioBuffer.length > this.MIN_BUFFER_SIZE * 5) {
+        // Discard long stretches of silence to prevent memory leaks
+        session.audioBuffer = [];
+      } else {
+        // Set a fallback timer in case client stops sending entirely
+        session.bufferTimer = setTimeout(() => {
+          if (session.hasVoiceData) {
+            this.processAudioBuffer(client, session);
+          }
+        }, this.BUFFER_FLUSH_MS);
+      }
     } catch (error) {
       this.logger.error(`Audio chunk processing error: ${error}`);
     }
@@ -217,6 +249,8 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Concatenate audio buffers (Raw PCM 16kHz 16-bit mono)
       const pcmBuffer = Buffer.concat(session.audioBuffer);
       session.audioBuffer = [];
+      session.hasVoiceData = false;
+      session.lastVoiceActivity = Date.now();
 
       // Skip if too small (likely noise)
       if (pcmBuffer.length < this.MIN_BUFFER_SIZE) {
