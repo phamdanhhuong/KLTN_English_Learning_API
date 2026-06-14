@@ -220,7 +220,8 @@ export class VoiceService {
       filename,
       contentType: 'audio/wav',
     });
-    formData.append('language', 'en');
+    // Remove hardcoded language so Faster-Whisper can auto-detect (EN/VI)
+    // formData.append('language', 'en');
 
     const response = await firstValueFrom(
       this.httpService.post(`${baseUrl}/stt/transcribe`, formData, {
