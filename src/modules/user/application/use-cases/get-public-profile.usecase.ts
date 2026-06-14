@@ -6,7 +6,7 @@ export class GetPublicProfileUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(targetUserId: string, requestingUserId?: string) {
-    const [user, streak, followCounts, xpHistory] = await Promise.all([
+    const [user, streak, followCounts, xpHistory, progress] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: targetUserId },
         select: {
@@ -25,6 +25,7 @@ export class GetPublicProfileUseCase {
         take: 7,
         select: { activityDate: true, xpEarned: true },
       }),
+      this.prisma.skillProgress.findUnique({ where: { userId: targetUserId } }),
     ]);
 
     if (!user || !user.isActive) throw new NotFoundException('User not found');
@@ -60,6 +61,7 @@ export class GetPublicProfileUseCase {
       streakDays: streak?.currentStreak ?? 0,
       totalXp: user.xpPoints ?? 0,
       currentLevel: user.currentLevel ?? 1,
+      skillPosition: progress?.levelReached ?? 1,
       isInTournament: false,
       top3Count: 0,
       englishScore: 0,

@@ -19,7 +19,7 @@ export class GetProfileUseCase {
     weekStart.setDate(now.getDate() - diff);
     weekStart.setHours(0, 0, 0, 0);
 
-    const [user, streak, followCounts, xpHistory, userTier, leagueParticipation, top3Count] = await Promise.all([
+    const [user, streak, followCounts, xpHistory, userTier, leagueParticipation, top3Count, progress] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -60,7 +60,8 @@ export class GetProfileUseCase {
             lte: 3
           }
         }
-      })
+      }),
+      this.prisma.skillProgress.findUnique({ where: { userId } })
     ]);
 
     if (!user) throw new NotFoundException('User profile not found');
@@ -84,7 +85,7 @@ export class GetProfileUseCase {
       isInTournament: !!leagueParticipation,
       top3Count: top3Count,
       currentLeagueTier: userTier?.currentTier ?? null,
-      skillPosition: 1,
+      skillPosition: progress?.levelReached ?? 1,
       isEmailVerified: user.isEmailVerified,
       dateOfBirth: user.dateOfBirth?.toISOString(),
       gender: user.gender,
