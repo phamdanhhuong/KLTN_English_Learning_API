@@ -129,6 +129,19 @@ async def transcribe(
             vad_parameters=dict(min_silence_duration_ms=500),
         )
 
+        # Workaround: Whisper 'base' often misclassifies short Vietnamese audio as French, Chinese, etc.
+        # If the detected language is not English or Vietnamese, force it to Vietnamese and retry.
+        if (language == "auto" or not language) and info.language not in ["en", "vi"]:
+            logger.info(f"Language misdetected as '{info.language}'. Forcing retry with 'vi'.")
+            segments, info = whisper_model.transcribe(
+                tmp_path,
+                language="vi",
+                beam_size=1,
+                best_of=1,
+                vad_filter=True,
+                vad_parameters=dict(min_silence_duration_ms=500),
+            )
+
         text_parts = []
         total_confidence = 0.0
         count = 0
