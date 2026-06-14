@@ -13,6 +13,7 @@ import { HttpService } from '@nestjs/axios';
 import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RedisService } from '../../infrastructure/cache/redis.service';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
@@ -22,6 +23,7 @@ export class ChatController {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {
     this.aiEndpoint =
       this.configService.get<string>('AI_SERVICE_ENDPOINT') ||
@@ -30,17 +32,43 @@ export class ChatController {
 
   @Post('start')
   async startChat(@Req() req: any) {
-    return this.forwardPost(req, '/chat/start');
+    const response = await this.forwardPost(req, '/chat/start');
+    const userId = this.getUserId(req);
+    if (userId) {
+      await this.redisService.del(`chat:user_conversations:${userId}`);
+    }
+    return response;
   }
 
   @Post('message')
   async chat(@Req() req: any) {
-    return this.forwardPost(req, '/chat/message');
+    const response = await this.forwardPost(req, '/chat/message');
+    const conversationId = req.body.conversation_id;
+    const userId = this.getUserId(req);
+    if (conversationId) {
+      await this.redisService.del(`chat:history:${conversationId}`);
+    }
+    if (userId) {
+      await this.redisService.del(`chat:user_conversations:${userId}`);
+    }
+    return response;
   }
 
   @Get('user/conversations')
   async getUserConversations(@Req() req: any) {
-    return this.forwardGet(req, '/chat/user/conversations');
+    const userId = this.getUserId(req);
+    const cacheKey = `chat:user_conversations:${userId}`;
+    if (userId) {
+      const cached = await this.redisService.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    }
+    
+    const response = await this.forwardGet(req, '/chat/user/conversations');
+    
+    if (userId && response) {
+      await this.redisService.set(cacheKey, JSON.stringify(response), 3600);
+    }
+    return response;
   }
 
   @Get('conversation/:conversationId')
@@ -56,7 +84,16 @@ export class ChatController {
     @Param('conversationId') conversationId: string,
     @Req() req: any,
   ) {
-    return this.forwardGet(req, `/chat/conversation/${conversationId}/history`);
+    const cacheKey = `chat:history:${conversationId}`;
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const response = await this.forwardGet(req, `/chat/conversation/${conversationId}/history`);
+    
+    if (response) {
+      await this.redisService.set(cacheKey, JSON.stringify(response), 3600);
+    }
+    return response;
   }
 
   private getUserId(req: any): string {
