@@ -14,6 +14,7 @@ describe('GetProfileUseCase', () => {
       userLeagueTier: { findUnique: jest.fn() },
       leagueParticipant: { findFirst: jest.fn() },
       leagueHistory: { count: jest.fn() },
+      skillProgress: { findUnique: jest.fn() },
     };
     useCase = new GetProfileUseCase(prisma);
   });
@@ -38,6 +39,7 @@ describe('GetProfileUseCase', () => {
     prisma.userLeagueTier.findUnique.mockResolvedValue({ currentTier: 'GOLD' });
     prisma.leagueParticipant.findFirst.mockResolvedValue(null);
     prisma.leagueHistory.count.mockResolvedValue(2);
+    prisma.skillProgress.findUnique.mockResolvedValue(null);
 
     const result = await useCase.execute('u1');
 
@@ -72,6 +74,7 @@ describe('GetProfileUseCase', () => {
     prisma.userLeagueTier.findUnique.mockResolvedValue(null);
     prisma.leagueParticipant.findFirst.mockResolvedValue(null);
     prisma.leagueHistory.count.mockResolvedValue(0);
+    prisma.skillProgress.findUnique.mockResolvedValue(null);
 
     const result = await useCase.execute('u2');
 
@@ -109,6 +112,7 @@ describe('GetProfileUseCase', () => {
       userId: 'u3',
     });
     prisma.leagueHistory.count.mockResolvedValue(5);
+    prisma.skillProgress.findUnique.mockResolvedValue(null);
 
     const result = await useCase.execute('u3');
 
@@ -126,6 +130,7 @@ describe('GetProfileUseCase', () => {
     prisma.userLeagueTier.findUnique.mockResolvedValue(null);
     prisma.leagueParticipant.findFirst.mockResolvedValue(null);
     prisma.leagueHistory.count.mockResolvedValue(0);
+    prisma.skillProgress.findUnique.mockResolvedValue(null);
 
     await expect(useCase.execute('non-existent')).rejects.toThrow(
       NotFoundException,

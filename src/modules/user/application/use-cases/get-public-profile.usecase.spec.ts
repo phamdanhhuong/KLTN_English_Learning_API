@@ -14,6 +14,7 @@ describe('GetPublicProfileUseCase', () => {
       streakData: { findUnique: jest.fn() },
       userRelationship: { count: jest.fn(), findFirst: jest.fn() },
       userDailyActivity: { findMany: jest.fn() },
+      skillProgress: { findUnique: jest.fn() },
     };
     useCase = new GetPublicProfileUseCase(prisma);
   });
@@ -32,6 +33,7 @@ describe('GetPublicProfileUseCase', () => {
     prisma.streakData.findUnique.mockResolvedValue({ currentStreak: 3 });
     prisma.userRelationship.count.mockResolvedValue(0);
     prisma.userDailyActivity.findMany.mockResolvedValue([]);
+    prisma.skillProgress.findUnique.mockResolvedValue(null);
 
     const result = await useCase.execute('u1');
     expect(result.id).toBe('u1');
@@ -53,6 +55,7 @@ describe('GetPublicProfileUseCase', () => {
     prisma.userRelationship.count.mockResolvedValue(0);
     prisma.userRelationship.findFirst.mockResolvedValue(null);
     prisma.userDailyActivity.findMany.mockResolvedValue([]);
+    prisma.skillProgress.findUnique.mockResolvedValue(null);
 
     const result = await useCase.execute('u1', 'u2');
     expect(result.isFollowingMe).toBe(false);
@@ -64,6 +67,7 @@ describe('GetPublicProfileUseCase', () => {
     prisma.streakData.findUnique.mockResolvedValue(null);
     prisma.userRelationship.count.mockResolvedValue(0);
     prisma.userDailyActivity.findMany.mockResolvedValue([]);
+    prisma.skillProgress.findUnique.mockResolvedValue(null);
 
     await expect(useCase.execute('non-existent')).rejects.toThrow(
       NotFoundException,
