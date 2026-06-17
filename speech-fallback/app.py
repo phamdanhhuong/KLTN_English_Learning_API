@@ -172,6 +172,152 @@ async def transcribe(
                 pass
 
 
+@app.post("/stt/transcribe/v2")
+async def transcribe_v2(
+    audio_file: UploadFile = File(...),
+    language: Optional[str] = Form(default="auto"),
+    reference_text: Optional[str] = Form(default=""),
+    compare_pronunciation: Optional[bool] = Form(default=False),
+    analyze_fluency: Optional[bool] = Form(default=False),
+):
+    """Transcribe audio using Faster-Whisper with detailed ASRResponseDTO format."""
+    from datetime import datetime
+    start_time = datetime.now()
+
+    if whisper_model is None:
+        raise HTTPException(503, "STT model not loaded")
+
+    tmp_path = None
+    try:
+        content = await audio_file.read()
+        suffix = os.path.splitext(audio_file.filename or "audio.wav")[1] or ".wav"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        segments, info = whisper_model.transcribe(
+            tmp_path,
+            language=language if language != "auto" else None,
+            beam_size=1,          # Faster on CPU
+            best_of=1,
+            vad_filter=True,      # Skip silence
+            vad_parameters=dict(min_silence_duration_ms=500),
+        )
+
+        # Workaround: Whisper 'base' often misclassifies short Vietnamese audio as French, Chinese, etc.
+        # If the detected language is not English or Vietnamese, force it to Vietnamese and retry.
+        if (language == "auto" or not language) and info.language not in ["en", "vi"]:
+            logger.info(f"Language misdetected as '{info.language}'. Forcing retry with 'vi'.")
+            segments, info = whisper_model.transcribe(
+                tmp_path,
+                language="vi",
+                beam_size=1,
+                best_of=1,
+                vad_filter=True,
+                vad_parameters=dict(min_silence_duration_ms=500),
+            )
+
+        text_parts = []
+        total_confidence = 0.0
+        count = 0
+        words = []
+        
+        for segment in segments:
+            text_parts.append(segment.text.strip())
+            total_confidence += getattr(segment, 'avg_logprob', 0.0)
+            count += 1
+            if hasattr(segment, 'words') and segment.words:
+                for w in segment.words:
+                    words.append({
+                        "word": w.word.strip(),
+                        "start_time": w.start,
+                        "end_time": w.end,
+                        "confidence": getattr(w, 'probability', 1.0)
+                    })
+
+        full_text = " ".join(text_parts)
+        avg_confidence = (total_confidence / count) if count > 0 else 0.0
+        # Convert log prob to 0-1 confidence (approximate)
+        confidence = min(1.0, max(0.0, 1.0 + avg_confidence))
+
+        processing_time = (datetime.now() - start_time).total_seconds() * 1000
+        
+        actual_utterance = {
+            "text": full_text,
+            "phonemes": [],
+            "words": words or [{"word": full_text, "start_time": 0.0, "end_time": info.duration, "confidence": confidence}] if full_text else [],
+            "confidence": confidence,
+            "duration": info.duration
+        }
+
+        # Fallback doesn't support complex comparison/fluency analysis, returning default values
+        total_score = confidence * 100
+        pronunciation_grade = "A" if total_score >= 80 else "B" if total_score >= 60 else "C"
+
+        return {
+            "success": True,
+            "audio_file_path": audio_file.filename,
+            "reference_text": reference_text or "",
+            "actual_utterance": actual_utterance,
+            "word_comparisons": [],
+            "overall_pronunciation_score": total_score,
+            "fluency_score": total_score,
+            "accuracy_score": total_score,
+            "total_score": total_score,
+            "pronunciation_grade": pronunciation_grade,
+            "statistics": {
+                "words_spoken": len(words) if words else len(full_text.split()),
+                "duration_seconds": info.duration,
+                "words_per_minute": len(full_text.split()) / (info.duration / 60) if info.duration > 0 else 0
+            },
+            "feedback": {
+                "strengths": ["Clear audio recording (Fallback mode)"],
+                "weaknesses": [],
+                "suggestions": ["Using fallback STT model, detailed analysis is limited."]
+            },
+            "processing_time_ms": processing_time,
+            "timestamp": datetime.now().isoformat(),
+            "whisper_model_used": WHISPER_MODEL
+        }
+    except Exception as e:
+        logger.error(f"STT error: {e}")
+        processing_time = (datetime.now() - start_time).total_seconds() * 1000
+        return JSONResponse(
+            status_code=200,  # Or 500, but use case returns object with success=False
+            content={
+                "success": False,
+                "audio_file_path": audio_file.filename if hasattr(audio_file, 'filename') else "unknown",
+                "reference_text": reference_text or "",
+                "actual_utterance": {
+                    "text": "", "phonemes": [], "words": [], "confidence": 0.0, "duration": 0.0
+                },
+                "word_comparisons": [],
+                "overall_pronunciation_score": 0.0,
+                "fluency_score": 0.0,
+                "accuracy_score": 0.0,
+                "total_score": 0.0,
+                "pronunciation_grade": "F",
+                "statistics": {
+                    "words_spoken": 0, "duration_seconds": 0.0, "words_per_minute": 0.0
+                },
+                "feedback": {
+                    "strengths": [], "weaknesses": [], "suggestions": []
+                },
+                "processing_time_ms": processing_time,
+                "timestamp": datetime.now().isoformat(),
+                "whisper_model_used": WHISPER_MODEL,
+                "error_message": str(e)
+            }
+        )
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+
+
 @app.get("/stt/status")
 async def stt_status():
     return {
