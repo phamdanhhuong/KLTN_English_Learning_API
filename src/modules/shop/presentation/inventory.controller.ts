@@ -9,25 +9,25 @@ export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Get()
-  async getInventory(@CurrentUser('id') userId: string) {
+  async getInventory(@CurrentUser('sub') userId: string) {
     if (!userId) throw new BadRequestException('User not found');
     return this.inventoryService.getInventory(userId);
   }
 
   @Get('equipped')
-  async getEquippedItem(@CurrentUser('id') userId: string) {
+  async getEquippedItem(@CurrentUser('sub') userId: string) {
     if (!userId) throw new BadRequestException('User not found');
     return this.inventoryService.getEquippedItem(userId);
   }
 
   @Put('equip/:itemId')
-  async equipItem(@CurrentUser('id') userId: string, @Param('itemId') itemId: string) {
+  async equipItem(@CurrentUser('sub') userId: string, @Param('itemId') itemId: string) {
     if (!userId) throw new BadRequestException('User not found');
     return this.inventoryService.equipItem(userId, itemId);
   }
 
   @Post('use/:itemId')
-  async useItem(@CurrentUser('id') userId: string, @Param('itemId') itemId: string) {
+  async useItem(@CurrentUser('sub') userId: string, @Param('itemId') itemId: string) {
     if (!userId) throw new BadRequestException('User not found');
     return this.inventoryService.useItem(userId, itemId);
   }

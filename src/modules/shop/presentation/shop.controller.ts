@@ -14,13 +14,13 @@ export class ShopController {
   }
 
   @Post('buy/:itemId')
-  async buyItem(@CurrentUser('id') userId: string, @Param('itemId') itemId: string) {
+  async buyItem(@CurrentUser('sub') userId: string, @Param('itemId') itemId: string) {
     if (!userId) throw new BadRequestException('User not found');
     return this.shopService.buyItem(userId, itemId);
   }
 
   @Post('open-chest')
-  async openChest(@CurrentUser('id') userId: string) {
+  async openChest(@CurrentUser('sub') userId: string) {
     if (!userId) throw new BadRequestException('User not found');
     return this.shopService.openChest(userId);
   }

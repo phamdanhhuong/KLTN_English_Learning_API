@@ -38,6 +38,9 @@ export class PrismaUserProfileRepository implements UserProfileRepository {
       // League tier (default BRONZE)
       await tx.userLeagueTier.create({ data: { userId } });
 
+      // Inventory defaults
+      await tx.userEquippedItem.create({ data: { userId } });
+
       // Pre-create UserAchievement rows for all seeded achievements
       const achievements = await tx.achievement.findMany({
         select: { id: true },
@@ -76,6 +79,9 @@ export class PrismaUserProfileRepository implements UserProfileRepository {
 
       // League tier (default BRONZE)
       await tx.userLeagueTier.create({ data: { userId: data.userId } });
+
+      // Inventory defaults
+      await tx.userEquippedItem.create({ data: { userId: data.userId } });
 
       // Pre-create UserAchievement rows for all seeded achievements
       const achievements = await tx.achievement.findMany({
