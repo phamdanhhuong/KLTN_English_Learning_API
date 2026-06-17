@@ -50,6 +50,16 @@ enum CurrencyTransactionReason {
   LEVEL_UP_REWARD
   ADMIN_ADJUSTMENT
   REFUND
+  SHOP_PURCHASE
+  CHEST_OPENED
+}
+
+enum ItemCategory {
+  FRAME
+  BACKGROUND
+  BOOST_XP
+  STREAK_FREEZE
+  CHEST
 }
 
 enum ExerciseType {
@@ -252,6 +262,10 @@ model User {
 
   // Payment relations
   paymentOrders    PaymentOrder[]
+
+  // Shop & Inventory relations
+  inventory        UserInventory[]
+  equippedItem     UserEquippedItem?
 
   @@map("users")
 }
@@ -1105,4 +1119,51 @@ model BattleRound {
 
   @@unique([matchId, roundNumber])
   @@map("battle_rounds")
+}
+
+// ==================== SHOP & INVENTORY MODULE ====================
+
+model ShopItem {
+  id           String       @id @default(uuid())
+  name         String
+  description  String?      @db.Text
+  category     ItemCategory
+  price        Int
+  currencyType CurrencyType @map("currency_type")
+  imageUrl     String?      @map("image_url")
+  isActive     Boolean      @default(true) @map("is_active")
+  metadata     Json?        @db.JsonB
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  inventories  UserInventory[]
+
+  @@index([category, isActive])
+  @@map("shop_items")
+}
+
+model UserInventory {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  itemId       String   @map("item_id")
+  quantity     Int      @default(1)
+  acquiredAt   DateTime @default(now()) @map("acquired_at")
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item ShopItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+  @@map("user_inventories")
+}
+
+model UserEquippedItem {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  frameId        String?  @map("frame_id")
+  backgroundId   String?  @map("background_id")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_equipped_items")
 }
