@@ -31,7 +31,7 @@ export class MailService {
           year: new Date().getFullYear(),
         },
       });
-      this.logger.log(`OTP email (${type}) sent to ${email}`);
+      this.logger.log(`OTP email (${type}) sent to ${email}. Code: ${otpCode}`);
     } catch (error) {
       this.logger.error(
         `Failed to send OTP email to ${email}: ${error.message}`,
