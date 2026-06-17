@@ -47,7 +47,7 @@ export class VerifyRegistrationUseCase {
 
   async execute(
     dto: CompleteRegistrationDto,
-  ): Promise<{ tokens: TokenPair; message: string }> {
+  ): Promise<{ user: any; tokens: TokenPair; message: string }> {
     // Mobile sends email as "userId" and otp code as "otp"
     const email = dto.userId;
     const otpCode = dto.otp;
@@ -125,6 +125,11 @@ export class VerifyRegistrationUseCase {
     });
 
     return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: registrationData.fullName,
+      },
       tokens,
       message: 'Registration successful',
     };
