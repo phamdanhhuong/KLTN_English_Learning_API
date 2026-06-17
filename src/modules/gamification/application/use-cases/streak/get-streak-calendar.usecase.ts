@@ -1,15 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../../infrastructure/database/prisma.service';
 
+function getVnToday(): Date {
+  const now = new Date();
+  const vnNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  return new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate()));
+}
+
 @Injectable()
 export class GetStreakCalendarUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(userId: string, startDate?: Date, endDate?: Date) {
-    // Default: current month
-    const now = new Date();
-    const start = startDate ?? new Date(now.getFullYear(), now.getMonth(), 1);
-    const end = endDate ?? new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    // Default: current month in VN time
+    const vnNow = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
+    
+    // Normalize start and end to VN midnight (stored as UTC midnight in DB)
+    let start: Date;
+    if (startDate) {
+      const startVn = new Date(startDate.getTime() + 7 * 60 * 60 * 1000);
+      start = new Date(Date.UTC(startVn.getUTCFullYear(), startVn.getUTCMonth(), startVn.getUTCDate()));
+    } else {
+      start = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), 1));
+    }
+
+    let end: Date;
+    if (endDate) {
+      const endVn = new Date(endDate.getTime() + 7 * 60 * 60 * 1000);
+      end = new Date(Date.UTC(endVn.getUTCFullYear(), endVn.getUTCMonth(), endVn.getUTCDate()));
+    } else {
+      end = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth() + 1, 0));
+    }
 
     const activities = await this.prisma.userDailyActivity.findMany({
       where: {
@@ -19,6 +40,18 @@ export class GetStreakCalendarUseCase {
       orderBy: { activityDate: 'asc' },
     });
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { createdAt: true }
+    });
+
+    // We need user joined date at VN midnight to ignore prior dates
+    const joinedAt = user?.createdAt ?? new Date();
+    const joinedVn = new Date(joinedAt.getTime() + 7 * 60 * 60 * 1000);
+    const joinedAtVnMidnight = new Date(
+      Date.UTC(joinedVn.getUTCFullYear(), joinedVn.getUTCMonth(), joinedVn.getUTCDate())
+    );
+
     // Build a set of studied dates for fast lookup
     const studiedMap = new Map(
       activities.map((a) => [a.activityDate.toISOString().split('T')[0], a]),
@@ -27,8 +60,8 @@ export class GetStreakCalendarUseCase {
     const streak = await this.prisma.streakData.findUnique({
       where: { userId },
     });
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    
+    const today = getVnToday();
 
     // Fill calendar days matching mobile CalendarDayModel
     const days: {
@@ -57,7 +90,11 @@ export class GetStreakCalendarUseCase {
       ) {
         status = 'active';
       } else if (cursor < today) {
-        status = 'missed';
+        if (cursor < joinedAtVnMidnight) {
+          status = 'no_streak';
+        } else {
+          status = 'missed';
+        }
       } else {
         status = 'no_streak';
       }
