@@ -54,7 +54,7 @@ export class SpeechController {
 
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.speechEndpoint}/stt/transcribe`,
+          `${this.speechEndpoint}/stt/transcribe/v2`,
           formData,
           {
             headers: {
