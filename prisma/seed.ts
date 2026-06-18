@@ -1,5 +1,6 @@
 import { PrismaClient, ExerciseType, Word, Grammar } from '@prisma/client';
 import { seedQuestsAndAchievements } from './seed-quests-achievements';
+import { seedRoadmap } from './seed-roadmap';
 
 const prisma = new PrismaClient();
 
@@ -2314,6 +2315,11 @@ async function main() {
   // QUESTS & ACHIEVEMENTS
   // ============================================================
   await seedQuestsAndAchievements();
+  
+  // ============================================================
+  // ROADMAPS
+  // ============================================================
+  await seedRoadmap();
 }
 
 main()

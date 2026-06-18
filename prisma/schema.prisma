@@ -245,6 +245,7 @@ model User {
   userAchievements         UserAchievement[]
   userQuests               UserQuest[]
   friendsQuestParticipants FriendsQuestParticipant[]
+  userRoadmaps             UserRoadmap[]
 
   // Leaderboard relations
   leagueParticipations LeagueParticipant[]
@@ -464,13 +465,14 @@ model Skill {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  part           SkillPart       @relation(fields: [partId], references: [id], onDelete: Cascade)
-  skillLevels    SkillLevel[]
-  lessons        Lesson[]
-  skillProgress  SkillProgress[]
-  skillWords     SkillWord[]
-  skillGrammars  SkillGrammar[]
-  userCustomSkill UserCustomSkill?
+  part             SkillPart       @relation(fields: [partId], references: [id], onDelete: Cascade)
+  skillLevels      SkillLevel[]
+  lessons          Lesson[]
+  skillProgress    SkillProgress[]
+  skillWords       SkillWord[]
+  skillGrammars    SkillGrammar[]
+  userCustomSkill  UserCustomSkill?
+  milestoneSkills  MilestoneSkill[]
 
   @@map("skills")
 }
@@ -1166,4 +1168,61 @@ model UserEquippedItem {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_equipped_items")
+}
+
+// ==================== ROADMAP & MILESTONE ====================
+
+model Roadmap {
+  id          String       @id @default(uuid())
+  title       String       @db.VarChar(255) // VD: Lộ trình từ Zero đến TOEIC 800+
+  targetGoal  LearningGoal @map("target_goal") // Liên kết với mục tiêu ban đầu
+  description String?      @db.Text
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  milestones  Milestone[]
+  userRoadmaps UserRoadmap[]
+
+  @@map("roadmaps")
+}
+
+model Milestone {
+  id              String           @id @default(uuid())
+  roadmapId       String           @map("roadmap_id")
+  title           String           @db.VarChar(255) // VD: Cột mốc 1 - Xây dựng nền tảng (A1-A2)
+  targetLevel     ProficiencyLevel @map("target_level") // Đạt chuẩn đầu ra nào
+  order           Int              @default(0) // Thứ tự của cột mốc trong Roadmap
+  capstoneTestId  String?          @unique @map("capstone_test_id") // Tham chiếu đến một Lesson (bài test đặc biệt)
+
+  roadmap         Roadmap          @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  milestoneSkills MilestoneSkill[]
+
+  @@map("milestones")
+}
+
+// Bảng trung gian nối Milestone với các Skill hiện có
+model MilestoneSkill {
+  milestoneId String @map("milestone_id")
+  skillId     String @map("skill_id")
+
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  skill       Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([milestoneId, skillId])
+  @@map("milestone_skills")
+}
+
+// Theo dõi người dùng đang học lộ trình nào
+model UserRoadmap {
+  userId      String    @map("user_id")
+  roadmapId   String    @map("roadmap_id")
+  status      String    @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  roadmap     Roadmap   @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roadmapId])
+  @@map("user_roadmaps")
 }

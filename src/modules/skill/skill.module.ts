@@ -8,6 +8,8 @@ import { SkillController } from './presentation/controllers/skill.controller';
 import { SkillPartController } from './presentation/controllers/skill-part.controller';
 import { LessonController } from './presentation/controllers/lesson.controller';
 import { ExerciseController } from './presentation/controllers/exercise.controller';
+import { RoadmapController } from './presentation/controllers/roadmap.controller';
+import { MilestoneController } from './presentation/controllers/milestone.controller';
 
 // Skill Use Cases
 import {
@@ -54,6 +56,24 @@ import {
   GenerateAiExercisesUseCase,
 } from './application/use-cases/exercise';
 
+// Roadmap Use Cases
+import {
+  CreateRoadmapUseCase,
+  GetAllRoadmapsUseCase,
+  GetRoadmapByIdUseCase,
+  UpdateRoadmapUseCase,
+  DeleteRoadmapUseCase,
+} from './application/use-cases/roadmap';
+
+// Milestone Use Cases
+import {
+  CreateMilestoneUseCase,
+  GetMilestonesByRoadmapUseCase,
+  GetMilestoneByIdUseCase,
+  UpdateMilestoneUseCase,
+  DeleteMilestoneUseCase,
+} from './application/use-cases/milestone';
+
 // Application Services
 import { ExerciseMetaValidatorService } from './application/services/exercise-meta-validator.service';
 
@@ -66,6 +86,8 @@ import { PrismaExerciseRepository } from './infrastructure/repositories/prisma-e
 import { PrismaReviewExerciseRepository } from './infrastructure/repositories/prisma-review-exercise.repository';
 import { PrismaTrainingExerciseRepository } from './infrastructure/repositories/prisma-training-exercise.repository';
 import { PrismaUserCustomSkillRepository } from './infrastructure/repositories/prisma-user-custom-skill.repository';
+import { PrismaRoadmapRepository } from './infrastructure/repositories/prisma-roadmap.repository';
+import { PrismaMilestoneRepository } from './infrastructure/repositories/prisma-milestone.repository';
 
 // Infrastructure - Domain Service
 import { SkillDomainServiceImpl } from './infrastructure/services/skill-domain.service';
@@ -116,6 +138,22 @@ const exerciseUseCases = [
   GenerateAiExercisesUseCase,
 ];
 
+const roadmapUseCases = [
+  CreateRoadmapUseCase,
+  GetAllRoadmapsUseCase,
+  GetRoadmapByIdUseCase,
+  UpdateRoadmapUseCase,
+  DeleteRoadmapUseCase,
+];
+
+const milestoneUseCases = [
+  CreateMilestoneUseCase,
+  GetMilestonesByRoadmapUseCase,
+  GetMilestoneByIdUseCase,
+  UpdateMilestoneUseCase,
+  DeleteMilestoneUseCase,
+];
+
 @Module({
   imports: [RedisModule, AuthModule, HttpModule],
   controllers: [
@@ -123,6 +161,8 @@ const exerciseUseCases = [
     SkillPartController,
     LessonController,
     ExerciseController,
+    RoadmapController,
+    MilestoneController,
   ],
   providers: [
     // Repository implementations
@@ -158,6 +198,14 @@ const exerciseUseCases = [
       provide: SKILL_TOKENS.USER_CUSTOM_SKILL_REPOSITORY,
       useClass: PrismaUserCustomSkillRepository,
     },
+    {
+      provide: SKILL_TOKENS.ROADMAP_REPOSITORY,
+      useClass: PrismaRoadmapRepository,
+    },
+    {
+      provide: SKILL_TOKENS.MILESTONE_REPOSITORY,
+      useClass: PrismaMilestoneRepository,
+    },
 
     // Domain Services
     {
@@ -174,6 +222,8 @@ const exerciseUseCases = [
     ...skillPartUseCases,
     ...lessonUseCases,
     ...exerciseUseCases,
+    ...roadmapUseCases,
+    ...milestoneUseCases,
 
     // Application Services
     ExerciseMetaValidatorService,
@@ -183,6 +233,8 @@ const exerciseUseCases = [
     ...skillPartUseCases,
     ...lessonUseCases,
     ...exerciseUseCases,
+    ...roadmapUseCases,
+    ...milestoneUseCases,
     SKILL_TOKENS.SKILL_REPOSITORY,
     SKILL_TOKENS.SKILL_PART_REPOSITORY,
     SKILL_TOKENS.LESSON_REPOSITORY,
@@ -190,6 +242,8 @@ const exerciseUseCases = [
     SKILL_TOKENS.REVIEW_EXERCISE_REPOSITORY,
     SKILL_TOKENS.TRAINING_EXERCISE_REPOSITORY,
     SKILL_TOKENS.USER_CUSTOM_SKILL_REPOSITORY,
+    SKILL_TOKENS.ROADMAP_REPOSITORY,
+    SKILL_TOKENS.MILESTONE_REPOSITORY,
     SKILL_TOKENS.SKILL_DOMAIN_SERVICE,
     SKILL_TOKENS.AI_EXERCISE_GENERATOR_SERVICE,
   ],
