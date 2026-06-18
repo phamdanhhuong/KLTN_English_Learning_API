@@ -200,25 +200,25 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  role      Role           @relation(fields: [roleId], references: [id])
-  roleId    String         @map("role_id")
+  role          Role           @relation(fields: [roleId], references: [id])
+  roleId        String         @map("role_id")
   refreshTokens RefreshToken[]
 
   // ==================== USER PROFILE ====================
-  username          String?           @unique
-  fullName          String?           @map("full_name")
-  profilePictureUrl String?           @map("profile_picture_url")
-  dateOfBirth       DateTime?         @map("date_of_birth")
+  username          String?   @unique
+  fullName          String?   @map("full_name")
+  profilePictureUrl String?   @map("profile_picture_url")
+  dateOfBirth       DateTime? @map("date_of_birth")
   gender            Gender?
 
   // Learning preferences
-  nativeLanguage   String?           @default("vi") @map("native_language")
-  targetLanguage   String?           @default("en") @map("target_language")
-  proficiencyLevel ProficiencyLevel? @map("proficiency_level")
-  learningGoals    LearningGoal[]
-  dailyGoalMinutes Int               @default(15) @map("daily_goal_minutes")
-  timezone         String?           @default("Asia/Ho_Chi_Minh")
-  hideBattleHistory Boolean          @default(false) @map("hide_battle_history")
+  nativeLanguage    String?           @default("vi") @map("native_language")
+  targetLanguage    String?           @default("en") @map("target_language")
+  proficiencyLevel  ProficiencyLevel? @map("proficiency_level")
+  learningGoals     LearningGoal[]
+  dailyGoalMinutes  Int               @default(15) @map("daily_goal_minutes")
+  timezone          String?           @default("Asia/Ho_Chi_Minh")
+  hideBattleHistory Boolean           @default(false) @map("hide_battle_history")
 
   // XP & Level (không tách bảng riêng)
   xpPoints      Int @default(0) @map("xp_points")
@@ -234,12 +234,12 @@ model User {
   gamificationStats    UserGamificationStats?
 
   // Social relations
-  following      UserRelationship[] @relation("UserFollowing")
-  followers      UserRelationship[] @relation("UserFollowers")
-  blockedUsers   UserBlock[]        @relation("Blocker")
-  blockedBy      UserBlock[]        @relation("Blocked")
-  sentReports    UserReport[]       @relation("Reporter")
-  receivedReports UserReport[]      @relation("Reported")
+  following       UserRelationship[] @relation("UserFollowing")
+  followers       UserRelationship[] @relation("UserFollowers")
+  blockedUsers    UserBlock[]        @relation("Blocker")
+  blockedBy       UserBlock[]        @relation("Blocked")
+  sentReports     UserReport[]       @relation("Reporter")
+  receivedReports UserReport[]       @relation("Reported")
 
   // Achievement & Quest relations
   userAchievements         UserAchievement[]
@@ -257,15 +257,18 @@ model User {
   feedComments  FeedComment[]
 
   // Battle relations
-  battleAsPlayer1  BattleMatch[] @relation("BattlePlayer1")
-  battleAsPlayer2  BattleMatch[] @relation("BattlePlayer2")
+  battleAsPlayer1 BattleMatch[] @relation("BattlePlayer1")
+  battleAsPlayer2 BattleMatch[] @relation("BattlePlayer2")
 
   // Payment relations
-  paymentOrders    PaymentOrder[]
+  paymentOrders PaymentOrder[]
 
   // Shop & Inventory relations
-  inventory        UserInventory[]
-  equippedItem     UserEquippedItem?
+  inventory    UserInventory[]
+  equippedItem UserEquippedItem?
+
+  // Learning Profile
+  learningProfile UserLearningProfile?
 
   @@map("users")
 }
@@ -358,7 +361,7 @@ model StreakData {
   freezeCount   Int       @default(0) @map("freeze_count")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   history StreakHistory[]
 
   @@map("streak_data")
@@ -439,7 +442,6 @@ model UserLevel {
   @@map("user_levels")
 }
 
-
 // ==================== SKILL / LEARNING MODULE ====================
 
 model SkillPart {
@@ -464,12 +466,12 @@ model Skill {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  part           SkillPart       @relation(fields: [partId], references: [id], onDelete: Cascade)
-  skillLevels    SkillLevel[]
-  lessons        Lesson[]
-  skillProgress  SkillProgress[]
-  skillWords     SkillWord[]
-  skillGrammars  SkillGrammar[]
+  part            SkillPart        @relation(fields: [partId], references: [id], onDelete: Cascade)
+  skillLevels     SkillLevel[]
+  lessons         Lesson[]
+  skillProgress   SkillProgress[]
+  skillWords      SkillWord[]
+  skillGrammars   SkillGrammar[]
   userCustomSkill UserCustomSkill?
 
   @@map("skills")
@@ -560,10 +562,11 @@ model Exercise {
   position     Int          @default(0)
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  lesson           Lesson            @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  exerciseWords    ExerciseWord[]
-  exerciseGrammars ExerciseGrammar[]
-  exerciseResults  ExerciseResult[]
+  lesson             Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  exerciseWords      ExerciseWord[]
+  exerciseGrammars   ExerciseGrammar[]
+  exerciseResults    ExerciseResult[]
+  exerciseGlobalStat ExerciseGlobalStat?
 
   @@map("exercises")
 }
@@ -583,10 +586,14 @@ model SkillProgress {
 }
 
 model WordMastery {
-  userId       String    @map("user_id")
-  wordId       String    @map("word_id")
-  masteryLevel Int       @default(0) @map("mastery_level")
-  lastReview   DateTime? @map("last_review") @db.Timestamptz(6)
+  userId         String    @map("user_id")
+  wordId         String    @map("word_id")
+  masteryLevel   Int       @default(0) @map("mastery_level")
+  easinessFactor Float     @default(2.5) @map("easiness_factor")
+  interval       Int       @default(0)
+  repetitions    Int       @default(0)
+  nextReviewDate DateTime? @default(now()) @map("next_review_date") @db.Timestamptz(6)
+  lastReview     DateTime? @map("last_review") @db.Timestamptz(6)
 
   word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
 
@@ -595,10 +602,14 @@ model WordMastery {
 }
 
 model GrammarMastery {
-  userId       String    @map("user_id")
-  grammarId    String    @map("grammar_id")
-  masteryLevel Int       @default(0) @map("mastery_level")
-  lastReview   DateTime? @map("last_review") @db.Timestamptz(6)
+  userId         String    @map("user_id")
+  grammarId      String    @map("grammar_id")
+  masteryLevel   Int       @default(0) @map("mastery_level")
+  easinessFactor Float     @default(2.5) @map("easiness_factor")
+  interval       Int       @default(0)
+  repetitions    Int       @default(0)
+  nextReviewDate DateTime? @default(now()) @map("next_review_date") @db.Timestamptz(6)
+  lastReview     DateTime? @map("last_review") @db.Timestamptz(6)
 
   grammar Grammar @relation(fields: [grammarId], references: [id], onDelete: Cascade)
 
@@ -607,16 +618,41 @@ model GrammarMastery {
 }
 
 model ExerciseResult {
-  id             String   @id @default(uuid())
-  userId         String   @map("user_id")
-  exerciseId     String   @map("exercise_id")
-  correctCount   Int      @map("correct_count") @default(0)
-  incorrectCount Int      @map("incorrect_count") @default(0)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                  String   @id @default(uuid())
+  userId              String   @map("user_id")
+  exerciseId          String   @map("exercise_id")
+  correctCount        Int      @default(0) @map("correct_count")
+  incorrectCount      Int      @default(0) @map("incorrect_count")
+  timeSpentMs         Int?     @map("time_spent_ms")
+  timeToFirstActionMs Int?     @map("time_to_first_action_ms")
+  answerChangeCount   Int?     @map("answer_change_count")
+  behaviorData        Json?    @map("behavior_data")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 
   @@map("exercise_results")
+}
+
+model UserLearningProfile {
+  userId         String    @id @map("user_id")
+  totalAnswers   Int       @default(0) @map("total_answers")
+  weaknesses     Json?     @map("weaknesses")
+  lastAnalyzedAt DateTime? @map("last_analyzed_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_learning_profiles")
+}
+
+model ExerciseGlobalStat {
+  exerciseId    String @id @map("exercise_id")
+  averageTimeMs Int    @default(0) @map("average_time_ms")
+  totalAttempts Int    @default(0) @map("total_attempts")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("exercise_global_stats")
 }
 
 // ==================== JUNCTION TABLES ====================
@@ -811,8 +847,8 @@ model UserQuest {
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quest Quest      @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest       @relation(fields: [questId], references: [id], onDelete: Cascade)
   chest QuestChest?
 
   @@unique([userId, questId, startDate])
@@ -855,24 +891,24 @@ model FriendsQuestGroup {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  participants  FriendsQuestParticipant[]
+  participants FriendsQuestParticipant[]
 
   @@index([questKey, weekStartDate])
   @@map("friends_quest_groups")
 }
 
 model FriendsQuestParticipant {
-  id            String   @id @default(uuid())
-  groupId       String   @map("group_id")
-  questKey      String   @map("quest_key")
-  userId        String   @map("user_id")
-  weekStartDate DateTime @map("week_start_date")
-  contribution  Int      @default(0)
+  id            String            @id @default(uuid())
+  groupId       String            @map("group_id")
+  questKey      String            @map("quest_key")
+  userId        String            @map("user_id")
+  weekStartDate DateTime          @map("week_start_date")
+  contribution  Int               @default(0)
   status        ParticipantStatus @default(PENDING)
-  isCreator     Boolean  @default(false) @map("is_creator")
-  joinedAt      DateTime @default(now()) @map("joined_at")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  isCreator     Boolean           @default(false) @map("is_creator")
+  joinedAt      DateTime          @default(now()) @map("joined_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
 
   group FriendsQuestGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -912,7 +948,7 @@ model LeagueGroup {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  league       League             @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  league       League              @relation(fields: [leagueId], references: [id], onDelete: Cascade)
   participants LeagueParticipant[]
 
   @@unique([leagueId, groupNumber])
@@ -949,7 +985,7 @@ model LeagueHistory {
   weekStartDate DateTime   @map("week_start_date")
   weeklyXp      Int        @map("weekly_xp")
   rank          Int
-  outcome       String     // "PROMOTED", "MAINTAINED", "DEMOTED"
+  outcome       String // "PROMOTED", "MAINTAINED", "DEMOTED"
   createdAt     DateTime   @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1022,11 +1058,11 @@ model FeedPost {
 }
 
 model FeedReaction {
-  id           String          @id @default(uuid())
-  postId       String          @map("post_id")
-  userId       String          @map("user_id")
+  id           String           @id @default(uuid())
+  postId       String           @map("post_id")
+  userId       String           @map("user_id")
   reactionType FeedReactionType @map("reaction_type")
-  createdAt    DateTime        @default(now()) @map("created_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
 
   post FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1057,38 +1093,38 @@ model FeedComment {
 // ==================== BATTLE MODULE ====================
 
 model BattleMatch {
-  id            String       @id @default(uuid())
-  status        BattleStatus @default(WAITING)
+  id     String       @id @default(uuid())
+  status BattleStatus @default(WAITING)
 
   // Players
-  player1Id     String       @map("player1_id")
-  player2Id     String?      @map("player2_id")
-  player1       User         @relation("BattlePlayer1", fields: [player1Id], references: [id])
-  player2       User?        @relation("BattlePlayer2", fields: [player2Id], references: [id])
+  player1Id String  @map("player1_id")
+  player2Id String? @map("player2_id")
+  player1   User    @relation("BattlePlayer1", fields: [player1Id], references: [id])
+  player2   User?   @relation("BattlePlayer2", fields: [player2Id], references: [id])
 
   // Scoring
-  player1Score  Int          @default(0) @map("player1_score")
-  player2Score  Int          @default(0) @map("player2_score")
+  player1Score Int @default(0) @map("player1_score")
+  player2Score Int @default(0) @map("player2_score")
 
   // Result
-  winnerId      String?      @map("winner_id")
+  winnerId String? @map("winner_id")
 
   // Rewards
-  xpAwarded1    Int          @default(0) @map("xp_awarded_1")
-  xpAwarded2    Int          @default(0) @map("xp_awarded_2")
+  xpAwarded1 Int @default(0) @map("xp_awarded_1")
+  xpAwarded2 Int @default(0) @map("xp_awarded_2")
 
   // Match config
-  totalRounds   Int          @default(5) @map("total_rounds")
-  tier          String?
-  isBot         Boolean      @default(false) @map("is_bot")
+  totalRounds Int     @default(5) @map("total_rounds")
+  tier        String?
+  isBot       Boolean @default(false) @map("is_bot")
 
   // Timestamps
-  startedAt     DateTime?    @map("started_at")
-  completedAt   DateTime?    @map("completed_at")
-  createdAt     DateTime     @default(now()) @map("created_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   // Relations
-  rounds        BattleRound[]
+  rounds BattleRound[]
 
   @@index([player1Id])
   @@index([player2Id])
@@ -1097,25 +1133,25 @@ model BattleMatch {
 }
 
 model BattleRound {
-  id            String      @id @default(uuid())
-  matchId       String      @map("match_id")
-  match         BattleMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  id      String      @id @default(uuid())
+  matchId String      @map("match_id")
+  match   BattleMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
-  roundNumber   Int         @map("round_number")
+  roundNumber Int @map("round_number")
 
   // Question data
-  questionType  String      @map("question_type")
-  questionData  Json        @map("question_data")
+  questionType String @map("question_type")
+  questionData Json   @map("question_data")
 
   // Player answers
-  player1Answer String?     @map("player1_answer")
-  player2Answer String?     @map("player2_answer")
-  player1TimeMs Int?        @map("player1_time_ms")
-  player2TimeMs Int?        @map("player2_time_ms")
-  player1Points Int         @default(0) @map("player1_points")
-  player2Points Int         @default(0) @map("player2_points")
+  player1Answer String? @map("player1_answer")
+  player2Answer String? @map("player2_answer")
+  player1TimeMs Int?    @map("player1_time_ms")
+  player2TimeMs Int?    @map("player2_time_ms")
+  player1Points Int     @default(0) @map("player1_points")
+  player2Points Int     @default(0) @map("player2_points")
 
-  createdAt     DateTime    @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([matchId, roundNumber])
   @@map("battle_rounds")
@@ -1136,18 +1172,18 @@ model ShopItem {
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
 
-  inventories  UserInventory[]
+  inventories UserInventory[]
 
   @@index([category, isActive])
   @@map("shop_items")
 }
 
 model UserInventory {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  itemId       String   @map("item_id")
-  quantity     Int      @default(1)
-  acquiredAt   DateTime @default(now()) @map("acquired_at")
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  itemId     String   @map("item_id")
+  quantity   Int      @default(1)
+  acquiredAt DateTime @default(now()) @map("acquired_at")
 
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   item ShopItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -1157,11 +1193,11 @@ model UserInventory {
 }
 
 model UserEquippedItem {
-  id             String   @id @default(uuid())
-  userId         String   @unique @map("user_id")
-  frameId        String?  @map("frame_id")
-  backgroundId   String?  @map("background_id")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  frameId      String?  @map("frame_id")
+  backgroundId String?  @map("background_id")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

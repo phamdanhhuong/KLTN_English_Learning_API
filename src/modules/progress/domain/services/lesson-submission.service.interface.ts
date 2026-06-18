@@ -11,7 +11,16 @@ export interface LessonSubmissionServiceInterface {
     isLessonSuccessful: boolean;
   };
 
-  saveExerciseResults(userId: string, exercises: any[]): Promise<void>;
+  saveExerciseResults(
+    userId: string,
+    exercises: any[],
+    behaviorData?: any[],
+  ): Promise<void>;
+
+  updateLearningProfileAttempts(
+    userId: string,
+    attemptsCount: number,
+  ): Promise<void>;
 
   validateLessonProgress(
     userId: string,

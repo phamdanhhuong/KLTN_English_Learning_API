@@ -62,8 +62,17 @@ export class LessonSubmissionService implements LessonSubmissionServiceInterface
     };
   }
 
-  async saveExerciseResults(userId: string, exercises: any[]): Promise<void> {
+  async saveExerciseResults(
+    userId: string,
+    exercises: any[],
+    behaviorData?: any[],
+  ): Promise<void> {
     for (const exercise of exercises) {
+      // Match behavioral data for this exercise
+      const exerciseBehavior = behaviorData?.find(
+        (b) => b.exerciseId === exercise.exerciseId,
+      );
+
       const existing = await this.prisma.exerciseResult.findFirst({
         where: { userId, exerciseId: exercise.exerciseId },
       });
@@ -74,6 +83,13 @@ export class LessonSubmissionService implements LessonSubmissionServiceInterface
           data: {
             correctCount: existing.correctCount + (exercise.isCorrect ? 1 : 0),
             incorrectCount: existing.incorrectCount + exercise.incorrectCount,
+            // Always update to latest behavioral data
+            timeSpentMs: exercise.timeSpentMs ?? existing.timeSpentMs,
+            timeToFirstActionMs:
+              exercise.timeToFirstActionMs ?? existing.timeToFirstActionMs,
+            answerChangeCount:
+              exercise.answerChangeCount ?? existing.answerChangeCount,
+            behaviorData: exerciseBehavior ?? existing.behaviorData,
           },
         });
       } else {
@@ -83,10 +99,30 @@ export class LessonSubmissionService implements LessonSubmissionServiceInterface
             exerciseId: exercise.exerciseId,
             correctCount: exercise.isCorrect ? 1 : 0,
             incorrectCount: exercise.incorrectCount,
+            timeSpentMs: exercise.timeSpentMs,
+            timeToFirstActionMs: exercise.timeToFirstActionMs,
+            answerChangeCount: exercise.answerChangeCount,
+            behaviorData: exerciseBehavior ?? undefined,
           },
         });
       }
     }
+  }
+
+  async updateLearningProfileAttempts(
+    userId: string,
+    attemptsCount: number,
+  ): Promise<void> {
+    await this.prisma.userLearningProfile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        totalAnswers: attemptsCount,
+      },
+      update: {
+        totalAnswers: { increment: attemptsCount },
+      },
+    });
   }
 
   async validateLessonProgress(

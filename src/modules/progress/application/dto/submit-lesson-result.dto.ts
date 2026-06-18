@@ -19,6 +19,50 @@ export class ExerciseResultDto {
 
   @IsNumber()
   incorrectCount: number;
+
+  @IsOptional()
+  @IsNumber()
+  timeSpentMs?: number;
+
+  @IsOptional()
+  @IsNumber()
+  timeToFirstActionMs?: number;
+
+  @IsOptional()
+  @IsNumber()
+  answerChangeCount?: number;
+}
+
+export class BehaviorDataDto {
+  @IsString()
+  exerciseId: string;
+
+  @IsString()
+  exerciseType: string;
+
+  @IsNumber()
+  timeSpentMs: number;
+
+  @IsNumber()
+  timeToFirstActionMs: number;
+
+  @IsNumber()
+  answerChangeCount: number;
+
+  @IsBoolean()
+  isCorrect: boolean;
+
+  @IsOptional()
+  @IsArray()
+  answerEvents?: any[];
+
+  @IsOptional()
+  @IsString()
+  selectedAnswer?: string;
+
+  @IsOptional()
+  @IsString()
+  correctAnswer?: string;
 }
 
 export class SubmitLessonResultDto {
@@ -37,6 +81,12 @@ export class SubmitLessonResultDto {
   @IsOptional()
   @IsNumber()
   timeSpent?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BehaviorDataDto)
+  behaviorData?: BehaviorDataDto[];
 }
 
 export class ProgressUpdateResultDto {

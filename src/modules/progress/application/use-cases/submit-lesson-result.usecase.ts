@@ -63,10 +63,17 @@ export class SubmitLessonResultUseCase {
       submitDto.exercises,
     );
 
-    // 5. Save exercise results
+    // 5. Save exercise results (with behavioral data)
     await this.lessonSubmissionService.saveExerciseResults(
       userId,
       submitDto.exercises,
+      submitDto.behaviorData,
+    );
+
+    // 5.1 Update learning profile answer count (Cold Start calibration)
+    await this.lessonSubmissionService.updateLearningProfileAttempts(
+      userId,
+      submitDto.exercises.length,
     );
 
     // 6. Update masteries for correct exercises
