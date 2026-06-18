@@ -6,7 +6,10 @@ import {
   Delete,
   Body,
   Param,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import {
   CreateRoadmapDto,
   UpdateRoadmapDto,
@@ -17,6 +20,7 @@ import {
   CreateRoadmapUseCase,
   UpdateRoadmapUseCase,
   DeleteRoadmapUseCase,
+  GetActiveUserRoadmapUseCase,
 } from '../../application/use-cases/roadmap';
 
 @Controller('learning/roadmaps')
@@ -27,11 +31,18 @@ export class RoadmapController {
     private readonly createRoadmapUseCase: CreateRoadmapUseCase,
     private readonly updateRoadmapUseCase: UpdateRoadmapUseCase,
     private readonly deleteRoadmapUseCase: DeleteRoadmapUseCase,
+    private readonly getActiveUserRoadmapUseCase: GetActiveUserRoadmapUseCase,
   ) {}
 
   @Get()
   async getAllRoadmaps() {
     return this.getAllRoadmapsUseCase.execute();
+  }
+
+  @Get('user/active')
+  @UseGuards(JwtAuthGuard)
+  async getActiveUserRoadmap(@Req() req: any) {
+    return this.getActiveUserRoadmapUseCase.execute(req.user.sub);
   }
 
   @Get(':id')

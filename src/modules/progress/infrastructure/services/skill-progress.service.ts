@@ -82,10 +82,71 @@ export class SkillProgressService implements SkillProgressServiceInterface {
           });
           if (!currentSkill) return 'Congratulations! All skills completed!';
 
-          const nextSkill = await this.prisma.skill.findFirst({
-            where: { position: { gt: currentSkill.position } },
-            orderBy: { position: 'asc' },
+          let nextSkill: any = null;
+          let roadmapCompleted = false;
+
+          // 1. Kiểm tra xem user có đang học roadmap nào không
+          const activeUserRoadmap = await this.prisma.userRoadmap.findFirst({
+            where: { userId, status: 'IN_PROGRESS' },
+            include: {
+              roadmap: {
+                include: {
+                  milestones: {
+                    orderBy: { order: 'asc' },
+                    include: {
+                      milestoneSkills: {
+                        include: {
+                          skill: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           });
+
+          if (activeUserRoadmap) {
+            // Lấy danh sách skill trong roadmap theo thứ tự milestone và position của skill
+            const orderedSkills: any[] = [];
+            for (const milestone of activeUserRoadmap.roadmap.milestones) {
+              const skillsInMilestone = milestone.milestoneSkills
+                .map((ms) => ms.skill)
+                .sort((a, b) => a.position - b.position);
+              orderedSkills.push(...skillsInMilestone);
+            }
+
+            const currentIndex = orderedSkills.findIndex((s) => s.id === skillId);
+            if (currentIndex !== -1) {
+              if (currentIndex < orderedSkills.length - 1) {
+                nextSkill = orderedSkills[currentIndex + 1];
+              } else {
+                roadmapCompleted = true;
+                // Hoàn thành roadmap
+                await this.prisma.userRoadmap.update({
+                  where: {
+                    userId_roadmapId: {
+                      userId,
+                      roadmapId: activeUserRoadmap.roadmapId,
+                    },
+                  },
+                  data: {
+                    status: 'COMPLETED',
+                    completedAt: new Date(),
+                  },
+                });
+              }
+            }
+          }
+
+          // 2. Nếu không có nextSkill từ roadmap (do không học roadmap, hoặc skill không nằm trong roadmap)
+          // và chưa hoàn thành roadmap, thì fallback về default
+          if (!nextSkill && !roadmapCompleted) {
+            nextSkill = await this.prisma.skill.findFirst({
+              where: { position: { gt: currentSkill.position } },
+              orderBy: { position: 'asc' },
+            });
+          }
 
           if (nextSkill) {
             await this.prisma.skillProgress.update({
@@ -98,6 +159,8 @@ export class SkillProgressService implements SkillProgressServiceInterface {
               },
             });
             return `Skill completed! Started new skill: ${nextSkill.title}`;
+          } else if (roadmapCompleted) {
+            return 'Congratulations! You have completed your roadmap!';
           } else {
             return 'Congratulations! All skills completed!';
           }

@@ -61,6 +61,28 @@ export class PrismaRoadmapRepository implements RoadmapRepositoryInterface {
     await this.prisma.roadmap.delete({ where: { id } });
   }
 
+  async findActiveUserRoadmap(userId: string): Promise<any | null> {
+    return this.prisma.userRoadmap.findFirst({
+      where: { userId, status: 'IN_PROGRESS' },
+      include: {
+        roadmap: {
+          include: {
+            milestones: {
+              orderBy: { order: 'asc' },
+              include: {
+                milestoneSkills: {
+                  include: {
+                    skill: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   private toDomain(data: any): Roadmap {
     const milestones = data.milestones?.map(
       (m: any) =>

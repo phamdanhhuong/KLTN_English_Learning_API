@@ -63,6 +63,7 @@ import {
   GetRoadmapByIdUseCase,
   UpdateRoadmapUseCase,
   DeleteRoadmapUseCase,
+  GetActiveUserRoadmapUseCase,
 } from './application/use-cases/roadmap';
 
 // Milestone Use Cases
@@ -144,6 +145,7 @@ const roadmapUseCases = [
   GetRoadmapByIdUseCase,
   UpdateRoadmapUseCase,
   DeleteRoadmapUseCase,
+  GetActiveUserRoadmapUseCase,
 ];
 
 const milestoneUseCases = [
