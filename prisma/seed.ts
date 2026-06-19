@@ -1,7 +1,8 @@
 import { PrismaClient, ExerciseType, Word, Grammar } from '@prisma/client';
 import { seedQuestsAndAchievements } from './seed-quests-achievements';
 import { seedRoadmap } from './seed-roadmap';
-
+import { seedSkill2 } from './seed_skill2';
+import { seedSkill3 } from './seed_skill3';
 const prisma = new PrismaClient();
 
 async function main() {
@@ -2310,6 +2311,12 @@ async function main() {
   console.log(`   • Level 5: 3 lessons with beginner-friendly practice`);
   console.log(`   • Level 6: 3 lessons with image description & writing`);
   console.log(`   • Level 7: 1 lesson with final comprehensive assessment`);
+
+  // ============================================================
+  // SEED SKILL 2 & 3
+  // ============================================================
+  await seedSkill2(prisma, skill2.id, commonTag.id);
+  await seedSkill3(prisma, skill3.id, commonTag.id);
 
   // ============================================================
   // QUESTS & ACHIEVEMENTS

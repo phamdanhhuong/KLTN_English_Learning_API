@@ -40,19 +40,23 @@ export async function seedRoadmap() {
     },
   });
 
-  // Link an existing skill to milestone 1 (if available)
-  const basicSkill = await prisma.skill.findFirst({
-    where: { title: 'Breakfast Basics' }
-  });
+  // Get Skills
+  const skill1 = await prisma.skill.findFirst({ where: { title: 'Breakfast Basics' } });
+  const skill2 = await prisma.skill.findFirst({ where: { title: 'Lunch & Dinner Vocabulary' } });
+  const skill3 = await prisma.skill.findFirst({ where: { title: 'Restaurant English' } });
 
-  if (basicSkill) {
+  if (skill1) {
     await prisma.milestoneSkill.create({
-      data: {
-        milestoneId: milestone1.id,
-        skillId: basicSkill.id,
-      }
+      data: { milestoneId: milestone1.id, skillId: skill1.id }
     });
-    console.log(`  🔗 Linked skill '${basicSkill.title}' to Milestone 1`);
+    console.log(`  🔗 Linked skill '${skill1.title}' to Roadmap 1 - Milestone 1`);
+  }
+
+  if (skill2) {
+    await prisma.milestoneSkill.create({
+      data: { milestoneId: milestone2.id, skillId: skill2.id }
+    });
+    console.log(`  🔗 Linked skill '${skill2.title}' to Roadmap 1 - Milestone 2`);
   }
 
   // Create Roadmap 2
@@ -65,7 +69,7 @@ export async function seedRoadmap() {
     },
   });
 
-  await prisma.milestone.create({
+  const roadmap2Milestone1 = await prisma.milestone.create({
     data: {
       roadmapId: roadmap2.id,
       title: 'Cột mốc 1 - Ngữ pháp nền tảng TOEIC',
@@ -73,6 +77,13 @@ export async function seedRoadmap() {
       order: 1,
     },
   });
+
+  if (skill3) {
+    await prisma.milestoneSkill.create({
+      data: { milestoneId: roadmap2Milestone1.id, skillId: skill3.id }
+    });
+    console.log(`  🔗 Linked skill '${skill3.title}' to Roadmap 2 - Milestone 1`);
+  }
 
   console.log('✅ Roadmaps & Milestones seeding completed!');
 }
