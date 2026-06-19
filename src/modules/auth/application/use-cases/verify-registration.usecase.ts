@@ -11,6 +11,8 @@ import { RefreshTokenRepository } from '../../domain/repositories/refresh-token.
 import { UserProfileService } from '../../domain/services/user-profile.service';
 import { CacheService } from '../../domain/services/cache.service';
 import { CompleteRegistrationDto } from '../dto/complete-registration.dto';
+import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { LearningGoal } from '@prisma/client';
 
 interface CachedRegistrationData {
   hashedPassword: string;
@@ -43,6 +45,7 @@ export class VerifyRegistrationUseCase {
     private readonly userProfileService: UserProfileService,
     @Inject(AUTH_TOKENS.CACHE_SERVICE)
     private readonly cacheService: CacheService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(
@@ -107,9 +110,10 @@ export class VerifyRegistrationUseCase {
     // Initialize all user profiles (gamification + league + achievements)
     try {
       await this.userProfileService.createUserProfile(user.id, user.email);
+      await this.initializeUserRoadmap(user.id, registrationData.learningGoals);
     } catch (error) {
       this.logger.warn(
-        `Failed to create user profile for ${user.id}: ${error.message}`,
+        `Failed to create user profile or roadmap for ${user.id}: ${error.message}`,
       );
     }
 
@@ -151,5 +155,73 @@ export class VerifyRegistrationUseCase {
     const cached = await this.cacheService.get<string>('role:USER');
     if (cached) return cached;
     return 'USER';
+  }
+
+  private async initializeUserRoadmap(userId: string, learningGoals?: string[]): Promise<void> {
+    try {
+      let matchingRoadmap: any = null;
+      
+      // Attempt to find a roadmap matching user's learning goals
+      if (learningGoals && learningGoals.length > 0) {
+        matchingRoadmap = await this.prisma.roadmap.findFirst({
+          where: {
+            targetGoal: { in: learningGoals as LearningGoal[] },
+            isActive: true,
+          },
+          include: {
+            milestones: {
+              orderBy: { order: 'asc' },
+              include: { milestoneSkills: true },
+            },
+          },
+        });
+      }
+
+      // Fallback to the first active roadmap if no match
+      if (!matchingRoadmap) {
+        matchingRoadmap = await this.prisma.roadmap.findFirst({
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            milestones: {
+              orderBy: { order: 'asc' },
+              include: { milestoneSkills: true },
+            },
+          },
+        });
+      }
+
+      if (matchingRoadmap) {
+        // Assign the Roadmap to User
+        await this.prisma.userRoadmap.create({
+          data: {
+            userId,
+            roadmapId: matchingRoadmap.id,
+            status: 'IN_PROGRESS',
+          },
+        });
+        
+        this.logger.log(`Assigned Roadmap ${matchingRoadmap.id} to User ${userId}`);
+
+        // Initialize Skill Progress for the first skill of the first milestone
+        const firstMilestone = matchingRoadmap.milestones[0];
+        if (firstMilestone && firstMilestone.milestoneSkills && firstMilestone.milestoneSkills.length > 0) {
+          const firstSkill = firstMilestone.milestoneSkills[0];
+          
+          await this.prisma.skillProgress.create({
+            data: {
+              userId,
+              skillId: firstSkill.skillId,
+              levelReached: 1,
+              lessonPosition: 1,
+            },
+          });
+          
+          this.logger.log(`Initialized SkillProgress for Skill ${firstSkill.skillId} to User ${userId}`);
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to initialize user roadmap for ${userId}: ${error.message}`);
+    }
   }
 }
