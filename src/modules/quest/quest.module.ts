@@ -20,6 +20,7 @@ import {
   GetUnlockedChestsUseCase,
   OpenChestUseCase,
 } from './application/use-cases/claim-quest.usecase';
+import { ClaimMapChestUseCase } from './application/use-cases/claim-map-chest.usecase';
 import {
   GetFriendsQuestParticipantsUseCase,
   JoinFriendsQuestUseCase,
@@ -75,6 +76,7 @@ import { UserQuestController } from './presentation/user-quest.controller';
     ClaimQuestUseCase,
     GetUnlockedChestsUseCase,
     OpenChestUseCase,
+    ClaimMapChestUseCase,
     GetFriendsQuestParticipantsUseCase,
     JoinFriendsQuestUseCase,
     InviteFriendToQuestUseCase,

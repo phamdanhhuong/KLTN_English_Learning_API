@@ -19,6 +19,7 @@ import { VoiceModule } from './modules/voice/voice.module';
 import { BattleModule } from './modules/battle/battle.module';
 import { EventEmitterModule } from '@nestjs/event-emitter/dist/event-emitter.module';
 import { ShopModule } from './modules/shop/shop.module';
+import { MiniGameModule } from './modules/mini-game/mini-game.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ShopModule } from './modules/shop/shop.module';
     VoiceModule,
     BattleModule,
     ShopModule,
+    MiniGameModule,
   ],
   controllers: [],
   providers: [],
