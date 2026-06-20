@@ -62,6 +62,7 @@ jobs:
             set -e
             cd ${{ secrets.TARGET_DIR }}
             npm install --production
-            npx -y prisma generate
-            npx -y prisma db push --skip-generate
+            npm install prisma --no-save
+            ./node_modules/.bin/prisma generate
+            ./node_modules/.bin/prisma db push --skip-generate
             pm2 restart KLTN_BACKEND || pm2 start dist/src/main.js --name "KLTN_BACKEND"
