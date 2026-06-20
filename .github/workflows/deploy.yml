@@ -59,8 +59,9 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
             cd ${{ secrets.TARGET_DIR }}
             npm install --production
-            npx prisma generate
-            npx prisma db push --skip-generate
+            npx -y prisma generate
+            npx -y prisma db push --skip-generate
             pm2 restart KLTN_BACKEND || pm2 start dist/src/main.js --name "KLTN_BACKEND"
