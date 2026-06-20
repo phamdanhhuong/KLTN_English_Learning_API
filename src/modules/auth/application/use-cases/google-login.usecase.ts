@@ -11,6 +11,7 @@ import { RefreshTokenRepository } from '../../domain/repositories/refresh-token.
 import { TokenService, TokenPair } from '../../domain/services/token.service';
 import { UserProfileService } from '../../domain/services/user-profile.service';
 import { LearningService } from '../../domain/services/learning.service';
+import { QuestService } from '../../../quest/application/services/quest.service';
 
 interface GooglePayload {
   sub: string;
@@ -36,6 +37,7 @@ export class GoogleLoginUseCase {
     @Inject(AUTH_TOKENS.LEARNING_SERVICE)
     private readonly learningService: LearningService,
     private readonly configService: ConfigService,
+    private readonly questService: QuestService,
   ) {}
 
   async execute(idToken: string): Promise<{
@@ -78,6 +80,7 @@ export class GoogleLoginUseCase {
             googlePayload.name,
             googlePayload.picture,
           );
+          await this.questService.checkAndInitQuests(user.id);
         } catch (error) {
           this.logger.warn(
             `Failed to create user profile for Google user ${user.id}: ${error.message}`,

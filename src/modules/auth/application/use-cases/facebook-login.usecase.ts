@@ -12,6 +12,7 @@ import { RefreshTokenRepository } from '../../domain/repositories/refresh-token.
 import { TokenService, TokenPair } from '../../domain/services/token.service';
 import { UserProfileService } from '../../domain/services/user-profile.service';
 import { LearningService } from '../../domain/services/learning.service';
+import { QuestService } from '../../../quest/application/services/quest.service';
 
 interface FacebookProfile {
   id: string;
@@ -36,6 +37,7 @@ export class FacebookLoginUseCase {
     @Inject(AUTH_TOKENS.LEARNING_SERVICE)
     private readonly learningService: LearningService,
     private readonly configService: ConfigService,
+    private readonly questService: QuestService,
   ) {}
 
   async execute(accessToken: string): Promise<{
@@ -73,6 +75,7 @@ export class FacebookLoginUseCase {
             fbProfile.name,
             fbProfile.picture?.data?.url,
           );
+          await this.questService.checkAndInitQuests(user.id);
         } catch (error) {
           this.logger.warn(
             `Failed to create user profile for Facebook user ${user.id}: ${error.message}`,

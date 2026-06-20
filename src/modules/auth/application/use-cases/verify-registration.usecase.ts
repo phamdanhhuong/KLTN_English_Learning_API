@@ -13,6 +13,7 @@ import { CacheService } from '../../domain/services/cache.service';
 import { CompleteRegistrationDto } from '../dto/complete-registration.dto';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { LearningGoal } from '@prisma/client';
+import { QuestService } from '../../../quest/application/services/quest.service';
 
 interface CachedRegistrationData {
   hashedPassword: string;
@@ -46,6 +47,7 @@ export class VerifyRegistrationUseCase {
     @Inject(AUTH_TOKENS.CACHE_SERVICE)
     private readonly cacheService: CacheService,
     private readonly prisma: PrismaService,
+    private readonly questService: QuestService,
   ) {}
 
   async execute(
@@ -111,6 +113,7 @@ export class VerifyRegistrationUseCase {
     try {
       await this.userProfileService.createUserProfile(user.id, user.email);
       await this.initializeUserRoadmap(user.id, registrationData.learningGoals);
+      await this.questService.checkAndInitQuests(user.id);
     } catch (error) {
       this.logger.warn(
         `Failed to create user profile or roadmap for ${user.id}: ${error.message}`,

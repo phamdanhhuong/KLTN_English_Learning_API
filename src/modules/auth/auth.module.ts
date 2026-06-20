@@ -31,6 +31,7 @@ import { LearningServiceImpl } from './infrastructure/services/learning.service.
 import { UserModule } from '../user/user.module';
 import { PrismaModule } from '../../infrastructure/database/prisma.module';
 import { UserProfileServiceImpl } from '../user/infrastructure/services/user-profile.service.impl';
+import { QuestModule } from '../quest/quest.module';
 
 // Presentation - Controllers
 import { AuthController } from './presentation/controllers/auth.controller';
@@ -50,6 +51,7 @@ import { AuthController } from './presentation/controllers/auth.controller';
     CacheModule.register(),
     PrismaModule,
     UserModule, // Import UserModule để dùng UserProfileServiceImpl
+    QuestModule,
   ],
   controllers: [AuthController],
   providers: [
