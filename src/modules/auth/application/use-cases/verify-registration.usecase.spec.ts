@@ -9,6 +9,7 @@ describe('VerifyRegistrationUseCase', () => {
   let refreshTokenRepo: any;
   let userProfileService: any;
   let cacheService: any;
+  let prismaService: any;
 
   const mockCreatedUser = new AuthUser({
     id: 'new-user-1',
@@ -50,6 +51,17 @@ describe('VerifyRegistrationUseCase', () => {
       get: jest.fn(),
       del: jest.fn(),
     };
+    prismaService = {
+      roadmap: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'roadmap-id', milestones: [{ skills: [{ id: 'skill-1' }] }] }),
+      },
+      userRoadmap: {
+        create: jest.fn().mockResolvedValue({}),
+      },
+      skillProgress: {
+        create: jest.fn().mockResolvedValue({}),
+      },
+    };
 
     useCase = new VerifyRegistrationUseCase(
       authUserRepo,
@@ -57,6 +69,7 @@ describe('VerifyRegistrationUseCase', () => {
       refreshTokenRepo,
       userProfileService,
       cacheService,
+      prismaService,
     );
   });
 
