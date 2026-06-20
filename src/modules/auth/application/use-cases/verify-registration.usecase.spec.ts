@@ -10,6 +10,7 @@ describe('VerifyRegistrationUseCase', () => {
   let userProfileService: any;
   let cacheService: any;
   let prismaService: any;
+  let questService: any;
 
   const mockCreatedUser = new AuthUser({
     id: 'new-user-1',
@@ -62,6 +63,7 @@ describe('VerifyRegistrationUseCase', () => {
         create: jest.fn().mockResolvedValue({}),
       },
     };
+    questService = {};
 
     useCase = new VerifyRegistrationUseCase(
       authUserRepo,
@@ -70,6 +72,7 @@ describe('VerifyRegistrationUseCase', () => {
       userProfileService,
       cacheService,
       prismaService,
+      questService,
     );
   });
 

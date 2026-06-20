@@ -14,6 +14,7 @@ describe('FacebookLoginUseCase', () => {
   let userProfileService: any;
   let learningService: any;
   let configService: any;
+  let questService: any;
 
   const mockUser = new AuthUser({
     id: 'user-1',
@@ -53,6 +54,7 @@ describe('FacebookLoginUseCase', () => {
     userProfileService = { createUserProfileWithDetails: jest.fn() };
     learningService = { initializeLearningProfile: jest.fn() };
     configService = { get: jest.fn() };
+    questService = {};
 
     useCase = new FacebookLoginUseCase(
       authUserRepo,
@@ -61,6 +63,7 @@ describe('FacebookLoginUseCase', () => {
       userProfileService,
       learningService,
       configService,
+      questService,
     );
 
     mockedAxios.get.mockResolvedValue(fbProfileResponse);

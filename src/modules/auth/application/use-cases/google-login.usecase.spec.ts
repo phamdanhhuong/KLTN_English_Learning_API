@@ -25,6 +25,7 @@ describe('GoogleLoginUseCase', () => {
   let userProfileService: any;
   let learningService: any;
   let configService: any;
+  let questService: any;
 
   const mockUser = new AuthUser({
     id: 'user-1',
@@ -55,6 +56,7 @@ describe('GoogleLoginUseCase', () => {
     userProfileService = { createUserProfileWithDetails: jest.fn() };
     learningService = { initializeLearningProfile: jest.fn() };
     configService = { get: jest.fn().mockReturnValue('google-client-id') };
+    questService = {};
 
     useCase = new GoogleLoginUseCase(
       authUserRepo,
@@ -63,6 +65,7 @@ describe('GoogleLoginUseCase', () => {
       userProfileService,
       learningService,
       configService,
+      questService,
     );
   });
 
@@ -133,6 +136,7 @@ describe('GoogleLoginUseCase', () => {
       userProfileService,
       learningService,
       configService,
+      questService,
     );
 
     await expect(freshUseCase.execute('bad-token')).rejects.toThrow(
