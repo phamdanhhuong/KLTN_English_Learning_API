@@ -14,6 +14,7 @@ import { CompleteRegistrationDto } from '../dto/complete-registration.dto';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { LearningGoal } from '@prisma/client';
 import { QuestService } from '../../../quest/application/services/quest.service';
+import { ChatbotClient } from '../../infrastructure/services/chatbot.client';
 
 interface CachedRegistrationData {
   hashedPassword: string;
@@ -48,6 +49,7 @@ export class VerifyRegistrationUseCase {
     private readonly cacheService: CacheService,
     private readonly prisma: PrismaService,
     private readonly questService: QuestService,
+    private readonly chatbotClient: ChatbotClient,
   ) {}
 
   async execute(
@@ -112,7 +114,7 @@ export class VerifyRegistrationUseCase {
     // Initialize all user profiles (gamification + league + achievements)
     try {
       await this.userProfileService.createUserProfile(user.id, user.email);
-      await this.initializeUserRoadmap(user.id, registrationData.learningGoals);
+      await this.initializeUserRoadmap(user.id, registrationData);
       await this.questService.checkAndInitQuests(user.id);
     } catch (error) {
       this.logger.warn(
@@ -160,12 +162,49 @@ export class VerifyRegistrationUseCase {
     return 'USER';
   }
 
-  private async initializeUserRoadmap(userId: string, learningGoals?: string[]): Promise<void> {
+  private async initializeUserRoadmap(userId: string, registrationData: CachedRegistrationData): Promise<void> {
     try {
       let matchingRoadmap: any = null;
-      
-      // Attempt to find a roadmap matching user's learning goals
-      if (learningGoals && learningGoals.length > 0) {
+
+      // Load all active roadmaps (basic info) to send to AI
+      const activeRoadmaps = await this.prisma.roadmap.findMany({
+        where: { isActive: true },
+        select: { id: true, title: true, targetGoal: true },
+      });
+
+      // Ask AI to recommend the best roadmap
+      if (activeRoadmaps.length > 0) {
+        try {
+          const aiResult = await this.chatbotClient.recommendRoadmap({
+            targetLanguage: registrationData.targetLanguage,
+            proficiencyLevel: registrationData.proficiencyLevel,
+            learningGoals: registrationData.learningGoals,
+            dailyGoalMinutes: registrationData.dailyGoalMinutes,
+            existingRoadmaps: activeRoadmaps,
+          });
+
+          if (aiResult?.roadmapId) {
+            matchingRoadmap = await this.prisma.roadmap.findUnique({
+              where: { id: aiResult.roadmapId },
+              include: {
+                milestones: {
+                  orderBy: { order: 'asc' },
+                  include: { milestoneSkills: true },
+                },
+              },
+            });
+            this.logger.log(`AI recommended roadmap: ${aiResult.roadmapId}`);
+          }
+        } catch (aiError) {
+          this.logger.warn(
+            `AI roadmap recommendation failed, falling back to DB match: ${aiError.message}`,
+          );
+        }
+      }
+
+      // Deterministic fallback: match by learning goals
+      const learningGoals = registrationData.learningGoals;
+      if (!matchingRoadmap && learningGoals && learningGoals.length > 0) {
         matchingRoadmap = await this.prisma.roadmap.findFirst({
           where: {
             targetGoal: { in: learningGoals as LearningGoal[] },
@@ -180,7 +219,7 @@ export class VerifyRegistrationUseCase {
         });
       }
 
-      // Fallback to the first active roadmap if no match
+      // Last resort fallback: first active roadmap
       if (!matchingRoadmap) {
         matchingRoadmap = await this.prisma.roadmap.findFirst({
           where: { isActive: true },

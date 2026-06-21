@@ -26,6 +26,7 @@ import { BcryptHashService } from './infrastructure/services/bcrypt-hash.service
 import { JwtTokenService } from './infrastructure/services/jwt-token.service';
 import { CacheServiceImpl } from './infrastructure/services/cache.service.impl';
 import { LearningServiceImpl } from './infrastructure/services/learning.service.impl';
+import { ChatbotClient } from './infrastructure/services/chatbot.client';
 
 // Cross-module
 import { UserModule } from '../user/user.module';
@@ -65,6 +66,9 @@ import { AuthController } from './presentation/controllers/auth.controller';
     ForgotPasswordUseCase,
     GoogleLoginUseCase,
     FacebookLoginUseCase,
+
+    // AI Service Client
+    ChatbotClient,
 
     // Repository Bindings (Interface → Implementation)
     {

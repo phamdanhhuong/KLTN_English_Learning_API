@@ -10,6 +10,8 @@ describe('VerifyRegistrationUseCase', () => {
   let userProfileService: any;
   let cacheService: any;
   let prismaService: any;
+  let questService: any;
+  let chatbotClient: any;
 
   const mockCreatedUser = new AuthUser({
     id: 'new-user-1',
@@ -53,7 +55,9 @@ describe('VerifyRegistrationUseCase', () => {
     };
     prismaService = {
       roadmap: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'roadmap-id', milestones: [{ skills: [{ id: 'skill-1' }] }] }),
+        findFirst: jest.fn().mockResolvedValue({ id: 'roadmap-id', milestones: [{ milestoneSkills: [{ skillId: 'skill-1' }] }] }),
+        findMany: jest.fn().mockResolvedValue([{ id: 'roadmap-id', title: 'General English', targetGoal: 'CONNECT' }]),
+        findUnique: jest.fn().mockResolvedValue({ id: 'ai-roadmap-id', milestones: [{ milestoneSkills: [{ skillId: 'skill-ai' }] }] }),
       },
       userRoadmap: {
         create: jest.fn().mockResolvedValue({}),
@@ -61,6 +65,12 @@ describe('VerifyRegistrationUseCase', () => {
       skillProgress: {
         create: jest.fn().mockResolvedValue({}),
       },
+    };
+    questService = {
+      checkAndInitQuests: jest.fn().mockResolvedValue(undefined),
+    };
+    chatbotClient = {
+      recommendRoadmap: jest.fn().mockResolvedValue({ roadmapId: 'ai-roadmap-id' }),
     };
 
     useCase = new VerifyRegistrationUseCase(
@@ -70,6 +80,8 @@ describe('VerifyRegistrationUseCase', () => {
       userProfileService,
       cacheService,
       prismaService,
+      questService,
+      chatbotClient,
     );
   });
 
@@ -132,5 +144,24 @@ describe('VerifyRegistrationUseCase', () => {
     });
 
     expect(result.message).toBe('Registration successful');
+  });
+
+  it('should fall back to deterministic roadmap when AI fails', async () => {
+    userProfileService.verifyRegistrationOtp.mockResolvedValue(true);
+    cacheService.get.mockResolvedValue(cachedData);
+    authUserRepo.findByEmail.mockResolvedValue(null);
+    chatbotClient.recommendRoadmap.mockRejectedValue(
+      new Error('AI service timeout'),
+    );
+
+    const result = await useCase.execute({
+      userId: 'test@example.com',
+      otp: '123456',
+    });
+
+    expect(result.message).toBe('Registration successful');
+    expect(chatbotClient.recommendRoadmap).toHaveBeenCalled();
+    // Should have fallen back to findFirst (deterministic)
+    expect(prismaService.roadmap.findFirst).toHaveBeenCalled();
   });
 });
