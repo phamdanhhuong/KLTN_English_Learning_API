@@ -20,6 +20,7 @@ import {
   GetUnlockedChestsUseCase,
   OpenChestUseCase,
 } from '../application/use-cases/claim-quest.usecase';
+import { ClaimMapChestUseCase } from '../application/use-cases/claim-map-chest.usecase';
 import {
   GetFriendsQuestParticipantsUseCase,
   JoinFriendsQuestUseCase,
@@ -38,6 +39,7 @@ export class QuestController {
     private readonly claimQuest: ClaimQuestUseCase,
     private readonly getUnlockedChests: GetUnlockedChestsUseCase,
     private readonly openChest: OpenChestUseCase,
+    private readonly claimMapChest: ClaimMapChestUseCase,
     private readonly getParticipants: GetFriendsQuestParticipantsUseCase,
     private readonly joinFriendsQuest: JoinFriendsQuestUseCase,
     private readonly inviteFriend: InviteFriendToQuestUseCase,
@@ -54,6 +56,25 @@ export class QuestController {
   @Get('completed')
   async getCompleted(@Request() req: any) {
     return this.getCompletedQuests.execute(req.user.sub);
+  }
+
+  // IMPORTANT: This static route MUST be before :questId/claim
+  // Otherwise NestJS matches "map-chests" as :questId
+  @Post('map-chests/claim')
+  @HttpCode(HttpStatus.OK)
+  async claimMapChestEndpoint(
+    @Request() req: any,
+    @Body() body: { chestId: string; skillId: string; partId?: string; requiredPosition: number },
+  ) {
+    return this.claimMapChest.execute(req.user.sub, body);
+  }
+
+  @Get('map-chests')
+  async getClaimedMapChests(
+    @Request() req: any,
+    @Query('partId') partId?: string,
+  ) {
+    return this.claimMapChest.getClaimedChests(req.user.sub, partId);
   }
 
   @Post(':questId/claim')
