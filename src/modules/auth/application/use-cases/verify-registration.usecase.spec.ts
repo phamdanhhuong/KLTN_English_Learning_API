@@ -55,9 +55,10 @@ describe('VerifyRegistrationUseCase', () => {
     };
     prismaService = {
       roadmap: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'roadmap-id', milestones: [{ milestoneSkills: [{ skillId: 'skill-1' }] }] }),
+        findFirst: jest.fn().mockResolvedValue({ id: 'roadmap-id', milestones: [{ id: 'm1', milestoneSkills: [{ skillId: 'skill-1' }] }] }),
         findMany: jest.fn().mockResolvedValue([{ id: 'roadmap-id', title: 'General English', targetGoal: 'CONNECT' }]),
-        findUnique: jest.fn().mockResolvedValue({ id: 'ai-roadmap-id', milestones: [{ milestoneSkills: [{ skillId: 'skill-ai' }] }] }),
+        findUnique: jest.fn().mockResolvedValue({ id: 'ai-roadmap-id', milestones: [{ id: 'm1', milestoneSkills: [{ skillId: 'skill-ai' }] }] }),
+        create: jest.fn().mockResolvedValue({ id: 'new-ai-roadmap', milestones: [{ id: 'm1', title: 'M1', targetLevel: 'BEGINNER', milestoneSkills: [] }] }),
       },
       userRoadmap: {
         create: jest.fn().mockResolvedValue({}),
@@ -65,12 +66,25 @@ describe('VerifyRegistrationUseCase', () => {
       skillProgress: {
         create: jest.fn().mockResolvedValue({}),
       },
+      skillPart: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'part-1' }),
+        create: jest.fn().mockResolvedValue({ id: 'part-1' }),
+      },
+      skill: {
+        create: jest.fn().mockResolvedValue({ id: 'new-skill' }),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'user-1', profile: {} }),
+      },
     };
     questService = {
       checkAndInitQuests: jest.fn().mockResolvedValue(undefined),
     };
     chatbotClient = {
       recommendRoadmap: jest.fn().mockResolvedValue({ roadmapId: 'ai-roadmap-id' }),
+      generateRoadmap: jest.fn().mockResolvedValue({ title: 'AI Map', targetGoal: 'CONNECT', description: 'desc', milestones: [] }),
+      generateSkill: jest.fn().mockResolvedValue({ title: 'AI Skill', description: 'desc', lessons: [] }),
+      generateExercises: jest.fn().mockResolvedValue({ exercises: [] }),
     };
 
     useCase = new VerifyRegistrationUseCase(
@@ -153,6 +167,9 @@ describe('VerifyRegistrationUseCase', () => {
     chatbotClient.recommendRoadmap.mockRejectedValue(
       new Error('AI service timeout'),
     );
+    chatbotClient.generateRoadmap.mockRejectedValue(
+      new Error('AI generation timeout'),
+    );
 
     const result = await useCase.execute({
       userId: 'test@example.com',
@@ -163,5 +180,26 @@ describe('VerifyRegistrationUseCase', () => {
     expect(chatbotClient.recommendRoadmap).toHaveBeenCalled();
     // Should have fallen back to findFirst (deterministic)
     expect(prismaService.roadmap.findFirst).toHaveBeenCalled();
+  });
+
+  it('should generate roadmap and skill using AI when no match is found', async () => {
+    userProfileService.verifyRegistrationOtp.mockResolvedValue(true);
+    cacheService.get.mockResolvedValue(cachedData);
+    authUserRepo.findByEmail.mockResolvedValue(null);
+    // Force recommendRoadmap to fail
+    chatbotClient.recommendRoadmap.mockRejectedValue(new Error('timeout'));
+    // Force findFirst to return null so it falls back to generation
+    prismaService.roadmap.findFirst.mockResolvedValue(null);
+
+    const result = await useCase.execute({
+      userId: 'test@example.com',
+      otp: '123456',
+    });
+
+    expect(result.message).toBe('Registration successful');
+    expect(chatbotClient.generateRoadmap).toHaveBeenCalled();
+    expect(chatbotClient.generateSkill).toHaveBeenCalled();
+    expect(prismaService.roadmap.create).toHaveBeenCalled();
+    expect(prismaService.skill.create).toHaveBeenCalled();
   });
 });

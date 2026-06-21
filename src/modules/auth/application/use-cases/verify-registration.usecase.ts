@@ -12,7 +12,7 @@ import { UserProfileService } from '../../domain/services/user-profile.service';
 import { CacheService } from '../../domain/services/cache.service';
 import { CompleteRegistrationDto } from '../dto/complete-registration.dto';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { LearningGoal } from '@prisma/client';
+import { LearningGoal, ProficiencyLevel } from '@prisma/client';
 import { QuestService } from '../../../quest/application/services/quest.service';
 import { ChatbotClient } from '../../infrastructure/services/chatbot.client';
 
@@ -219,7 +219,46 @@ export class VerifyRegistrationUseCase {
         });
       }
 
-      // Last resort fallback: first active roadmap
+      // Last resort fallback: generate a roadmap using AI
+      if (!matchingRoadmap) {
+        try {
+          this.logger.log('No matching roadmap found, asking AI to generate one...');
+          const generatedRoadmap = await this.chatbotClient.generateRoadmap({
+            targetLanguage: registrationData.targetLanguage,
+            proficiencyLevel: registrationData.proficiencyLevel,
+            learningGoals: registrationData.learningGoals,
+            dailyGoalMinutes: registrationData.dailyGoalMinutes,
+          });
+
+          // Create the roadmap in DB
+          matchingRoadmap = await this.prisma.roadmap.create({
+            data: {
+              title: generatedRoadmap.title,
+              targetGoal: generatedRoadmap.targetGoal as LearningGoal,
+              description: generatedRoadmap.description,
+              isActive: true,
+              milestones: {
+                create: generatedRoadmap.milestones.map((m) => ({
+                  title: m.title,
+                  targetLevel: m.targetLevel as ProficiencyLevel,
+                  order: m.order,
+                })),
+              },
+            },
+            include: {
+              milestones: {
+                orderBy: { order: 'asc' },
+                include: { milestoneSkills: true },
+              },
+            },
+          });
+          this.logger.log(`Created AI-generated roadmap: ${matchingRoadmap.id}`);
+        } catch (error) {
+          this.logger.error(`Failed to generate roadmap: ${error.message}`);
+        }
+      }
+
+      // If absolutely no roadmap, fallback to the very first one
       if (!matchingRoadmap) {
         matchingRoadmap = await this.prisma.roadmap.findFirst({
           where: { isActive: true },
@@ -242,28 +281,111 @@ export class VerifyRegistrationUseCase {
             status: 'IN_PROGRESS',
           },
         });
-        
+
         this.logger.log(`Assigned Roadmap ${matchingRoadmap.id} to User ${userId}`);
 
-        // Initialize Skill Progress for the first skill of the first milestone
+        // Ensure first milestone has a skill
         const firstMilestone = matchingRoadmap.milestones[0];
-        if (firstMilestone && firstMilestone.milestoneSkills && firstMilestone.milestoneSkills.length > 0) {
-          const firstSkill = firstMilestone.milestoneSkills[0];
-          
-          await this.prisma.skillProgress.create({
-            data: {
-              userId,
-              skillId: firstSkill.skillId,
-              levelReached: 1,
-              lessonPosition: 1,
-            },
-          });
-          
-          this.logger.log(`Initialized SkillProgress for Skill ${firstSkill.skillId} to User ${userId}`);
+        if (firstMilestone) {
+          let firstSkillId: string | null = null;
+
+          if (firstMilestone.milestoneSkills && firstMilestone.milestoneSkills.length > 0) {
+            firstSkillId = firstMilestone.milestoneSkills[0].skillId;
+          } else {
+            // Generate a skill using AI
+            firstSkillId = await this.initializeFirstSkill(
+              firstMilestone.id,
+              firstMilestone.title,
+              firstMilestone.targetLevel,
+              registrationData.proficiencyLevel,
+              registrationData.learningGoals,
+              0, // first skill
+            );
+          }
+
+          if (firstSkillId) {
+            await this.prisma.skillProgress.create({
+              data: {
+                userId,
+                skillId: firstSkillId,
+                levelReached: 1,
+                lessonPosition: 1,
+              },
+            });
+
+            this.logger.log(`Initialized SkillProgress for Skill ${firstSkillId} to User ${userId}`);
+          }
         }
       }
     } catch (error) {
       this.logger.warn(`Failed to initialize user roadmap for ${userId}: ${error.message}`);
+    }
+  }
+
+  private async initializeFirstSkill(
+    milestoneId: string,
+    milestoneTitle: string,
+    milestoneTargetLevel: string,
+    proficiencyLevel?: string,
+    learningGoals?: string[],
+    skillIndex: number = 0,
+  ): Promise<string | null> {
+    try {
+      this.logger.log(`Generating skill for milestone: ${milestoneTitle}`);
+      const generatedSkill = await this.chatbotClient.generateSkill({
+        milestoneTitle,
+        milestoneTargetLevel,
+        proficiencyLevel,
+        learningGoals,
+        skillIndex,
+      });
+
+      // Get or create "AI Generated" SkillPart
+      let skillPart = await this.prisma.skillPart.findFirst({
+        where: { name: 'AI Generated' },
+      });
+
+      if (!skillPart) {
+        skillPart = await this.prisma.skillPart.create({
+          data: {
+            name: 'AI Generated',
+            description: 'Skills dynamically generated by AI',
+            position: 999,
+          },
+        });
+      }
+
+      // Prepare skill levels data
+      const uniqueLevels = [...new Set(generatedSkill.lessons.map((l) => l.level))];
+
+      // Create Skill, SkillLevels, and Lessons
+      const skill = await this.prisma.skill.create({
+        data: {
+          title: generatedSkill.title,
+          description: generatedSkill.description,
+          position: skillIndex + 1,
+          partId: skillPart.id,
+          skillLevels: {
+            create: uniqueLevels.map((level) => ({ level })),
+          },
+          lessons: {
+            create: generatedSkill.lessons.map((l) => ({
+              skillLevel: l.level,
+              title: l.title,
+              position: l.position,
+            })),
+          },
+          milestoneSkills: {
+            create: [{ milestoneId }],
+          },
+        },
+      });
+
+      this.logger.log(`Created AI-generated skill: ${skill.id}`);
+      return skill.id;
+    } catch (error) {
+      this.logger.error(`Failed to generate skill: ${error.message}`);
+      return null;
     }
   }
 }

@@ -6,9 +6,14 @@ describe('GetLessonByIdUseCase', () => {
   let useCase: GetLessonByIdUseCase;
   let lessonRepository: any;
 
+  let exerciseRepository: any;
+  let chatbotClient: any;
+
   beforeEach(() => {
     lessonRepository = { findById: jest.fn() };
-    useCase = new GetLessonByIdUseCase(lessonRepository);
+    exerciseRepository = { createMany: jest.fn() };
+    chatbotClient = { generateExercises: jest.fn() };
+    useCase = new GetLessonByIdUseCase(lessonRepository, exerciseRepository, chatbotClient);
   });
 
   it('should return lesson DTO when found', async () => {

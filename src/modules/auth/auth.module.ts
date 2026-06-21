@@ -108,6 +108,7 @@ import { AuthController } from './presentation/controllers/auth.controller';
     AUTH_TOKENS.TOKEN_SERVICE,
     AUTH_TOKENS.AUTH_USER_REPOSITORY,
     JwtModule,
+    ChatbotClient,
   ],
 })
 export class AuthModule {}
