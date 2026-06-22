@@ -1,5 +1,5 @@
-import { IsString, IsOptional, IsEnum, IsBoolean } from 'class-validator';
-import { LearningGoal } from '@prisma/client';
+import { IsString, IsOptional, IsEnum, IsBoolean, IsArray, IsNumber } from 'class-validator';
+import { LearningGoal, ProficiencyLevel } from '@prisma/client';
 import { MilestoneDto } from './milestone.dto';
 
 export class CreateRoadmapDto {
@@ -44,4 +44,23 @@ export class RoadmapDto {
   isActive: boolean;
   createdAt: Date;
   milestones?: MilestoneDto[];
+}
+
+export class GenerateUserRoadmapDto {
+  @IsOptional()
+  @IsString()
+  targetLanguage?: string;
+
+  @IsOptional()
+  @IsEnum(ProficiencyLevel)
+  proficiencyLevel?: ProficiencyLevel;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(LearningGoal, { each: true })
+  learningGoals?: LearningGoal[];
+
+  @IsOptional()
+  @IsNumber()
+  dailyGoalMinutes?: number;
 }

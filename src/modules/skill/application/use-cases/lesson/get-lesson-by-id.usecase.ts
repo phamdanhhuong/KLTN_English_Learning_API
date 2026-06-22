@@ -7,6 +7,7 @@ import { LessonMapper } from '../../mappers/lesson.mapper';
 import { ChatbotClient } from '../../../../auth/infrastructure/services/chatbot.client';
 import { Exercise, ExerciseType } from '../../../domain/entities/exercise.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { RedisService } from '../../../../../infrastructure/cache/redis.service';
 
 @Injectable()
 export class GetLessonByIdUseCase {
@@ -18,6 +19,7 @@ export class GetLessonByIdUseCase {
     @Inject(SKILL_TOKENS.EXERCISE_REPOSITORY)
     private readonly exerciseRepository: ExerciseRepository,
     private readonly chatbotClient: ChatbotClient,
+    private readonly redisService: RedisService,
   ) {}
 
   async execute(id: string): Promise<LessonDto> {
@@ -32,12 +34,12 @@ export class GetLessonByIdUseCase {
       try {
         const difficultyMap: Record<number, string> = {
           1: 'beginner',
-          2: 'elementary',
-          3: 'intermediate',
-          4: 'intermediate',
-          5: 'upper_intermediate',
-          6: 'advanced',
-          7: 'advanced',
+          2: 'beginner',
+          3: 'beginner',
+          4: 'beginner',
+          5: 'beginner',
+          6: 'beginner',
+          7: 'elementary',
         };
         const difficulty = difficultyMap[lesson.skillLevel] || 'beginner';
 
@@ -90,6 +92,11 @@ export class GetLessonByIdUseCase {
           if (this.lessonRepository.invalidateCacheForLesson) {
             await this.lessonRepository.invalidateCacheForLesson(lesson.id, lesson.skillId, lesson.skillLevel);
           }
+          
+          // Explicitly clear redis caches as requested
+          await this.redisService.del(`lesson:${lesson.id}`);
+          await this.redisService.del(`exercise:lesson:${lesson.id}`);
+          await this.redisService.del(`exercise:count:${lesson.id}`);
           
           const updatedLesson = await this.lessonRepository.findById(id);
           if (updatedLesson) {

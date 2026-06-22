@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import {
   CreateRoadmapDto,
   UpdateRoadmapDto,
+  GenerateUserRoadmapDto,
 } from '../../application/dto/roadmap.dto';
 import {
   GetAllRoadmapsUseCase,
@@ -21,6 +22,9 @@ import {
   UpdateRoadmapUseCase,
   DeleteRoadmapUseCase,
   GetActiveUserRoadmapUseCase,
+  GenerateUserRoadmapUseCase,
+  GetUserRoadmapHistoryUseCase,
+  SwitchUserRoadmapUseCase,
 } from '../../application/use-cases/roadmap';
 
 @Controller('learning/roadmaps')
@@ -32,6 +36,9 @@ export class RoadmapController {
     private readonly updateRoadmapUseCase: UpdateRoadmapUseCase,
     private readonly deleteRoadmapUseCase: DeleteRoadmapUseCase,
     private readonly getActiveUserRoadmapUseCase: GetActiveUserRoadmapUseCase,
+    private readonly generateUserRoadmapUseCase: GenerateUserRoadmapUseCase,
+    private readonly getUserRoadmapHistoryUseCase: GetUserRoadmapHistoryUseCase,
+    private readonly switchUserRoadmapUseCase: SwitchUserRoadmapUseCase,
   ) {}
 
   @Get()
@@ -43,6 +50,24 @@ export class RoadmapController {
   @UseGuards(JwtAuthGuard)
   async getActiveUserRoadmap(@Req() req: any) {
     return this.getActiveUserRoadmapUseCase.execute(req.user.sub);
+  }
+
+  @Post('user/generate')
+  @UseGuards(JwtAuthGuard)
+  async generateUserRoadmap(@Req() req: any, @Body() dto: GenerateUserRoadmapDto) {
+    return this.generateUserRoadmapUseCase.execute(req.user.sub, dto);
+  }
+
+  @Get('user/history')
+  @UseGuards(JwtAuthGuard)
+  async getUserRoadmapHistory(@Req() req: any) {
+    return this.getUserRoadmapHistoryUseCase.execute(req.user.sub);
+  }
+
+  @Post('user/switch/:roadmapId')
+  @UseGuards(JwtAuthGuard)
+  async switchUserRoadmap(@Req() req: any, @Param('roadmapId') roadmapId: string) {
+    return this.switchUserRoadmapUseCase.execute(req.user.sub, roadmapId);
   }
 
   @Get(':id')

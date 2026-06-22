@@ -13,7 +13,8 @@ describe('GetLessonByIdUseCase', () => {
     lessonRepository = { findById: jest.fn() };
     exerciseRepository = { createMany: jest.fn() };
     chatbotClient = { generateExercises: jest.fn() };
-    useCase = new GetLessonByIdUseCase(lessonRepository, exerciseRepository, chatbotClient);
+    const redisService = { del: jest.fn() };
+    useCase = new GetLessonByIdUseCase(lessonRepository, exerciseRepository, chatbotClient, redisService as any);
   });
 
   it('should return lesson DTO when found', async () => {
