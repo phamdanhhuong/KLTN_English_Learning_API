@@ -63,4 +63,8 @@ export class GenerateUserRoadmapDto {
   @IsOptional()
   @IsNumber()
   dailyGoalMinutes?: number;
+
+  @IsOptional()
+  @IsString()
+  customPrompt?: string;
 }

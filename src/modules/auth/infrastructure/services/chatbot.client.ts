@@ -19,6 +19,7 @@ export interface GenerateRoadmapRequest {
   proficiencyLevel?: string;
   learningGoals?: string[];
   dailyGoalMinutes?: number;
+  customPrompt?: string;
 }
 
 export interface GeneratedMilestone {

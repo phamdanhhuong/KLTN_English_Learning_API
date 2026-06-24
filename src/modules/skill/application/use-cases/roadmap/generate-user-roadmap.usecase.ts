@@ -51,8 +51,8 @@ export class GenerateUserRoadmapUseCase {
       select: { id: true, title: true, targetGoal: true },
     });
 
-    // Ask AI to recommend the best roadmap
-    if (activeRoadmaps.length > 0) {
+    // Ask AI to recommend the best roadmap (skip if customPrompt is provided)
+    if (!dto?.customPrompt && activeRoadmaps.length > 0) {
       try {
         const aiResult = await this.chatbotClient.recommendRoadmap({
           targetLanguage: targetLanguage ?? undefined,
@@ -79,8 +79,8 @@ export class GenerateUserRoadmapUseCase {
       }
     }
 
-    // Deterministic fallback: match by learning goals
-    if (!matchingRoadmap && learningGoals && learningGoals.length > 0) {
+    // Deterministic fallback: match by learning goals (skip if customPrompt is provided)
+    if (!dto?.customPrompt && !matchingRoadmap && learningGoals && learningGoals.length > 0) {
       matchingRoadmap = await this.prisma.roadmap.findFirst({
         where: {
           targetGoal: { in: learningGoals as LearningGoal[] },
@@ -104,6 +104,7 @@ export class GenerateUserRoadmapUseCase {
           proficiencyLevel: proficiencyLevel ?? undefined,
           learningGoals: learningGoals || [],
           dailyGoalMinutes: dailyGoalMinutes || 15,
+          customPrompt: dto?.customPrompt,
         });
 
         // Create the roadmap in DB
