@@ -92,7 +92,7 @@ function buildEnergyStatus(
       timeSinceLastUse: null,
     },
     pricing: {
-      gemCost: 10,
+      gemCost: 5,
       coinCost: 50,
     },
     transactions: [],
